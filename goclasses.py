@@ -46,6 +46,12 @@ class piecePosition(Enum):
     RightSide=8
     Interior=9
 
+unicodePrint ={
+    "Black":u" \u26AB ",
+    "White":u" \u26AA "
+}
+unicodeBlack=unicodePrint["Black"]
+unicodeWhite=unicodePrint["White"]
 
         
 
