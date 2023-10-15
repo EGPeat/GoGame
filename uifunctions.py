@@ -28,12 +28,15 @@ def StartGame():
     p(f"You have choosen a {size}x{size} board.")
     return size
 
-def inputVal(valType=int):
+def inputVal(valType=int,maxSize=16): 
     
     while True:
         try:
             info=valType(input())
-
+            if(info>maxSize):
+                raise IndexError
             return info
         except ValueError:
             p(f"It seems you entered something that isn't a {valType}. Please try again")
+        except IndexError:
+            p("you put in a to large number, try again")
