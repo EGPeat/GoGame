@@ -27,3 +27,6 @@ boardSize=ui.StartGameDefault()
 
 GameBoard=go.GoBoard(boardSize,defaults=True)
 
+GameBoard.playGame()
+
+#add in a way to print the board, modify the piece class to do 

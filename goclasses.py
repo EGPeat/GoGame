@@ -1,4 +1,4 @@
-from uifunctions import p, pt
+from uifunctions import p, pt,inputVal
 from icecream import ic
 from enum import Enum
 class Player():
@@ -33,6 +33,8 @@ class Player():
             except ValueError:
                 p("It seems you entered something that isn't a float. Please try again")
 
+    
+
 
 #enumerate to help us understand where the coordinates are/mean
 class piecePosition(Enum):
@@ -48,10 +50,12 @@ class piecePosition(Enum):
 
 unicodePrint ={
     "Black":u" \u26AB ",
-    "White":u" \u26AA "
+    "White":u" \u26AA ",
+    "None":	u" \U0001F7E9 "
 }
 unicodeBlack=unicodePrint["Black"]
 unicodeWhite=unicodePrint["White"]
+unicodeNone=unicodePrint["None"]
 
         
 
@@ -60,8 +64,9 @@ class Piece(): #should honestly be boardLocation or something like that.
         self.row=rowVal
         self.col=colVal
         self.position=positionVal
-        self.stoneHereColor=None #none for nothing played here
-        self.positionPlayedLast=None #for ko 
+#        self.stoneHereColor=None #none for nothing played here
+        self.stoneHereColor=unicodeNone
+        
     
     def printPiece(self):
         p('\n')
@@ -85,7 +90,19 @@ class GoBoard():
         self.board=self.setupBoard()
         self.playerBlack= self.setupPlayer(self.defaults,color="Black")
         self.playerWhite= self.setupPlayer(self.defaults,color="White")
-
+        self.timesPassed=0
+        self.positionPlayedLast=None #for ko 
+    def printBoard(self): #add in numbers on the side
+        p("This is the board")
+        numRow='    '
+        for col in range(self.boardSize):
+            numRow+=f"{col}   "
+        p(numRow)
+        for row in range(self.boardSize):
+            rowPrint=f'{row} '
+            for col in range(self.boardSize):
+                rowPrint+=self.board[row][col].stoneHereColor
+            p(rowPrint)
 
 
     #This sets up the board variable of the GoBoard class, initializing as appropriate
@@ -130,9 +147,9 @@ class GoBoard():
 
 
         
-        for row in range(self.boardSize):
-            rowVals = [boardAssign[row][col].position.name for col in range(self.boardSize)]
-            ic(rowVals)
+        #for row in range(self.boardSize):
+        #    rowVals = [boardAssign[row][col].position.name for col in range(self.boardSize)]
+        #    ic(rowVals)
 
         return boardAssign
 
@@ -157,3 +174,56 @@ class GoBoard():
                 playerAssign.chooseName()
                 playerAssign.chooseKomi()
         return playerAssign
+
+    def playGame(self):
+        
+        self.setupBoard()
+
+        while(self.timesPassed!=2):
+            self.playTurn(self.playerBlack.color)
+            self.playTurn(self.playerWhite.color)
+        p("Game Finished")
+        #do endgame stuff
+
+
+
+
+    def playTurn(self,playerChoice):
+        hasPlayed=False
+        self.printBoard()
+        while hasPlayed!=True:
+            p("Enter the row for your move, or -1 to pass:")
+            row=inputVal(int)
+            p("Enter the col for your move, or -1 to pass:")
+            col=inputVal(int)
+            if((row+col)<0):
+                print("skipped turn")
+                self.timesPassed+=1
+                return
+            else:
+                self.timesPassed=0
+                hasPlayed=self.playPiece(row,col,playerChoice)
+
+        return
+
+    def playPiece(self, row,col,whichPlayer):
+        piece = self.board[row][col]
+        if (piece.stoneHereColor != unicodeNone):
+            p("You tried to place where there is already a piece. Please try your turn again.")
+            return False
+ #       elif(piece.suicide()==True): #add suicide function to Piece()
+#            p("Placing the piece there would commit suicide. Please try your turn again.")
+ #           return False
+#        elif(self.koRuleBreak(piece)==True): #add koRuleBreak to GoBoard()
+ #           p("Place the piece there would break the ko rule. Please try your turn again.")
+  #          return False
+        else:
+            self.positionPlayedLast=(row,col)
+            if whichPlayer=="Black":
+                piece.stoneHereColor=unicodeBlack
+            else:
+                piece.stoneHereColor=unicodeWhite
+
+
+        return True
+    #add in play game loop

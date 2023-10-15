@@ -28,3 +28,12 @@ def StartGame():
     p(f"You have choosen a {size}x{size} board.")
     return size
 
+def inputVal(valType=int):
+    
+    while True:
+        try:
+            info=valType(input())
+
+            return info
+        except ValueError:
+            p(f"It seems you entered something that isn't a {valType}. Please try again")
