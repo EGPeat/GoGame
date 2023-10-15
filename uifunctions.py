@@ -1,3 +1,4 @@
+import icecream as ic
 def p(input):
     print(input)
 def pt(input):
@@ -14,7 +15,7 @@ def StartGame():
     while True:
         try:
             size=int(input())
-            while size not in [9,13,17]:
+            if size not in [9,13,17]:
                 raise SyntaxError
 
             break
@@ -26,3 +27,4 @@ def StartGame():
 
     p(f"You have choosen a {size}x{size} board.")
     return size
+
