@@ -33,10 +33,13 @@ def inputVal(valType=int,maxSize=16):
     while True:
         try:
             info=valType(input())
-            if(info>maxSize):
+            
+            if isinstance(info,str) and (len(info)>maxSize):
+                raise IndexError
+            elif isinstance(info,int) and (info>maxSize):
                 raise IndexError
             return info
         except ValueError:
             p(f"It seems you entered something that isn't a {valType}. Please try again")
         except IndexError:
-            p("you put in a to large number, try again")
+            p("you put in something that is a larger int than is allowed, or a longer string than is allowed")
