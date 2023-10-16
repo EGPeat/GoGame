@@ -37,17 +37,7 @@ class Player():
     
 
 
-#enumerate to help us understand where the coordinates are/mean
-class piecePosition(Enum):
-    TopLeftCorner=1
-    TopRightCorner=2
-    BottomRightCorner=3
-    BottomLeftCorner=4
-    TopSide=5
-    BottomSide=6
-    LeftSide=7
-    RightSide=8
-    Interior=9
+
 
 unicodePrint ={
     "Black":u" \u26AB ",
@@ -61,10 +51,10 @@ unicodeNone=unicodePrint["None"]
         
 
 class Piece(): #should honestly be boardLocation or something like that.
-    def __init__(self, rowVal=None, colVal=None, positionVal=piecePosition.Interior):
+    def __init__(self, rowVal=None, colVal=None):
         self.row=rowVal
         self.col=colVal
-        self.position=positionVal
+        #self.position=positionVal
         self.stoneHereColor=unicodeNone
         
     
@@ -99,12 +89,24 @@ class GoBoard():
         self.visitKill=set()
     def printBoard(self): #add in numbers on the side
         p(f"This is the board at turn {self.turnNum}")
-        numRow='    '
+        numRow='      '
+
         for col in range(self.boardSize):
-            numRow+=f"{col}   "
+
+            if(col<10):
+                numRow+=f"0{col}  "
+            else:    
+                numRow+=f"{col}  "
         p(numRow)
+        
         for row in range(self.boardSize):
-            rowPrint=f'{row} '
+            rowPrint=''
+            if(row<10):
+                rowPrint+=f"0{row}   "
+            else:    
+                rowPrint+=f"{row}   "
+
+            #rowPrint=f'{row} '
             for col in range(self.boardSize):
                 rowPrint+=self.board[row][col].stoneHereColor
             p(rowPrint)
@@ -122,41 +124,9 @@ class GoBoard():
                 boardAssign[row][col].setupClassValue('row',row)
                 boardAssign[row][col].setupClassValue('col',col)
  
-
-
-        #This assigns every Pieces it's piece Position value
-        #It starts with the top row and bottom row, and then does left and right column
-        # It then does all interior pieces, finishing with the corner pieces
-        for idxRow in range(2): 
-            for idxCol in range(self.boardSize):
-
-                if idxRow==0:
-                    boardAssign[0][idxCol].setupClassValue('position',piecePosition.TopSide)
-                else:
-                    boardAssign[self.boardSize-1][idxCol].setupClassValue('position',piecePosition.BottomSide)
-
-        for idxCol in range(2):
-            for idxRow in range(self.boardSize):
-                if idxCol==0:
-                    boardAssign[idxRow][0].setupClassValue('position',piecePosition.LeftSide)
-                else:
-                    boardAssign[idxRow][self.boardSize-1].setupClassValue('position',piecePosition.RightSide)
-        for idxRow in range(1,self.boardSize-1):
-            for idxCol in range(1,self.boardSize-1):
-                boardAssign[idxRow][idxCol].setupClassValue('position',piecePosition.Interior)
-        boardAssign[0][0].setupClassValue('position',piecePosition.TopLeftCorner)
-        boardAssign[0][self.boardSize-1].setupClassValue('position',piecePosition.TopRightCorner)
-        boardAssign[self.boardSize-1][0].setupClassValue('position',piecePosition.BottomLeftCorner)
-        boardAssign[self.boardSize-1][self.boardSize-1].setupClassValue('position',piecePosition.BottomRightCorner)
-
-
-
-        
-        #for row in range(self.boardSize):
-        #    rowVals = [boardAssign[row][col].position.name for col in range(self.boardSize)]
-        #    ic(rowVals)
-
         return boardAssign
+
+
 
 
 
@@ -189,7 +159,7 @@ class GoBoard():
             self.playTurn(self.playerWhite.color)
 
         self.endOfGame()
-        #do endgame stuff
+
 
 
 
