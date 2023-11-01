@@ -1,6 +1,7 @@
 from uifunctions import p, inputVal
 from icecream import ic
-# import queue
+import os.path
+import ast
 
 
 class Player():
@@ -52,16 +53,15 @@ class Piece():  # should honestly be boardLocation or something like that.
     def __init__(self, rowVal=None, colVal=None):
         self.row = rowVal
         self.col = colVal
-        # self.position = positionVal
         self.stoneHereColor = unicodeNone
 
     def printPiece(self):
         p('\n')
         ic(self.row)
         ic(self.col)
-        ic(self.position)
-    # Allows for updating a specific variable in the Piece class
+        ic(self.stoneHereColor)
 
+    # Allows for updating a specific variable in the Piece class
     def setupClassValue(self, classValue, value):
         if hasattr(self, classValue):
             setattr(self, classValue, value)
@@ -161,7 +161,7 @@ class GoBoard():
             except ValueError:
                 p("It seems you entered something that isn't correct. Please try again")
         if handicapInfo < 200:
-            return False
+            return (False, 0, 0)  # Handicap, player, number of pieces
         handicapInfo %= 100
         if handicapInfo < 20:
             player = "Black"
@@ -176,8 +176,8 @@ class GoBoard():
         for idx in range(handicapInfo):
             row, col = choosenList[idx]
             self.playPiece(row, col, player)
-        self.positionPlayedLog.append((-1, -1))
-        return True
+        self.positionPlayedLog.append(("Break between handicaps and normal play", -1, -1))
+        return (True, player, handicapInfo)
 
     def playGame(self):
         self.setupBoard()
@@ -223,14 +223,14 @@ class GoBoard():
             else:
                 piece.stoneHereColor = unicodeWhite
             self.turnNum += 1
-            self.positionPlayedLog.append((row, col))
+            self.positionPlayedLog.append((whichPlayer, row, col))
             return True
         elif (self.suicide(piece, whichPlayer) == 0):
             p("Placing the piece there would commit suicide. Please try your turn again.")
             return False
 
         else:
-            self.positionPlayedLog.append((row, col))
+            self.positionPlayedLog.append((whichPlayer, row, col))
 
             if whichPlayer == "Black":
                 piece.stoneHereColor = unicodeBlack
@@ -241,7 +241,7 @@ class GoBoard():
         return True
 
     def koRuleBreak(self, piece):
-        row, col = self.positionPlayedLog[-2]
+        player, row, col = self.positionPlayedLog[-2]
         koSpot = self.board[row][col]
         if piece == koSpot:
             return True
@@ -260,7 +260,6 @@ class GoBoard():
         if visited is None:
             visited = set()
         visited.add(piece)
-        # sQueue = queue.Queue()
         neighbors = self.checkNeighbors(piece)
         liberties = 0
 
@@ -322,14 +321,58 @@ class GoBoard():
         return truthVal
 
     def saveToFile(self):
-        p("Please write the name of the txt file you want to save to.")
+        p("Please write the name of the txt file you want to save to. Do not include '.txt' in what you write")
         filename = inputVal(str, 30)
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
-            file.write(f"{self.boardSize} {self.defaults} {self.timesPassed} {self.turnNum} {self.handicap} {self.positionPlayedLog}\n")
-            file.write(f"{self.playerBlack.name}, {self.playerBlack.color} {self.playerBlack.captured} {self.playerBlack.komi}\n")
-            file.write(f"{self.playerWhite.name}, {self.playerWhite.color} {self.playerWhite.captured} {self.playerWhite.komi}\n")
+            file.write(f"{self.boardSize}; {self.defaults}; {self.timesPassed}; {self.turnNum}; {self.handicap}; {self.positionPlayedLog}\n")
+            file.write(f"{self.playerBlack.name}; {self.playerBlack.color}; {self.playerBlack.captured}; {self.playerBlack.komi}\n")
+            file.write(f"{self.playerWhite.name}; {self.playerWhite.color}; {self.playerWhite.captured}; {self.playerWhite.komi}\n")
             for row in range(self.boardSize):
                 rowPrint = ''
                 for col in range(self.boardSize):
                     rowPrint += self.board[row][col].stoneHereColor
                 file.write(rowPrint + '\n')
+
+    def loadFromFile(self):  # make function to read out all the moves made
+        p("Please write the name of the txt file you want to read from.")
+        foundFile = False
+        while foundFile is False:
+            path_filename = f"{inputVal(str, 30)}.txt"
+            if os.path.isfile(path_filename):
+                foundFile = True
+            else:
+                p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
+
+        with open(path_filename, 'r', encoding='utf-8') as file:
+            data_to_parse = [line.rstrip() for line in file]
+            data_to_parse = [line.split('; ') for line in data_to_parse]
+
+            self.boardSize = int(data_to_parse[0][0])  # change it to a list assignment? like items in list 1 equals items in list 2
+            self.defaults = data_to_parse[0][1]
+            self.timesPassed = int(data_to_parse[0][2])
+            self.turnNum = int(data_to_parse[0][3])
+            self.handicap = data_to_parse[0][4]
+            self.positionPlayedLog = list(ast.literal_eval(data_to_parse[0][5]))
+            del data_to_parse[0]
+
+            self.playerBlack.name = data_to_parse[0][0]
+            self.playerBlack.color = data_to_parse[0][1]
+            self.playerBlack.captured = data_to_parse[0][2]
+            self.playerBlack.komi = data_to_parse[0][3]
+            del data_to_parse[0]
+
+            self.playerWhite.name = data_to_parse[0][0]
+            self.playerWhite.color = data_to_parse[0][1]
+            self.playerWhite.captured = data_to_parse[0][2]
+            self.playerWhite.komi = data_to_parse[0][3]
+            del data_to_parse[0]
+
+            for idx in range(len(data_to_parse)):
+                data_to_parse[idx] = data_to_parse[idx][0].split('  ')
+
+            for xidx in range(self.boardSize):
+                for yidx in range(self.boardSize):
+                    if yidx == 0:
+                        self.board[xidx][yidx].stoneHereColor = f"{data_to_parse[xidx][yidx]} "
+                    else:
+                        self.board[xidx][yidx].stoneHereColor = f" {data_to_parse[xidx][yidx]} "
