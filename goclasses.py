@@ -177,13 +177,22 @@ class GoBoard():
             row, col = choosenList[idx]
             self.playPiece(row, col, player)
         self.positionPlayedLog.append(("Break between handicaps and normal play", -1, -1))
+        self.turnNum = 0
         return (True, player, handicapInfo)
 
-    def playGame(self):
-        self.setupBoard()
+    def playGame(self, fromFile=False):
+        if fromFile is not True:
+            self.setupBoard()
+        else:
+            if self.positionPlayedLog[-1][0] == "Black":
+                self.playTurn(self.playerWhite.color)
+        if self.handicap[0] is True and self.handicap[1] == "Black" and self.turnNum == 0:
+            self.playTurn(self.playerWhite.color)
 
-        while (self.timesPassed != 2):
+        while (self.timesPassed <= 2):
             self.playTurn(self.playerBlack.color)
+            if self.timesPassed == 2:
+                break
             self.playTurn(self.playerWhite.color)
 
         self.endOfGame()
@@ -202,6 +211,8 @@ class GoBoard():
             elif ((row + col) < 0):
                 print("skipped turn")
                 self.timesPassed += 1
+                self.turnNum += 1
+                self.positionPlayedLog.append((f"{playerChoice} passed", -2, -2))
                 return
             else:
                 self.timesPassed = 0
@@ -242,6 +253,8 @@ class GoBoard():
 
     def koRuleBreak(self, piece):
         player, row, col = self.positionPlayedLog[-2]
+        if row < 0:  # this is required to allow passes to work
+            return False
         koSpot = self.board[row][col]
         if piece == koSpot:
             return True
@@ -290,6 +303,10 @@ class GoBoard():
         p(f"Player Black has a score of {self.playerBlack.komi+self.playerBlack.captured-self.playerWhite.captured}")
         p(f"Player Black has a score of {self.playerWhite.komi+self.playerWhite.captured-self.playerBlack.captured}")
         p("This code cannot calculate territory or dead stones, so please do that yourself")
+        p("Would you like to save your game to a file? Type Y for yes, or N for no")
+        desire = inputVal(str, 1)
+        if desire.upper() == "Y":
+            self.saveToFile()
 
     def killStones(self, piece, whichPlayer):  # needs to return true if it does kill stones
         if whichPlayer == "Black":
@@ -357,14 +374,14 @@ class GoBoard():
 
             self.playerBlack.name = data_to_parse[0][0]
             self.playerBlack.color = data_to_parse[0][1]
-            self.playerBlack.captured = data_to_parse[0][2]
-            self.playerBlack.komi = data_to_parse[0][3]
+            self.playerBlack.captured = int(data_to_parse[0][2])
+            self.playerBlack.komi = float(data_to_parse[0][3])
             del data_to_parse[0]
 
             self.playerWhite.name = data_to_parse[0][0]
             self.playerWhite.color = data_to_parse[0][1]
-            self.playerWhite.captured = data_to_parse[0][2]
-            self.playerWhite.komi = data_to_parse[0][3]
+            self.playerWhite.captured = int(data_to_parse[0][2])
+            self.playerWhite.komi = float(data_to_parse[0][3])
             del data_to_parse[0]
 
             for idx in range(len(data_to_parse)):
