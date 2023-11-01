@@ -29,7 +29,7 @@ def StartGame():
     return size
 
 
-def inputVal(maxSize=16, valType=int, options=False):
+def inputVal(maxSize=16, valType=int, options=False):  # unused
 
     while True:
         try:

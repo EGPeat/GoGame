@@ -55,12 +55,6 @@ class Piece():  # should honestly be boardLocation or something like that.
         self.col = colVal
         self.stoneHereColor = unicodeNone
 
-    def printPiece(self):
-        p('\n')
-        ic(self.row)
-        ic(self.col)
-        ic(self.stoneHereColor)
-
     # Allows for updating a specific variable in the Piece class
     def setupClassValue(self, classValue, value):
         if hasattr(self, classValue):
@@ -82,7 +76,7 @@ class GoBoard():
         self.visitKill = set()
         self.handicap = self.dumbChooseHandicap()
 
-    def printBoard(self):
+    def printBoard(self):  # unused
         p(f"This is the board at turn {self.turnNum}")
         numRow = '      '
 
@@ -189,7 +183,6 @@ class GoBoard():
             self.playPiece(event[0], event[1], player, window)
         self.positionPlayedLog.append(("Break between handicaps and normal play", -1, -1))
         self.turnNum = 0
-        ic(event)
         return (True, player, handicapInfo)
 
     def playGame(self, window, fromFile=False, fixesHandicap=False):
@@ -207,11 +200,9 @@ class GoBoard():
 
         while (self.timesPassed <= 1):
             self.playTurn(window, self.playerBlack.color)
-            ic(self.timesPassed)
             if self.timesPassed == 2:
                 break
             self.playTurn(window, self.playerWhite.color)
-            ic(self.timesPassed)
 
         self.endOfGame(window)
 
@@ -325,8 +316,6 @@ class GoBoard():
         for position in self.visitKill:
             player.captured += 1
             position.stoneHereColor = unicodePrint["None"]
-            print(position.row)
-            print(position.col)
             window[(position.row, position.col)].update(' ')
 
     def endOfGame(self, window):
