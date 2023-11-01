@@ -2,6 +2,7 @@ from uifunctions import p, inputVal
 from icecream import ic
 import os.path
 import ast
+import PySimpleGUI as sg
 
 
 class Player():
@@ -13,30 +14,29 @@ class Player():
 
     # allows player input to choose their name
     def chooseName(self):
-        p("Please Enter a name you would like to use, but keep it less than 30 characters:")
+        info = "Please Enter a name you would like to use, but keep it less than 30 characters:"
         while self.name is None:
             try:
-                playerName = str(input())
+                playerName = str(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
                 if len(playerName) > 30:
                     raise SyntaxError
                 self.name = playerName
 
                 break
             except SyntaxError:
-                p("It seems you entered a name longer than 30 characters. Please try again")
+                info = "It seems you entered a name longer than 30 characters. Please try again"
 
     # allows player input to choose komi value
     def chooseKomi(self):
-        p(f"Your color is {self.color}")
         done = False
-        p("Please enter Komi Value. 6.5 is normally done:")
+        info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done:"
         while self.komi == 0 and done is not True:
             try:
-                komiVal = float(input())
+                komiVal = float(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
                 self.komi = komiVal
                 break
             except ValueError:
-                p("It seems you entered something that isn't a float. Please try again")
+                info = "It seems you entered something that isn't a float. Please try again"
 
 
 unicodePrint = {
@@ -80,7 +80,7 @@ class GoBoard():
         self.turnNum = 0
         self.positionPlayedLog = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visitKill = set()
-        self.handicap = self.chooseHandicap(self.defaults)
+        self.handicap = self.dumbChooseHandicap()
 
     def printBoard(self):
         p(f"This is the board at turn {self.turnNum}")
@@ -138,22 +138,27 @@ class GoBoard():
                 playerAssign.chooseKomi()
         return playerAssign
 
-    def chooseHandicap(self, defaults):
+    def dumbChooseHandicap(self):
+        return (False, "None", 0)
+
+    def chooseHandicap(self, defaults, window):
         if defaults is True:
             return (False, "None", 0)
         done = False
         handicapPoints9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicapPoints13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
         handicapPoints17 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
-        p("Please enter some information regarding a handicap.\n\
+        info = "Please enter some information regarding a handicap.\n\
           For the 100s place write 1 if there should be no handicap, or 2 if there should \n\
           For the 10s place, write 1 for Black getting the handicap, or 2 for white getting it\n\
           For the 1s place, please enter the number of stones the handicap should be\n\
           An example would be 212, meaning there is a handicap, black has it, and black gets 2 stones\n\
-          Warning. If you have choosen a 9x9 board, you can have only a 5 piece handicap max")
+          Warning. If you have choosen a 9x9 board, you can have only a 5 piece handicap max"
+
         while done is not True:
             try:
-                handicapInfo = int(input())
+                sg.popup(info, line_width=42)
+                handicapInfo = int(sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
 
                 if handicapInfo % 10 > 5 and self.boardSize == 9:
                     raise ValueError
@@ -175,61 +180,85 @@ class GoBoard():
             choosenList = handicapPoints13
         for idx in range(handicapInfo):
             row, col = choosenList[idx]
-            self.playPiece(row, col, player)
+            event, values = window.read()
+            if player == "Black":
+                window[event].update('\u26AB')
+            if player == "White":
+                window[event].update('\u26AA')
+
+            self.playPiece(event[0], event[1], player, window)
         self.positionPlayedLog.append(("Break between handicaps and normal play", -1, -1))
         self.turnNum = 0
+        ic(event)
         return (True, player, handicapInfo)
 
-    def playGame(self, fromFile=False):
+    def playGame(self, window, fromFile=False, fixesHandicap=False):
+
+        if fixesHandicap is True:
+            self.handicap = self.chooseHandicap(False, window)
         if fromFile is not True:
             self.setupBoard()
         else:
             if self.positionPlayedLog[-1][0] == "Black":
-                self.playTurn(self.playerWhite.color)
+                self.playTurn(window, self.playerWhite.color)
+
         if self.handicap[0] is True and self.handicap[1] == "Black" and self.turnNum == 0:
-            self.playTurn(self.playerWhite.color)
+            self.playTurn(window, self.playerWhite.color)
 
         while (self.timesPassed <= 1):
-            self.playTurn(self.playerBlack.color)
+            self.playTurn(window, self.playerBlack.color)
             ic(self.timesPassed)
             if self.timesPassed == 2:
                 break
-            self.playTurn(self.playerWhite.color)
+            self.playTurn(window, self.playerWhite.color)
             ic(self.timesPassed)
 
-        self.endOfGame()
+        self.endOfGame(window)
 
-    def playTurn(self, playerChoice):
-        self.printBoard()
-
-        p("Enter the row for your move, or (p) to pass, or (s) to save your board:")
-        row = inputVal(self.boardSize - 1, int, True)
-        if isinstance(row, str):
-            if (row.lower() == 'p'):
-                print("skipped turn")
+    def playTurn(self, window, playerChoice):
+        truthVal = False
+        while not truthVal:
+            event, values = window.read()
+            if event == "Press After Loading From File":
+                for xidx in range(self.boardSize):
+                    for yidx in range(self.boardSize):
+                        if not self.board[xidx][yidx].stoneHereColor == " \U0001F7E9 ":
+                            window[(xidx, yidx)].update(self.board[xidx][yidx].stoneHereColor)
+                event, values = window.read()
+            if event == "Pass Turn":
+                sg.popup("skipped turn", line_width=42)
                 self.timesPassed += 1
                 self.turnNum += 1
                 self.positionPlayedLog.append((f"{playerChoice} passed", -2, -2))
                 return
-            elif (row.lower() == 's'):
+            elif event == "Save Game":
                 self.saveToFile()
-                return
-        p("Enter the col for your move:")
-        col = inputVal(self.boardSize - 1, int, True)
+                event, values = window.read()
+                if event == "Exit Game":
+                    quit()
+            elif event == "Exit Game":
+                quit()
+            row = int(event[0])
+            col = int(event[1])
 
-        self.timesPassed = 0
-        self.playPiece(row, col, playerChoice)
+            self.timesPassed = 0
+            truthVal = self.playPiece(row, col, playerChoice, window)
+            if truthVal and playerChoice == "Black":
+                window[event].update('\u26AB')
+            if truthVal and playerChoice == "White":
+                window[event].update('\u26AA')
+
         return
 
-    def playPiece(self, row, col, whichPlayer):
+    def playPiece(self, row, col, whichPlayer, window):
         piece = self.board[row][col]
         if (piece.stoneHereColor != unicodeNone):
-            p("You tried to place where there is already a piece. Please try your turn again.")
+            sg.popup("You tried to place where there is already a piece. Please try your turn again.", line_width=42)
             return False
         elif (self.turnNum > 2 and self.koRuleBreak(piece) is True):
-            p("Place the piece there would break the ko rule. Please try your turn again.")
+            sg.popup("Place the piece there would break the ko rule. Please try your turn again.", line_width=42)
             return False
-        elif (self.killStones(piece, whichPlayer) is True):
+        elif (self.killStones(piece, whichPlayer, window) is True):
             if whichPlayer == "Black":
                 piece.stoneHereColor = unicodeBlack
             else:
@@ -238,7 +267,7 @@ class GoBoard():
             self.positionPlayedLog.append((whichPlayer, row, col))
             return True
         elif (self.suicide(piece, whichPlayer) == 0):
-            p("Placing the piece there would commit suicide. Please try your turn again.")
+            sg.popup("Placing the piece there would commit suicide. Please try your turn again.", line_width=42)
             return False
 
         else:
@@ -288,7 +317,7 @@ class GoBoard():
         self.visitKill = visited
         return liberties
 
-    def removeStones(self, whichPlayer):  # take in the player who is gaining the pieces
+    def removeStones(self, whichPlayer, window):  # take in the player who is gaining the pieces
         if whichPlayer == "Black":
             player = self.playerBlack
         else:
@@ -296,20 +325,32 @@ class GoBoard():
         for position in self.visitKill:
             player.captured += 1
             position.stoneHereColor = unicodePrint["None"]
+            print(position.row)
+            print(position.col)
+            window[(position.row, position.col)].update(' ')
 
-    def endOfGame(self):
-        p("Your game has finished. Congrats.")
-        p(f"Player Black: {self.playerBlack.name} captured {self.playerBlack.captured} and has a komi of {self.playerBlack.komi}")
-        p(f"Player White: {self.playerWhite.name} captured {self.playerWhite.captured} and has a komi of {self.playerWhite.komi}")
-        p(f"Player Black has a score of {self.playerBlack.komi+self.playerBlack.captured-self.playerWhite.captured}")
-        p(f"Player Black has a score of {self.playerWhite.komi+self.playerWhite.captured-self.playerBlack.captured}")
-        p("This code cannot calculate territory or dead stones, so please do that yourself")
-        p("Would you like to save your game to a file? Type Y for yes, or N for no")
-        desire = inputVal(1, str)
-        if desire.upper() == "Y":
-            self.saveToFile()
+    def endOfGame(self, window):
+        info = f"Your game has finished. Congrats.\nPlayer Black: {self.playerBlack.name} captured {self.playerBlack.captured} and has a komi of {self.playerBlack.komi}\n\
+            Player White: {self.playerWhite.name} captured {self.playerWhite.captured} and has a komi of {self.playerWhite.komi}\n\
+            Player Black has a score of {self.playerBlack.komi+self.playerBlack.captured-self.playerWhite.captured}\n\
+            Player Black has a score of {self.playerWhite.komi+self.playerWhite.captured-self.playerBlack.captured}\n\
+            This code cannot calculate territory or dead stones, so please do that yourself\nPlease save your game to a file or exit the program."
+        sg.popup(info, line_width=200)
+        event, values = window.read()
+        truthVal = False
+        while not truthVal:
+            event, values = window.read()
+            if event == "Pass Turn":
+                pass
+            elif event == "Save Game":
+                self.saveToFile()
+                event, values = window.read()
+                if event == "Exit Game":
+                    quit()
+            elif event == "Exit Game":
+                quit()
 
-    def killStones(self, piece, whichPlayer):  # needs to return true if it does kill stones
+    def killStones(self, piece, whichPlayer, window):  # needs to return true if it does kill stones
         if whichPlayer == "Black":
             piece.stoneHereColor = unicodeBlack
         else:
@@ -326,21 +367,15 @@ class GoBoard():
             neighborPiece = self.board[coordinate[0]][coordinate[1]]
             if neighborPiece.stoneHereColor == unicodePrint[notWhichPlayer]:
                 if (self.suicide(neighborPiece, notWhichPlayer) == 0):
-                    p("you killed a piece you monster")
-                    # if whichPlayer == "Black":
-                    # player = self.playerBlack
-                    # else:
-                    # player = self.playerWhite
-
-                    self.removeStones(whichPlayer)
+                    self.removeStones(whichPlayer, window)
                     truthVal = True
         if truthVal is False:
             piece.stoneHereColor = unicodeNone
         return truthVal
 
     def saveToFile(self):
-        p("Please write the name of the txt file you want to save to. Do not include '.txt' in what you write")
-        filename = inputVal(30, str)
+        text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
+        filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
             file.write(f"{self.boardSize}; {self.defaults}; {self.timesPassed}; {self.turnNum}; {self.handicap}; {self.positionPlayedLog}\n")
             file.write(f"{self.playerBlack.name}; {self.playerBlack.color}; {self.playerBlack.captured}; {self.playerBlack.komi}\n")
@@ -350,17 +385,19 @@ class GoBoard():
                 for col in range(self.boardSize):
                     rowPrint += self.board[row][col].stoneHereColor
                 file.write(rowPrint + '\n')
+        sg.popup(f"Saved to {filename}.txt", line_width=42)
 
-    def loadFromFile(self):  # make function to read out all the moves made
-        p("Please write the name of the txt file you want to read from.")
+    def loadFromFile(self, inputAlr=False, inputPath=''):  # make function to read out all the moves made
         foundFile = False
-        while foundFile is False:
-            path_filename = f"{inputVal(30, str)}.txt"
-            if os.path.isfile(path_filename):
-                foundFile = True
-            else:
-                p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
-
+        if inputAlr is False:
+            while foundFile is False:
+                path_filename = f"{inputVal(30, str)}.txt"
+                if os.path.isfile(path_filename):
+                    foundFile = True
+                # else:
+                    # p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
+        else:
+            path_filename = inputPath
         with open(path_filename, 'r', encoding='utf-8') as file:
             data_to_parse = [line.rstrip() for line in file]
             data_to_parse = [line.split('; ') for line in data_to_parse]
