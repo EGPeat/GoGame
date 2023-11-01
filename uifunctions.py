@@ -31,17 +31,28 @@ def StartGame():
     return size
 
 
-def inputVal(valType=int, maxSize=16):
+def inputVal(maxSize=16, valType=int, options=False):
 
     while True:
         try:
-            info = valType(input())
+            if not options:
+                info = valType(input())
+                if isinstance(info, str) and (len(info) > maxSize):
+                    raise IndexError
+                elif isinstance(info, int) and (info > maxSize):
+                    raise IndexError
+                return info
+            else:
+                info = input()
+                if info.isnumeric():
+                    info = int(info)
+                    if info > maxSize:
+                        raise IndexError
+                    return info
+                elif isinstance(info, str) and (len(info) > maxSize):
+                    raise IndexError
+                return info
 
-            if isinstance(info, str) and (len(info) > maxSize):
-                raise IndexError
-            elif isinstance(info, int) and (info > maxSize):
-                raise IndexError
-            return info
         except ValueError:
             p(f"It seems you entered something that isn't a {valType}. Please try again")
         except IndexError:

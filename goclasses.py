@@ -140,7 +140,7 @@ class GoBoard():
 
     def chooseHandicap(self, defaults):
         if defaults is True:
-            return
+            return (False, "None", 0)
         done = False
         handicapPoints9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicapPoints13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
@@ -189,35 +189,36 @@ class GoBoard():
         if self.handicap[0] is True and self.handicap[1] == "Black" and self.turnNum == 0:
             self.playTurn(self.playerWhite.color)
 
-        while (self.timesPassed <= 2):
+        while (self.timesPassed <= 1):
             self.playTurn(self.playerBlack.color)
+            ic(self.timesPassed)
             if self.timesPassed == 2:
                 break
             self.playTurn(self.playerWhite.color)
+            ic(self.timesPassed)
 
         self.endOfGame()
 
     def playTurn(self, playerChoice):
-        hasPlayed = False
         self.printBoard()
-        while hasPlayed is not True:
-            p("Enter the row for your move, or -1 to pass, or -100 to save your board:")
-            row = inputVal(int, self.boardSize - 1)
-            p("Enter the col for your move, or -1 to pass, or -100 to save your board:")
-            col = inputVal(int, self.boardSize - 1)
-            if ((row + col) < -100):
-                self.saveToFile()
-                return
-            elif ((row + col) < 0):
+
+        p("Enter the row for your move, or (p) to pass, or (s) to save your board:")
+        row = inputVal(self.boardSize - 1, int, True)
+        if isinstance(row, str):
+            if (row.lower() == 'p'):
                 print("skipped turn")
                 self.timesPassed += 1
                 self.turnNum += 1
                 self.positionPlayedLog.append((f"{playerChoice} passed", -2, -2))
                 return
-            else:
-                self.timesPassed = 0
-                hasPlayed = self.playPiece(row, col, playerChoice)
+            elif (row.lower() == 's'):
+                self.saveToFile()
+                return
+        p("Enter the col for your move:")
+        col = inputVal(self.boardSize - 1, int, True)
 
+        self.timesPassed = 0
+        self.playPiece(row, col, playerChoice)
         return
 
     def playPiece(self, row, col, whichPlayer):
@@ -304,7 +305,7 @@ class GoBoard():
         p(f"Player Black has a score of {self.playerWhite.komi+self.playerWhite.captured-self.playerBlack.captured}")
         p("This code cannot calculate territory or dead stones, so please do that yourself")
         p("Would you like to save your game to a file? Type Y for yes, or N for no")
-        desire = inputVal(str, 1)
+        desire = inputVal(1, str)
         if desire.upper() == "Y":
             self.saveToFile()
 
@@ -339,7 +340,7 @@ class GoBoard():
 
     def saveToFile(self):
         p("Please write the name of the txt file you want to save to. Do not include '.txt' in what you write")
-        filename = inputVal(str, 30)
+        filename = inputVal(30, str)
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
             file.write(f"{self.boardSize}; {self.defaults}; {self.timesPassed}; {self.turnNum}; {self.handicap}; {self.positionPlayedLog}\n")
             file.write(f"{self.playerBlack.name}; {self.playerBlack.color}; {self.playerBlack.captured}; {self.playerBlack.komi}\n")
@@ -354,7 +355,7 @@ class GoBoard():
         p("Please write the name of the txt file you want to read from.")
         foundFile = False
         while foundFile is False:
-            path_filename = f"{inputVal(str, 30)}.txt"
+            path_filename = f"{inputVal(30, str)}.txt"
             if os.path.isfile(path_filename):
                 foundFile = True
             else:
