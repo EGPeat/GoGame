@@ -4,12 +4,10 @@ import PySimpleGUI as sg
 
 
 # To do:
-# Load and Save to File using JSON
 # Remake gui in Kivy or etc
 # Add AI to game
 # Add MP to game
 # Auto scoring
-
 
 def play_game_main():
     window = ui.setup_menu()
@@ -21,7 +19,6 @@ def play_game_main():
             file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
             if file is None or file == "":
                 continue
-            # WorkOn adding checks for invalid inputs in different locations
             file = file.split("/")
             file = file[-1]
             sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
@@ -44,10 +41,11 @@ def play_game_main():
 
 def load_board_size(file):
     data_to_parse = go.load_and_parse_file(file)
-    board_size = int(data_to_parse[0][0])
+    board_size = data_to_parse["board_size"]
     return board_size
 
 
 if __name__ == "__main__":
+
     sg.theme('DarkAmber')
     play_game_main()

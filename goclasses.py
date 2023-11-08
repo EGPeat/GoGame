@@ -1,6 +1,5 @@
 from uifunctions import p, input_value, setup_board_window, validation_gui
 import os.path
-import ast
 import PySimpleGUI as sg
 
 
@@ -200,13 +199,28 @@ class GoBoard():
         for idx in range(handicap_info):
             row, col = choosen_list[idx]  # WorkOn. Change it for allowing players to play where they want
             event, values = window.read()
+            while event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
+                if event == "Pass Turn":
+                    sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
+                    self.times_passed += 1
+                    self.turn_num += 1
+                    self.position_played_log.append((f"{player.color} passed", -2, -2))
+                    return
+                elif event == "Save Game":
+                    self.save_to_json()
+                elif event == "Exit Game":
+                    from main import play_game_main
+                    window.close()
+                    play_game_main()
+                    quit()
+                event, values = window.read()
             window[event].update(player.unicode)
 
             self.play_piece(event[0], event[1], player, window)
             self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
-        return (True, player, handicap_info)
+        return (True, player.color, handicap_info)
 
     def play_game(self, window, fromFile=False, fixes_handicap=False):
 
@@ -243,12 +257,12 @@ class GoBoard():
                 self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
                 return
             elif event == "Save Game":
-                self.save_to_file()
+                self.save_to_json()
             elif event == "Exit Game":
                 from main import play_game_main
                 window.close()
                 play_game_main()
-                quit()  # add different functionality
+                quit()
             else:
                 row = int(event[0])
                 col = int(event[1])
@@ -352,7 +366,7 @@ class GoBoard():
             if event == "Pass Turn":
                 pass
             elif event == "Save Game":
-                self.save_to_file()
+                self.save_to_json()
                 event, values = window.read()
                 if event == "Exit Game":
                     quit()
@@ -378,13 +392,45 @@ class GoBoard():
             piece.stone_here_color = unicode_none
         return truth_value
 
-    def save_to_file(self):  # Change this to json
+    def save_to_json(self):  # Change this to json
+        import json
         filename = ''
         while len(filename) < 1:
             text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
             filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
             if filename is None:
                 return
+        kill_list = []
+        for item in self.killed_last_turn:
+            kill_list.append([item.row, item.col])
+        places_on_board = list()
+        for xidx in range(self.board_size):
+            for yidx in range(self.board_size):
+                if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
+                    places_on_board.append([xidx, yidx, self.board[xidx][yidx].stone_here_color])
+        with open(f"{filename}.json", 'w', encoding='utf-8') as file:
+            dictionary_to_json = {
+                "board_size": self.board_size,
+                "defaults": self.defaults,
+                "times_passed": self.times_passed,
+                "turn_num": self.turn_num,
+                "handicap": self.handicap,
+                "position_played_log": self.position_played_log,
+                "killed_last_turn": kill_list,
+                "player_black.name": self.player_black.name,
+                "player_black.color": self.player_black.color,
+                "player_black.captured": self.player_black.captured,
+                "player_black.komi": self.player_black.komi,
+                "player_black.unicode": self.player_black.unicode,
+                "player_white.name": self.player_white.name,
+                "player_white.color": self.player_white.color,
+                "player_white.captured": self.player_white.captured,
+                "player_white.komi": self.player_white.komi,
+                "player_white.unicode": self.player_white.unicode,
+                "places_on_board": places_on_board
+            }
+            json_object = json.dumps(dictionary_to_json, indent=4)
+            file.write(json_object)
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
             file.write(f"{self.board_size}; {self.defaults}; {self.times_passed}; \
                 {self.turn_num}; {self.handicap}; {self.position_played_log}\n")
@@ -399,47 +445,46 @@ class GoBoard():
                 file.write(print_row + '\n')
         sg.popup(f"Saved to {filename}.txt", line_width=42, auto_close=True, auto_close_duration=3)
 
-    def load_from_file(self, inputAlr=False, inputPath=''):  # change this to loading from json
+    def load_from_json(self, inputAlr=False, inputPath=''):
+
         foundFile = False
         if inputAlr is False:
             while foundFile is False:
                 path_filename = f"{input_value(30, str)}.txt"
                 if os.path.isfile(path_filename):
                     foundFile = True
-                # else:
-                    # p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
+                else:
+                    p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
         else:
             path_filename = inputPath
-        data_to_parse = load_and_parse_file(path_filename)
-        self.board_size = int(data_to_parse[0][0])  # change it to a list assignment?
-        self.defaults = data_to_parse[0][1]
-        self.times_passed = int(data_to_parse[0][2])
-        self.turn_num = int(data_to_parse[0][3])
-        self.handicap = data_to_parse[0][4]
-        self.position_played_log = list(ast.literal_eval(data_to_parse[0][5]))
-        del data_to_parse[0]
+        data = load_and_parse_file(path_filename)
+        self.board_size = data["board_size"]
+        self.defaults = data["defaults"]
+        self.times_passed = data["times_passed"]
+        self.turn_num = data["turn_num"]
+        self.handicap = data["handicap"]
+        self.position_played_log = data["position_played_log"]
+        temp_list = data['killed_last_turn']
+        for item in temp_list:
+            temp_node = BoardNode(row_value=item[0], col_value=item[1])
+            self.killed_last_turn.add(temp_node)
 
-        self.player_black.name = data_to_parse[0][0]
-        self.player_black.color = data_to_parse[0][1]
-        self.player_black.captured = int(data_to_parse[0][2])
-        self.player_black.komi = float(data_to_parse[0][3])
-        del data_to_parse[0]
+        self.player_black.name = data["player_black.name"]
+        self.player_black.color = data["player_black.color"]
+        self.player_black.captured = data["player_black.captured"]
+        self.player_black.komi = data["player_black.komi"]
+        self.player_black.unicode = data["player_black.unicode"]
 
-        self.player_white.name = data_to_parse[0][0]
-        self.player_white.color = data_to_parse[0][1]
-        self.player_white.captured = int(data_to_parse[0][2])
-        self.player_white.komi = float(data_to_parse[0][3])
-        del data_to_parse[0]
-
-        for idx in range(len(data_to_parse)):
-            data_to_parse[idx] = data_to_parse[idx][0].split('  ')
-
-        for xidx in range(self.board_size):
-            for yidx in range(self.board_size):
-                if yidx == 0:
-                    self.board[xidx][yidx].stone_here_color = f"{data_to_parse[xidx][yidx]} "
-                else:
-                    self.board[xidx][yidx].stone_here_color = f" {data_to_parse[xidx][yidx]} "
+        self.player_white.name = data["player_white.name"]
+        self.player_white.color = data["player_white.color"]
+        self.player_white.captured = data["player_white.captured"]
+        self.player_white.komi = data["player_white.komi"]
+        self.player_white.unicode = data["player_white.unicode"]
+        board_list = data["places_on_board"]
+        for item in board_list:
+            bxidx, byidx, bcolor = item
+            print(bxidx, byidx, bcolor)
+            self.board[bxidx][byidx].stone_here_color = f" {bcolor} "
 
     def refresh_board(self, window):
         for xidx in range(self.board_size):
@@ -450,8 +495,9 @@ class GoBoard():
 
 def load_and_parse_file(file):
     with open(file, 'r', encoding='utf-8') as file:
-        data_to_parse = [line.rstrip() for line in file]
-        data_to_parse = [line.split('; ') for line in data_to_parse]
+        import json
+        data_to_parse = json.load(file)
+
     return data_to_parse
 
 
@@ -467,7 +513,7 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
     else:
         GameBoard = GoBoard(board_size, defaults)
     if file_import_option:
-        GameBoard.load_from_file(True, choosen_file)
+        GameBoard.load_from_json(True, choosen_file)
     window.close()
     window2 = setup_board_window(GameBoard)
     info = "Click yes if you want to modify the handicap"
