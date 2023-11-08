@@ -11,18 +11,19 @@ layout = [
              size=20,
              expand_x=True,
              justification='center')],
-    [sg.Text(text='The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2', key="Info",
-             font=('Arial', 12),
-             size=20,
-             expand_x=True,
-             justification='center')],
+    [sg.Text(
+        text='The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2', key="Info",
+        font=('Arial', 12),
+        size=20,
+        expand_x=True,
+        justification='center')],
     [sg.Button("Choose File", font=('Arial Bold', 12)),
         sg.Button("New Game From Custom", font=('Arial Bold', 12)),
         sg.Button("New Game From Default", font=('Arial Bold', 12)),
         sg.Cancel("Exit Game", font=('Arial Bold', 12))]]
 
 
-def setupWin2():
+def setup_window2():
     text = f"Player 1 Name: {GameBoard.playerBlack.name}\nPlayer 1 Color: {GameBoard.playerBlack.color}\n\
     Player 1 Captured Pieces: {GameBoard.playerBlack.captured}\nPlayer 1 komi: {GameBoard.playerBlack.komi}\n\
     Player 2 Name: {GameBoard.playerWhite.name}\nPlayer 2 Color: {GameBoard.playerWhite.color}\n\
@@ -33,9 +34,12 @@ def setupWin2():
          sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
          sg.Button("Exit Game", font=('Arial Bold', 12))],
 
-        [sg.Text(text='The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2', key="Info",
+        [sg.Text(text='The default settings are a 9x9 board, 6.5 komi,\
+                and names for players of Player 1 and Player 2', key="Info",
          font=('Arial', 12), size=20, expand_x=True, justification='center')],
-        [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0)) for j in range(GameBoard.boardSize)] for i in range(GameBoard.boardSize)],
+        [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
+            for j in range(GameBoard.boardSize)] for i in range(GameBoard.boardSize)],
+
         [sg.Multiline(text,
                       font=('Arial Bold', 12),
                       size=10,
@@ -58,23 +62,23 @@ while True:
         file = file[-1]
         sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15))
         GameBoard = go.GoBoard(9, defaults=True)
-        GameBoard.loadFromFile(True, file)
+        GameBoard.load_from_file(True, file)
         window.close()
-        window2 = setupWin2()
-        GameBoard.playGame(window2, fromFile=True)
+        window2 = setup_window2()
+        GameBoard.play_game(window2, fromFile=True)
 
     elif event == "New Game From Custom":
-        boardSize = ui.StartGame()
+        boardSize = ui.start_game()
         GameBoard = go.GoBoard(boardSize, defaults=False)
         window.close()
-        window2 = setupWin2()
-        GameBoard.playGame(window2, fromFile=False, fixesHandicap=True)
+        window2 = setup_window2()
+        GameBoard.play_game(window2, fromFile=False, fixesHandicap=True)
 
     elif event == "New Game From Default":
         GameBoard = go.GoBoard(9, defaults=True)
         window.close()
-        window2 = setupWin2()
-        GameBoard.playGame(window2)
+        window2 = setup_window2()
+        GameBoard.play_game(window2)
 
     if event in (sg.WIN_CLOSED, 'Exit Game'):
         break

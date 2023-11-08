@@ -9,8 +9,9 @@ def pt(input):
     print(type(input))
 
 
-def StartGame():
-    info = "Please enter in the size you wish to have your Go Board as.\nPlease type (9) for a 9x9, (13) for a 13x13, or (17) for 17x17:"
+def start_game():
+    info = "Please enter in the size you wish to have your Go Board as.\nPlease\
+        type (9) for a 9x9, (13) for a 13x13, or (17) for 17x17:"
 
     while True:
         try:
@@ -29,7 +30,7 @@ def StartGame():
     return size
 
 
-def inputVal(maxSize=16, valType=int, options=False):  # unused
+def input_value(maxSize=16, valType=int, options=False):  # unused
 
     while True:
         try:
