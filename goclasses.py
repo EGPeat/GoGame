@@ -167,7 +167,7 @@ class GoBoard():
         elif self.board_size == 13:
             choosen_list = handicap_points13
         for idx in range(handicap_info):
-            row, col = choosen_list[idx] #WorkOn. Change it for allowing players to play where they want
+            row, col = choosen_list[idx]  #WorkOn. Change it for allowing players to play where they want
             event, values = window.read()
             if player == "Black":
                 window[event].update('\u26AB')
