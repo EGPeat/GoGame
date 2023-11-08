@@ -5,11 +5,12 @@ import PySimpleGUI as sg
 
 
 class Player():
-    def __init__(self, name=None, color=None, captured=0, komi=0):
+    def __init__(self, name=None, color=None, captured=0, komi=0, unicode_choice=None):
         self.name = name
         self.color = color
         self.captured = captured
         self.komi = komi
+        self.unicode = unicode_choice
 
     def choose_name(self):
         info = "Please Enter a name you would like to use, but keep it less than 30 characters:"
@@ -111,9 +112,9 @@ class GoBoard():
     def setup_player(self, defaults, color):
         if defaults:
             if color == "Black":
-                player_assignment = Player(name="Player One", color="Black")
+                player_assignment = Player(name="Player One", color="Black", unicode_choice=unicode_black)
             else:
-                player_assignment = Player(name="Player Two", color="White", komi=6.5)
+                player_assignment = Player(name="Player Two", color="White", komi=6.5, unicode_choice=unicode_white)
         else:
             if color == "Black":
                 player_assignment = Player(color="Black")
@@ -191,16 +192,16 @@ class GoBoard():
             self.setup_board()
         else:
             if self.position_played_log[-1][0] == "Black":
-                self.play_turn(window, self.player_white.color)
+                self.play_turn(window, self.player_white)
 
         if self.handicap[0] is True and self.handicap[1] == "Black" and self.turn_num == 0:
-            self.play_turn(window, self.player_white.color)
+            self.play_turn(window, self.player_white)
 
         while (self.times_passed <= 1):
-            self.play_turn(window, self.player_black.color)
+            self.play_turn(window, self.player_black)
             if self.times_passed == 2:
                 break
-            self.play_turn(window, self.player_white.color)
+            self.play_turn(window, self.player_white)
 
         self.end_of_game(window)
 
@@ -217,7 +218,7 @@ class GoBoard():
                 sg.popup("skipped turn", line_width=42)
                 self.times_passed += 1
                 self.turn_num += 1
-                self.position_played_log.append((f"{choosen_player} passed", -2, -2))
+                self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
                 return
             elif event == "Save Game":
                 self.save_to_file()
@@ -229,87 +230,75 @@ class GoBoard():
 
                 self.times_passed = 0
                 truth_value = self.play_piece(row, col, choosen_player, window)
-                if truth_value and choosen_player == "Black":
-                    window[event].update('\u26AB')
-                if truth_value and choosen_player == "White":
-                    window[event].update('\u26AA')
-
+                if truth_value:
+                    window[event].update(choosen_player.unicode)
         return
 
     def play_piece(self, row, col, which_player, window):
         piece = self.board[row][col]
+        suicidal_liberty_value = 0
         if (piece.stone_here_color != unicode_none):
             sg.popup("You tried to place where there is already a piece. Please try your turn again.", line_width=42)
             return False
+        elif (self.kill_stones(piece, which_player, window) is True):
+            piece.stone_here_color = which_player.unicode
+            self.turn_num += 1
+            self.position_played_log.append((which_player.color, row, col))
+            return True
         elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
             sg.popup("Place the piece there would break the ko rule. Please try your turn again.", line_width=42)
             return False
-        elif (self.kill_stones(piece, which_player, window) is True):
-            print(which_player)
-            if which_player == "Black":
-                piece.stone_here_color = unicode_black
-            else:
-                piece.stone_here_color = unicode_white
-            self.turn_num += 1
-            self.position_played_log.append((which_player, row, col))
-            self.killed_last_turn.clear()
-            return True
-        elif (self.suicide(piece, which_player) == 0):  # This returns the number of liberties. 0 would mean suicide.
+
+        elif (self.suicide(piece, which_player) == suicidal_liberty_value):
             sg.popup("Placing the piece there would commit suicide. Please try your turn again.", line_width=42)
             return False
 
         else:  # No rules or special cases are broken, play piece as normal.
-            self.position_played_log.append((which_player, row, col))
-
-            if which_player == "Black":
-                piece.stone_here_color = unicode_black
-            else:
-                piece.stone_here_color = unicode_white
-        self.killed_last_turn.clear()
+            self.position_played_log.append((which_player.color, row, col))
+            piece.stone_here_color = which_player.unicode
+            self.killed_last_turn.clear()
         self.turn_num += 1
         return True
 
     def ko_rule_break(self, piece):
-        if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:  # The second condition might be a problem
+        if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:
             return True
         return False
 
     def check_neighbors(self, piece):
         neighbors = [(piece.row - 1, piece.col), (piece.row + 1, piece.col),
                      (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
-        validNeighbors = []
+        valid_neighbors = []
         for coordinate in neighbors:
             if 0 <= coordinate[0] < self.board_size and 0 <= coordinate[1] < self.board_size:
-                validNeighbors.append(coordinate)
-        return validNeighbors
+                valid_neighbors.append(coordinate)
+        return valid_neighbors
 
+    # Uses BFS to figure out liberties and connected pieces of the same type
     def suicide(self, piece, which_player, visited=None):
         if visited is None:
             visited = set()
         visited.add(piece)
         neighbors = self.check_neighbors(piece)
         liberties = 0
-
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicodePrint["None"]:
+            if neighboring_piece.stone_here_color == unicode_none:
                 liberties += 1
-            elif neighboring_piece.stone_here_color != unicodePrint[which_player]:
+            elif neighboring_piece.stone_here_color != which_player.unicode:
                 pass
             elif neighboring_piece not in visited:
                 liberties += self.suicide(neighboring_piece, which_player, visited)
         self.visit_kill = visited
         return liberties
 
-    def remove_stones(self, choosen_player, window):  # take in the player who is gaining the pieces   
-        if choosen_player == "Black":
-            player = self.player_black
-        else:
-            player = self.player_white
+    # This takes in the player who is gaining the captured pieces
+    def remove_stones(self, choosen_player, window):
+        self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
-            player.captured += 1
-            position.stone_here_color = unicodePrint["None"]
+            choosen_player.captured += 1
+            position.stone_here_color = unicode_none
             window[(position.row, position.col)].update(' ')
 
     def end_of_game(self, window):
@@ -336,21 +325,17 @@ class GoBoard():
                 quit()
 
     def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
-        if which_player == "Black":
-            piece.stone_here_color = unicode_black
-        else:
-            piece.stone_here_color = unicode_white
-
+        piece.stone_here_color = which_player.unicode
         neighbors = self.check_neighbors(piece)
-        not_which_player = ''
         truth_value = False
-        if which_player == "Black":
-            not_which_player = "White"
+        if which_player == self.player_black:
+            not_which_player = self.player_white
         else:
-            not_which_player = "Black"
+            not_which_player = self.player_black
+
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicodePrint[not_which_player]:
+            if neighboring_piece.stone_here_color == not_which_player.unicode:
                 if (self.suicide(neighboring_piece, not_which_player) == 0):
                     self.remove_stones(which_player, window)
                     truth_value = True
@@ -386,39 +371,36 @@ class GoBoard():
                     # p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
         else:
             path_filename = inputPath
-        with open(path_filename, 'r', encoding='utf-8') as file:
-            data_to_parse = [line.rstrip() for line in file]
-            data_to_parse = [line.split('; ') for line in data_to_parse]
+        data_to_parse = load_and_parse_file(path_filename)
+        self.board_size = int(data_to_parse[0][0])  # change it to a list assignment?
+        self.defaults = data_to_parse[0][1]
+        self.times_passed = int(data_to_parse[0][2])
+        self.turn_num = int(data_to_parse[0][3])
+        self.handicap = data_to_parse[0][4]
+        self.position_played_log = list(ast.literal_eval(data_to_parse[0][5]))
+        del data_to_parse[0]
 
-            self.board_size = int(data_to_parse[0][0])  # change it to a list assignment?
-            self.defaults = data_to_parse[0][1]
-            self.times_passed = int(data_to_parse[0][2])
-            self.turn_num = int(data_to_parse[0][3])
-            self.handicap = data_to_parse[0][4]
-            self.position_played_log = list(ast.literal_eval(data_to_parse[0][5]))
-            del data_to_parse[0]
+        self.player_black.name = data_to_parse[0][0]
+        self.player_black.color = data_to_parse[0][1]
+        self.player_black.captured = int(data_to_parse[0][2])
+        self.player_black.komi = float(data_to_parse[0][3])
+        del data_to_parse[0]
 
-            self.player_black.name = data_to_parse[0][0]
-            self.player_black.color = data_to_parse[0][1]
-            self.player_black.captured = int(data_to_parse[0][2])
-            self.player_black.komi = float(data_to_parse[0][3])
-            del data_to_parse[0]
+        self.player_white.name = data_to_parse[0][0]
+        self.player_white.color = data_to_parse[0][1]
+        self.player_white.captured = int(data_to_parse[0][2])
+        self.player_white.komi = float(data_to_parse[0][3])
+        del data_to_parse[0]
 
-            self.player_white.name = data_to_parse[0][0]
-            self.player_white.color = data_to_parse[0][1]
-            self.player_white.captured = int(data_to_parse[0][2])
-            self.player_white.komi = float(data_to_parse[0][3])
-            del data_to_parse[0]
+        for idx in range(len(data_to_parse)):
+            data_to_parse[idx] = data_to_parse[idx][0].split('  ')
 
-            for idx in range(len(data_to_parse)):
-                data_to_parse[idx] = data_to_parse[idx][0].split('  ')
-
-            for xidx in range(self.board_size):
-                for yidx in range(self.board_size):
-                    if yidx == 0:
-                        self.board[xidx][yidx].stone_here_color = f"{data_to_parse[xidx][yidx]} "
-                    else:
-                        self.board[xidx][yidx].stone_here_color = f" {data_to_parse[xidx][yidx]} "
+        for xidx in range(self.board_size):
+            for yidx in range(self.board_size):
+                if yidx == 0:
+                    self.board[xidx][yidx].stone_here_color = f"{data_to_parse[xidx][yidx]} "
+                else:
+                    self.board[xidx][yidx].stone_here_color = f" {data_to_parse[xidx][yidx]} "
 
 
 def load_and_parse_file(file):
