@@ -3,84 +3,38 @@ import uifunctions as ui
 import PySimpleGUI as sg
 
 
-sg.theme('DarkAmber')
-
-layout = [
-    [sg.Text(text='Welcome to Evan\'s Go Game ',
-             font=('Arial Bold', 20),
-             size=20,
-             expand_x=True,
-             justification='center')],
-    [sg.Text(
-        text='The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2', key="Info",
-        font=('Arial', 12),
-        size=20,
-        expand_x=True,
-        justification='center')],
-    [sg.Button("Choose File", font=('Arial Bold', 12)),
-        sg.Button("New Game From Custom", font=('Arial Bold', 12)),
-        sg.Button("New Game From Default", font=('Arial Bold', 12)),
-        sg.Cancel("Exit Game", font=('Arial Bold', 12))]]
+def load_board_size(file):
+    data_to_parse = go.load_and_parse_file(file)
+    board_size = int(data_to_parse[0][0])
+    return board_size
 
 
-def setup_window2():
-    text = f"Player 1 Name: {GameBoard.playerBlack.name}\nPlayer 1 Color: {GameBoard.playerBlack.color}\n\
-    Player 1 Captured Pieces: {GameBoard.playerBlack.captured}\nPlayer 1 komi: {GameBoard.playerBlack.komi}\n\
-    Player 2 Name: {GameBoard.playerWhite.name}\nPlayer 2 Color: {GameBoard.playerWhite.color}\n\
-    Player 2 Captured Pieces: {GameBoard.playerWhite.captured}\nPlayer 2 komi: {GameBoard.playerWhite.komi}"
-    layout2 = [
-        [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-         sg.Button("Save Game", font=('Arial Bold', 12)),
-         sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
-         sg.Button("Exit Game", font=('Arial Bold', 12))],
+if __name__ == "__main__":
+    sg.theme('DarkAmber')
+    window = ui.setup_menu()
 
-        [sg.Text(text='The default settings are a 9x9 board, 6.5 komi,\
-                and names for players of Player 1 and Player 2', key="Info",
-         font=('Arial', 12), size=20, expand_x=True, justification='center')],
-        [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-            for j in range(GameBoard.boardSize)] for i in range(GameBoard.boardSize)],
+    while True:
+        event, values = window.read()
 
-        [sg.Multiline(text,
-                      font=('Arial Bold', 12),
-                      size=10,
-                      expand_x=True,
-                      expand_y=True,
-                      justification='center')]]
-    window2 = sg.Window('Game Screen', layout2, size=(700, 700))
+        if event == "Choose File":
+            file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
+            if file is None or file == "":
+                continue
+            #WorkOn adding checks for invalid inputs in different locations
+            file = file.split("/")
+            file = file[-1]
+            sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15))
+            board_size = load_board_size(file)
+            go.initializing_game(window, board_size, defaults=True, file_import_option=True, from_file=True, choosen_file=file)
 
-    return window2
+        elif event == "New Game From Custom":
+            board_size = ui.start_game()
+            go.initializing_game(window, board_size, defaults=False, from_file=False, fixes_handicap=True)
 
+        elif event == "New Game From Default":
+            go.initializing_game(window, 9, True)
 
-window = sg.Window('Game Screen', layout, size=(700, 700))
+        if event in (sg.WIN_CLOSED, 'Exit Game'):
+            break
 
-while True:
-    event, values = window.read()
-
-    if event == "Choose File":
-        file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
-        file = file.split("/")
-        file = file[-1]
-        sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15))
-        GameBoard = go.GoBoard(9, defaults=True)
-        GameBoard.load_from_file(True, file)
-        window.close()
-        window2 = setup_window2()
-        GameBoard.play_game(window2, fromFile=True)
-
-    elif event == "New Game From Custom":
-        boardSize = ui.start_game()
-        GameBoard = go.GoBoard(boardSize, defaults=False)
-        window.close()
-        window2 = setup_window2()
-        GameBoard.play_game(window2, fromFile=False, fixesHandicap=True)
-
-    elif event == "New Game From Default":
-        GameBoard = go.GoBoard(9, defaults=True)
-        window.close()
-        window2 = setup_window2()
-        GameBoard.play_game(window2)
-
-    if event in (sg.WIN_CLOSED, 'Exit Game'):
-        break
-
-window.close()
+    window.close()

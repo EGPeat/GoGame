@@ -1,4 +1,4 @@
-from uifunctions import p, input_value
+from uifunctions import p, input_value, setup_board_window
 import os.path
 import ast
 import PySimpleGUI as sg
@@ -15,10 +15,10 @@ class Player():
         info = "Please Enter a name you would like to use, but keep it less than 30 characters:"
         while self.name is None:
             try:
-                playerName = str(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
-                if len(playerName) > 30:
+                player_name = str(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
+                if len(player_name) > 30:
                     raise SyntaxError
-                self.name = playerName
+                self.name = player_name
 
                 break
             except SyntaxError:
@@ -26,11 +26,11 @@ class Player():
 
     def choose_komi(self):
         done = False
-        info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done:"
+        info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done, but only for white:"
         while self.komi == 0 and done is not True:
             try:
-                komiVal = float(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
-                self.komi = komiVal
+                komi_value = float(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
+                self.komi = komi_value
                 break
             except ValueError:
                 info = "It seems you entered something that isn't a float. Please try again"
@@ -41,90 +41,88 @@ unicodePrint = {
     "White": u" \u26AA ",
     "None": u" \U0001F7E9 "
 }
-unicodeBlack = unicodePrint["Black"]
-unicodeWhite = unicodePrint["White"]
-unicodeNone = unicodePrint["None"]
+unicode_black = unicodePrint["Black"]
+unicode_white = unicodePrint["White"]
+unicode_none = unicodePrint["None"]
 
 
 class BoardNode():
-    def __init__(self, rowVal=None, colVal=None):
-        self.row = rowVal
-        self.col = colVal
-        self.stoneHereColor = unicodeNone
+    def __init__(self, row_value=None, col_value=None):
+        self.row = row_value
+        self.col = col_value
+        self.stone_here_color = unicode_none
 
     # Allows for updating a specific variable in the BoardNode class
-    def change_boardnode_value(self, classValue, value):
-        if hasattr(self, classValue):
-            setattr(self, classValue, value)
+    def change_boardnode_value(self, class_value, value):
+        if hasattr(self, class_value):
+            setattr(self, class_value, value)
         else:
             p("No attribute for that")
 
 
 class GoBoard():
-    def __init__(self, boardSize=17, defaults=True):
-        self.boardSize = boardSize
+    def __init__(self, board_size=17, defaults=True):
+        self.board_size = board_size
         self.defaults = defaults
         self.board = self.setup_board()
-        self.playerBlack = self.setup_player(self.defaults, color="Black")
-        self.playerWhite = self.setup_player(self.defaults, color="White")
-        self.timesPassed = 0
-        self.turnNum = 0
-        self.positionPlayedLog = list()  # (-1,-1) shows the boundary between a handicap and normal play
-        self.visitKill = set()
+        self.player_black = self.setup_player(self.defaults, color="Black")
+        self.player_white = self.setup_player(self.defaults, color="White")
+        self.times_passed = 0
+        self.turn_num = 0
+        self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
+        self.visit_kill = set()
         self.handicap = self.default_handicap()
 
     def print_board(self):
-        p(f"This is the board at turn {self.turnNum}")
-        numRow = '      '
+        p(f"This is the board at turn {self.turn_num}")
+        row_num = '      '
 
-        for col in range(self.boardSize):
+        for col in range(self.board_size):
 
             if (col < 10):
-                numRow += f"0{col}  "
+                row_num += f"0{col}  "
             else:
-                numRow += f"{col}  "
-        p(numRow)
+                row_num += f"{col}  "
+        p(row_num)
 
-        for row in range(self.boardSize):
-            rowPrint = ''
+        for row in range(self.board_size):
+            print_row = ''
             if (row < 10):
-                rowPrint += f"0{row}   "
+                print_row += f"0{row}   "
             else:
-                rowPrint += f"{row}   "
-
-            # rowPrint=f'{row} '
-            for col in range(self.boardSize):
-                rowPrint += self.board[row][col].stoneHereColor
-            p(rowPrint)
+                print_row += f"{row}   "
+            for col in range(self.board_size):
+                print_row += self.board[row][col].stone_here_color
+            p(print_row)
 
     # This sets up the board variable of the GoBoard class, initializing as appropriate
     def setup_board(self):
-        boardAssign = [[BoardNode() for i in range(self.boardSize)] for j in range(self.boardSize)]
+        board_assign = [[BoardNode() for i in range(self.board_size)] for j in range(self.board_size)]
 
-        for row in range(self.boardSize):
-            for col in range(self.boardSize):
-                boardAssign[row][col].change_boardnode_value('row', row)
-                boardAssign[row][col].change_boardnode_value('col', col)
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                board_assign[row][col].change_boardnode_value('row', row)
+                board_assign[row][col].change_boardnode_value('col', col)
 
-        return boardAssign
+        return board_assign
 
     # This sets up the Player class, assigning appropriate values to each player as needed
     def setup_player(self, defaults, color):
         if defaults:
             if color == "Black":
-                playerAssign = Player(name="Player One", color="Black")
+                player_assignment = Player(name="Player One", color="Black")
             else:
-                playerAssign = Player(name="Player Two", color="White", komi=6.5)
+                player_assignment = Player(name="Player Two", color="White", komi=6.5)
         else:
             if color == "Black":
-                playerAssign = Player(color="Black")
-                playerAssign.choose_name()
-                playerAssign.choose_komi()
+                player_assignment = Player(color="Black")
+                player_assignment.choose_name()
+                player_assignment.choose_komi()
             else:
-                playerAssign = Player(color="White")
-                playerAssign.choose_name()
-                playerAssign.choose_komi()
-        return playerAssign
+                player_assignment = Player(color="White")
+                player_assignment.choose_name()
+                player_assignment.choose_komi()
+        return player_assignment
 
     def default_handicap(self):
         return (False, "None", 0)
@@ -133,9 +131,9 @@ class GoBoard():
         if defaults is True:
             return (False, "None", 0)
         done = False
-        handicapPoints9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
-        handicapPoints13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
-        handicapPoints17 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
+        handicap_points9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
+        handicap_points13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
+        handicap_points17 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
         info = "Please enter some information regarding a handicap.\n\
           For the 100s place write 1 if there should be no handicap, or 2 if there should \n\
           For the 10s place, write 1 for Black getting the handicap, or 2 for white getting it\n\
@@ -146,28 +144,30 @@ class GoBoard():
         while done is not True:
             try:
                 sg.popup(info, line_width=42)
-                handicapInfo = int(sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
+                handicap_info = int(sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
 
-                if handicapInfo % 10 > 5 and self.boardSize == 9:
+                if handicap_info % 10 > 5 and self.board_size == 9:
                     raise ValueError
                 done = True
             except ValueError:
                 p("It seems you entered something that isn't correct. Please try again")
-        if handicapInfo < 200:
+        if handicap_info < 200:
             return (False, 0, 0)  # Handicap, player, number of pieces
-        handicapInfo %= 100
-        if handicapInfo < 20:
+        handicap_info %= 100
+        if handicap_info < 20:
             player = "Black"
         else:
             player = "White"
-        handicapInfo %= 10
-        choosenList = handicapPoints17
-        if self.boardSize == 9:
-            choosenList = handicapPoints9
-        elif self.boardSize == 13:
-            choosenList = handicapPoints13
-        for idx in range(handicapInfo):
-            row, col = choosenList[idx]
+        handicap_info %= 10
+        info = f"Please place {handicap_info} number of pieces where you wish, as a handicap. Then the opponent will play."
+        sg.popup(info, line_width=42)
+        choosen_list = handicap_points17
+        if self.board_size == 9:
+            choosen_list = handicap_points9
+        elif self.board_size == 13:
+            choosen_list = handicap_points13
+        for idx in range(handicap_info):
+            row, col = choosen_list[idx] #WorkOn. Change it for allowing players to play where they want
             event, values = window.read()
             if player == "Black":
                 window[event].update('\u26AB')
@@ -175,9 +175,9 @@ class GoBoard():
                 window[event].update('\u26AA')
 
             self.play_piece(event[0], event[1], player, window)
-        self.positionPlayedLog.append(("Break between handicaps and normal play", -1, -1))
-        self.turnNum = 0
-        return (True, player, handicapInfo)
+        self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
+        self.turn_num = 0
+        return (True, player, handicap_info)
 
     def play_game(self, window, fromFile=False, fixesHandicap=False):
 
@@ -186,35 +186,35 @@ class GoBoard():
         if fromFile is not True:
             self.setup_board()
         else:
-            if self.positionPlayedLog[-1][0] == "Black":
-                self.play_turn(window, self.playerWhite.color)
+            if self.position_played_log[-1][0] == "Black":
+                self.play_turn(window, self.player_white.color)
 
-        if self.handicap[0] is True and self.handicap[1] == "Black" and self.turnNum == 0:
-            self.play_turn(window, self.playerWhite.color)
+        if self.handicap[0] is True and self.handicap[1] == "Black" and self.turn_num == 0:
+            self.play_turn(window, self.player_white.color)
 
-        while (self.timesPassed <= 1):
-            self.play_turn(window, self.playerBlack.color)
-            if self.timesPassed == 2:
+        while (self.times_passed <= 1):
+            self.play_turn(window, self.player_black.color)
+            if self.times_passed == 2:
                 break
-            self.play_turn(window, self.playerWhite.color)
+            self.play_turn(window, self.player_white.color)
 
         self.end_of_game(window)
 
     def play_turn(self, window, playerChoice):
-        truthVal = False
-        while not truthVal:
+        truth_value = False
+        while not truth_value:
             event, values = window.read()
             if event == "Press After Loading From File":
-                for xidx in range(self.boardSize):
-                    for yidx in range(self.boardSize):
-                        if not self.board[xidx][yidx].stoneHereColor == " \U0001F7E9 ":
-                            window[(xidx, yidx)].update(self.board[xidx][yidx].stoneHereColor)
+                for xidx in range(self.board_size):
+                    for yidx in range(self.board_size):
+                        if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
+                            window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
                 event, values = window.read()
             elif event == "Pass Turn":
                 sg.popup("skipped turn", line_width=42)
-                self.timesPassed += 1
-                self.turnNum += 1
-                self.positionPlayedLog.append((f"{playerChoice} passed", -2, -2))
+                self.times_passed += 1
+                self.turn_num += 1
+                self.position_played_log.append((f"{playerChoice} passed", -2, -2))
                 return
             elif event == "Save Game":
                 self.save_to_file()
@@ -227,48 +227,48 @@ class GoBoard():
                 row = int(event[0])
                 col = int(event[1])
 
-                self.timesPassed = 0
-                truthVal = self.play_piece(row, col, playerChoice, window)
-                if truthVal and playerChoice == "Black":
+                self.times_passed = 0
+                truth_value = self.play_piece(row, col, playerChoice, window)
+                if truth_value and playerChoice == "Black":
                     window[event].update('\u26AB')
-                if truthVal and playerChoice == "White":
+                if truth_value and playerChoice == "White":
                     window[event].update('\u26AA')
 
         return
 
     def play_piece(self, row, col, whichPlayer, window):
         piece = self.board[row][col]
-        if (piece.stoneHereColor != unicodeNone):
+        if (piece.stone_here_color != unicode_none):
             sg.popup("You tried to place where there is already a piece. Please try your turn again.", line_width=42)
             return False
-        elif (self.turnNum > 2 and self.ko_rule_break(piece) is True):
+        elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
             sg.popup("Place the piece there would break the ko rule. Please try your turn again.", line_width=42)
             return False
         elif (self.kill_stones(piece, whichPlayer, window) is True):
             if whichPlayer == "Black":
-                piece.stoneHereColor = unicodeBlack
+                piece.stone_here_color = unicode_black
             else:
-                piece.stoneHereColor = unicodeWhite
-            self.turnNum += 1
-            self.positionPlayedLog.append((whichPlayer, row, col))
+                piece.stone_here_color = unicode_white
+            self.turn_num += 1
+            self.position_played_log.append((whichPlayer, row, col))
             return True
         elif (self.suicide(piece, whichPlayer) == 0):
             sg.popup("Placing the piece there would commit suicide. Please try your turn again.", line_width=42)
             return False
 
         else:
-            self.positionPlayedLog.append((whichPlayer, row, col))
+            self.position_played_log.append((whichPlayer, row, col))
 
             if whichPlayer == "Black":
-                piece.stoneHereColor = unicodeBlack
+                piece.stone_here_color = unicode_black
             else:
-                piece.stoneHereColor = unicodeWhite
+                piece.stone_here_color = unicode_white
 
-        self.turnNum += 1
+        self.turn_num += 1
         return True
 
     def ko_rule_break(self, piece):
-        player, row, col = self.positionPlayedLog[-2]
+        player, row, col = self.position_played_log[-2]
         if row < 0:
             return False
         koSpot = self.board[row][col]
@@ -282,7 +282,7 @@ class GoBoard():
                      (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
         validNeighbors = []
         for coordinate in neighbors:
-            if 0 <= coordinate[0] < self.boardSize and 0 <= coordinate[1] < self.boardSize:
+            if 0 <= coordinate[0] < self.board_size and 0 <= coordinate[1] < self.board_size:
                 validNeighbors.append(coordinate)
         return validNeighbors
 
@@ -295,37 +295,37 @@ class GoBoard():
 
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stoneHereColor == unicodePrint["None"]:
+            if neighboring_piece.stone_here_color == unicodePrint["None"]:
                 liberties += 1
-            elif neighboring_piece.stoneHereColor != unicodePrint[whichPlayer]:
+            elif neighboring_piece.stone_here_color != unicodePrint[whichPlayer]:
                 pass
             elif neighboring_piece not in visited:
                 liberties += self.suicide(neighboring_piece, whichPlayer, visited)
-        self.visitKill = visited
+        self.visit_kill = visited
         return liberties
 
     def remove_stones(self, player_player, window):  # take in the player who is gaining the pieces
         if player_player == "Black":
-            player = self.playerBlack
+            player = self.player_black
         else:
-            player = self.playerWhite
-        for position in self.visitKill:
+            player = self.player_white
+        for position in self.visit_kill:
             player.captured += 1
-            position.stoneHereColor = unicodePrint["None"]
+            position.stone_here_color = unicodePrint["None"]
             window[(position.row, position.col)].update(' ')
 
     def end_of_game(self, window):
-        info = f"Your game has finished. Congrats.\nPlayer Black: {self.playerBlack.name} captured \
-            {self.playerBlack.captured} and has a komi of {self.playerBlack.komi}\n\
-            Player White: {self.playerWhite.name} captured {self.playerWhite.captured} and has a komi of {self.playerWhite.komi}\
-                \n Player Black has a score of {self.playerBlack.komi+self.playerBlack.captured-self.playerWhite.captured}\n\
-            Player Black has a score of {self.playerWhite.komi+self.playerWhite.captured-self.playerBlack.captured}\n\
+        info = f"Your game has finished. Congrats.\nPlayer Black: {self.player_black.name} captured \
+            {self.player_black.captured} and has a komi of {self.player_black.komi}\n Player White: {self.player_white.name}\
+                captured {self.player_white.captured} and has a komi of {self.player_white.komi}\
+                \n Player Black has a score of {self.player_black.komi+self.player_black.captured-self.player_white.captured}\n\
+            Player Black has a score of {self.player_white.komi+self.player_white.captured-self.player_black.captured}\n\
             This code cannot calculate territory or dead stones, so please\
                 do that yourself\nPlease save your game to a file or exit the program."
         sg.popup(info, line_width=200)
         event, values = window.read()
-        truthVal = False
-        while not truthVal:
+        truth_value = False
+        while not truth_value:
             event, values = window.read()
             if event == "Pass Turn":
                 pass
@@ -339,42 +339,42 @@ class GoBoard():
 
     def kill_stones(self, piece, whichPlayer, window):  # needs to return true if it does kill stones
         if whichPlayer == "Black":
-            piece.stoneHereColor = unicodeBlack
+            piece.stone_here_color = unicode_black
         else:
-            piece.stoneHereColor = unicodeWhite
+            piece.stone_here_color = unicode_white
 
         neighbors = self.check_neighbors(piece)
         notWhichPlayer = ''
-        truthVal = False
+        truth_value = False
         if whichPlayer == "Black":
             notWhichPlayer = "White"
         else:
             notWhichPlayer = "Black"
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stoneHereColor == unicodePrint[notWhichPlayer]:
+            if neighboring_piece.stone_here_color == unicodePrint[notWhichPlayer]:
                 if (self.suicide(neighboring_piece, notWhichPlayer) == 0):
                     self.remove_stones(whichPlayer, window)
-                    truthVal = True
-        if truthVal is False:
-            piece.stoneHereColor = unicodeNone
-        return truthVal
+                    truth_value = True
+        if truth_value is False:
+            piece.stone_here_color = unicode_none
+        return truth_value
 
     def save_to_file(self):  # Change this to json
         text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
         filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
-            file.write(f"{self.boardSize}; {self.defaults}; {self.timesPassed}; \
-                {self.turnNum}; {self.handicap}; {self.positionPlayedLog}\n")
-            file.write(f"{self.playerBlack.name}; {self.playerBlack.color}; \
-                {self.playerBlack.captured}; {self.playerBlack.komi}\n")
-            file.write(f"{self.playerWhite.name}; {self.playerWhite.color}; \
-                {self.playerWhite.captured}; {self.playerWhite.komi}\n")
-            for row in range(self.boardSize):
-                rowPrint = ''
-                for col in range(self.boardSize):
-                    rowPrint += self.board[row][col].stoneHereColor
-                file.write(rowPrint + '\n')
+            file.write(f"{self.board_size}; {self.defaults}; {self.times_passed}; \
+                {self.turn_num}; {self.handicap}; {self.position_played_log}\n")
+            file.write(f"{self.player_black.name}; {self.player_black.color}; \
+                {self.player_black.captured}; {self.player_black.komi}\n")
+            file.write(f"{self.player_white.name}; {self.player_white.color}; \
+                {self.player_white.captured}; {self.player_white.komi}\n")
+            for row in range(self.board_size):
+                print_row = ''
+                for col in range(self.board_size):
+                    print_row += self.board[row][col].stone_here_color
+                file.write(print_row + '\n')
         sg.popup(f"Saved to {filename}.txt", line_width=42)
 
     def load_from_file(self, inputAlr=False, inputPath=''):  # change this to loading from json
@@ -392,32 +392,49 @@ class GoBoard():
             data_to_parse = [line.rstrip() for line in file]
             data_to_parse = [line.split('; ') for line in data_to_parse]
 
-            self.boardSize = int(data_to_parse[0][0])  # change it to a list assignment?
+            self.board_size = int(data_to_parse[0][0])  # change it to a list assignment?
             self.defaults = data_to_parse[0][1]
-            self.timesPassed = int(data_to_parse[0][2])
-            self.turnNum = int(data_to_parse[0][3])
+            self.times_passed = int(data_to_parse[0][2])
+            self.turn_num = int(data_to_parse[0][3])
             self.handicap = data_to_parse[0][4]
-            self.positionPlayedLog = list(ast.literal_eval(data_to_parse[0][5]))
+            self.position_played_log = list(ast.literal_eval(data_to_parse[0][5]))
             del data_to_parse[0]
 
-            self.playerBlack.name = data_to_parse[0][0]
-            self.playerBlack.color = data_to_parse[0][1]
-            self.playerBlack.captured = int(data_to_parse[0][2])
-            self.playerBlack.komi = float(data_to_parse[0][3])
+            self.player_black.name = data_to_parse[0][0]
+            self.player_black.color = data_to_parse[0][1]
+            self.player_black.captured = int(data_to_parse[0][2])
+            self.player_black.komi = float(data_to_parse[0][3])
             del data_to_parse[0]
 
-            self.playerWhite.name = data_to_parse[0][0]
-            self.playerWhite.color = data_to_parse[0][1]
-            self.playerWhite.captured = int(data_to_parse[0][2])
-            self.playerWhite.komi = float(data_to_parse[0][3])
+            self.player_white.name = data_to_parse[0][0]
+            self.player_white.color = data_to_parse[0][1]
+            self.player_white.captured = int(data_to_parse[0][2])
+            self.player_white.komi = float(data_to_parse[0][3])
             del data_to_parse[0]
 
             for idx in range(len(data_to_parse)):
                 data_to_parse[idx] = data_to_parse[idx][0].split('  ')
 
-            for xidx in range(self.boardSize):
-                for yidx in range(self.boardSize):
+            for xidx in range(self.board_size):
+                for yidx in range(self.board_size):
                     if yidx == 0:
-                        self.board[xidx][yidx].stoneHereColor = f"{data_to_parse[xidx][yidx]} "
+                        self.board[xidx][yidx].stone_here_color = f"{data_to_parse[xidx][yidx]} "
                     else:
-                        self.board[xidx][yidx].stoneHereColor = f" {data_to_parse[xidx][yidx]} "
+                        self.board[xidx][yidx].stone_here_color = f" {data_to_parse[xidx][yidx]} "
+
+
+def load_and_parse_file(file):
+    with open(file, 'r', encoding='utf-8') as file:
+        data_to_parse = [line.rstrip() for line in file]
+        data_to_parse = [line.split('; ') for line in data_to_parse]
+    return data_to_parse
+
+
+def initializing_game(window, board_size, defaults=True, file_import_option=False,
+                      from_file=False, fixes_handicap=False, choosen_file=None):
+    GameBoard = GoBoard(board_size, defaults=True)
+    if file_import_option:
+        GameBoard.load_from_file(True, choosen_file)
+    window.close()
+    window2 = setup_board_window(GameBoard)
+    GameBoard.play_game(window2, file_import_option, fixes_handicap)
