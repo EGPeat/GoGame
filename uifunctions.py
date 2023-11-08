@@ -11,24 +11,21 @@ def pt(input):
 
 # Starts the game, asking for user input regarding the size of the board.
 def start_game():
-    info = "Please enter in the size you wish to have your Go Board as.\nPlease\
-        type (9) for a 9x9, (13) for a 13x13, or (17) for 17x17:"
+    info = "Please click the size you wish to have your Go Board as."
 
-    while True:
-        try:
-            size = sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15))
-            size = int(size)
-            if size not in [9, 13, 17]:
-                raise SyntaxError
-
-            break
-        except ValueError:
-            info = "It seems you entered something that isn't a int. Please try again"
-        except SyntaxError:
-            info = "It seems you entered a number that isn't 9, 13, 17. Please try again"
-
-    p(f"You have choosen a {size}x{size} board.")
-    return size
+    layout = [[sg.Text(info)],
+              [sg.Button("9x9", font=('Arial Bold', 16)),
+              sg.Button("13x13", font=('Arial Bold', 16)),
+              sg.Button("17x17", font=('Arial Bold', 16))]]
+    window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
+    option, option2 = window2.read()
+    window2.close()
+    if option == "9x9":
+        return 9
+    elif option == "13x13":
+        return 13
+    else:
+        return 17
 
 
 # Validates that the input is of the correct type
@@ -78,34 +75,40 @@ def setup_menu():
             sg.Button("New Game From Custom", font=('Arial Bold', 12)),
             sg.Button("New Game From Default", font=('Arial Bold', 12)),
             sg.Cancel("Exit Game", font=('Arial Bold', 12))]]
-    window = sg.Window('Game Screen', layout, size=(700, 700))
+    window = sg.Window('Game Screen', layout, size=(700, 700), finalize=True)
     return window
 
 
 # Sets up the window for playing the game using PySimpleGUI
 def setup_board_window(game_board):
-    text = f"Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: {game_board.player_black.color}\n\
+    text = f"Turn Number is {game_board.turn_num}\nPlayer 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\
-    Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: {game_board.player_white.color}\n\
+    Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
     layout2 = [
         [sg.Button("Pass Turn", font=('Arial Bold', 12)),
          sg.Button("Save Game", font=('Arial Bold', 12)),
-         sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
+         # sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
          sg.Button("Exit Game", font=('Arial Bold', 12))],
-
-        [sg.Text(text='The default settings are a 9x9 board, 6.5 komi,\
-                and names for players of Player 1 and Player 2', key="Info",
-         font=('Arial', 12), size=20, expand_x=True, justification='center')],
         [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-            for j in range(game_board.board_size)] for i in range(game_board.board_size)],
+            for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
 
         [sg.Multiline(text,
                       font=('Arial Bold', 12),
                       size=10,
                       expand_x=True,
                       expand_y=True,
+                      key='Scoring',
                       justification='center')]]
-    window2 = sg.Window('Game Screen', layout2, size=(700, 700))
+    window2 = sg.Window('Game Screen', layout2, size=(700, 700), finalize=True)
 
     return window2
+
+
+def validation_gui(info1, var_type):
+    output = None
+    while output is None:
+        sg.popup(info1, line_width=42, auto_close=True, auto_close_duration=15)
+        output = (sg.popup_get_text("Enter Information", title="Please Enter Text", font=('Arial Bold', 15)))
+    output = var_type(output)
+    return output

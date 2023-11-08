@@ -1,4 +1,4 @@
-from uifunctions import p, input_value, setup_board_window
+from uifunctions import p, input_value, setup_board_window, validation_gui
 import os.path
 import ast
 import PySimpleGUI as sg
@@ -13,28 +13,51 @@ class Player():
         self.unicode = unicode_choice
 
     def choose_name(self):
+        info = "Please Click Yes if you want to change your name"
+        modify_name = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
+        if modify_name == "No":
+            if self.color == "Black":
+                self.name = "Player One"
+                return
+            else:
+                self.name = "Player Two"
+                return
         info = "Please Enter a name you would like to use, but keep it less than 30 characters:"
         while self.name is None:
             try:
-                player_name = str(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
+                player_name = validation_gui(info, str)
                 if len(player_name) > 30:
                     raise SyntaxError
                 self.name = player_name
 
                 break
             except SyntaxError:
-                info = "It seems you entered a name longer than 30 characters. Please try again"
+                info2 = "It seems you entered a name longer than 30 characters. Please try again"
+                sg.popup_no_buttons(info2, non_blocking=True, font=('Arial Bold', 15),
+                                    auto_close=True, auto_close_duration=2)
 
     def choose_komi(self):
+        info = "Please Click Yes if you want to change your Komi"
+        modify_komi = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
+        if modify_komi == "No":
+            if self.color == "Black":
+                self.komi = 0
+                return
+            else:
+                self.komi = 6.5
+                return
         done = False
-        info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done, but only for white:"
+
         while self.komi == 0 and done is not True:
             try:
-                komi_value = float(sg.popup_get_text(info, title="Please Enter Text", font=('Arial Bold', 15)))
+                info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done, but only for white:"
+                komi_value = validation_gui(info, float)
                 self.komi = komi_value
                 break
             except ValueError:
-                info = "It seems you entered something that isn't a float. Please try again"
+                info2 = "It seems you entered something that isn't a float. Please try again"
+                sg.popup_no_buttons(info2, non_blocking=True, font=('Arial Bold', 15),
+                                    auto_close=True, auto_close_duration=2)
 
 
 unicodePrint = {
@@ -117,11 +140,11 @@ class GoBoard():
                 player_assignment = Player(name="Player Two", color="White", komi=6.5, unicode_choice=unicode_white)
         else:
             if color == "Black":
-                player_assignment = Player(color="Black")
+                player_assignment = Player(color="Black", unicode_choice=unicode_black)
                 player_assignment.choose_name()
                 player_assignment.choose_komi()
             else:
-                player_assignment = Player(color="White")
+                player_assignment = Player(color="White", unicode_choice=unicode_white)
                 player_assignment.choose_name()
                 player_assignment.choose_komi()
         return player_assignment
@@ -148,24 +171,27 @@ class GoBoard():
 
         while done is not True:
             try:
-                sg.popup(info, line_width=42)
-                handicap_info = int(sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
-
+                handicap_info = None
+                while handicap_info is None:
+                    sg.popup(info, line_width=42, auto_close=True, auto_close_duration=15)
+                    handicap_info = (sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
+                handicap_info = int(handicap_info)
                 if handicap_info % 10 > 5 and self.board_size == 9:
                     raise ValueError
                 done = True
             except ValueError:
-                p("It seems you entered something that isn't correct. Please try again")
+                info = "It seems you entered something that isn't correct. Please try again"
+                sg.popup(info, line_width=42, auto_close=True, auto_close_duration=2)
         if handicap_info < 200:
             return (False, 0, 0)  # Handicap, player, number of pieces
         handicap_info %= 100
         if handicap_info < 20:
-            player = "Black"
+            player = self.player_black
         else:
-            player = "White"
+            player = self.player_white
         handicap_info %= 10
         info = f"Please place {handicap_info} number of pieces where you wish, as a handicap. Then the opponent will play."
-        sg.popup(info, line_width=42)
+        sg.popup(info, line_width=42, auto_close=True, auto_close_duration=3)
         choosen_list = handicap_points17
         if self.board_size == 9:
             choosen_list = handicap_points9
@@ -174,12 +200,10 @@ class GoBoard():
         for idx in range(handicap_info):
             row, col = choosen_list[idx]  # WorkOn. Change it for allowing players to play where they want
             event, values = window.read()
-            if player == "Black":
-                window[event].update('\u26AB')
-            if player == "White":
-                window[event].update('\u26AA')
+            window[event].update(player.unicode)
 
             self.play_piece(event[0], event[1], player, window)
+            self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
         return (True, player, handicap_info)
@@ -191,6 +215,7 @@ class GoBoard():
         if fromFile is not True:
             self.setup_board()
         else:
+            self.refresh_board(window)
             if self.position_played_log[-1][0] == "Black":
                 self.play_turn(window, self.player_white)
 
@@ -209,13 +234,10 @@ class GoBoard():
         truth_value = False
         while not truth_value:
             event, values = window.read()
-            if event == "Press After Loading From File":
-                for xidx in range(self.board_size):
-                    for yidx in range(self.board_size):
-                        if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
-                            window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
-            elif event == "Pass Turn":
-                sg.popup("skipped turn", line_width=42)
+            # if event == "Press After Loading From File":
+            #    self.refresh_board(window)
+            if event == "Pass Turn":
+                sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
                 self.times_passed += 1
                 self.turn_num += 1
                 self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
@@ -223,6 +245,9 @@ class GoBoard():
             elif event == "Save Game":
                 self.save_to_file()
             elif event == "Exit Game":
+                from main import play_game_main
+                window.close()
+                play_game_main()
                 quit()  # add different functionality
             else:
                 row = int(event[0])
@@ -232,25 +257,32 @@ class GoBoard():
                 truth_value = self.play_piece(row, col, choosen_player, window)
                 if truth_value:
                     window[event].update(choosen_player.unicode)
+        text = f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
+    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\
+    Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
+    Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
+        window['Scoring'].update(text)
         return
 
     def play_piece(self, row, col, which_player, window):
         piece = self.board[row][col]
         suicidal_liberty_value = 0
         if (piece.stone_here_color != unicode_none):
-            sg.popup("You tried to place where there is already a piece. Please try your turn again.", line_width=42)
+            sg.popup("You tried to place where there is already a piece. Please try your turn again.",
+                     line_width=42, auto_close=True, auto_close_duration=3)
+            return False
+        elif (self.turn_num > 2 and self.ko_rule_break(piece, which_player) is True):
+            sg.popup("Place the piece there would break the ko rule. Please try your turn again.",
+                     line_width=42, auto_close=True, auto_close_duration=3)
             return False
         elif (self.kill_stones(piece, which_player, window) is True):
             piece.stone_here_color = which_player.unicode
             self.turn_num += 1
             self.position_played_log.append((which_player.color, row, col))
             return True
-        elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
-            sg.popup("Place the piece there would break the ko rule. Please try your turn again.", line_width=42)
-            return False
-
         elif (self.suicide(piece, which_player) == suicidal_liberty_value):
-            sg.popup("Placing the piece there would commit suicide. Please try your turn again.", line_width=42)
+            sg.popup("Placing the piece there would commit suicide. Please try your turn again.",
+                     line_width=42, auto_close=True, auto_close_duration=3)
             return False
 
         else:  # No rules or special cases are broken, play piece as normal.
@@ -260,8 +292,11 @@ class GoBoard():
         self.turn_num += 1
         return True
 
-    def ko_rule_break(self, piece):
-        if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:
+    def ko_rule_break(self, piece, which_player):
+        if self.suicide(piece, which_player) > 0:
+            return False
+        # if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:
+        if piece in self.killed_last_turn:
             return True
         return False
 
@@ -309,7 +344,7 @@ class GoBoard():
             Player Black has a score of {self.player_white.komi+self.player_white.captured-self.player_black.captured}\n\
             This code cannot calculate territory or dead stones, so please\
                 do that yourself\nPlease save your game to a file or exit the program."
-        sg.popup(info, line_width=200)
+        sg.popup(info, line_width=200, auto_close=True, auto_close_duration=20)
         event, values = window.read()
         truth_value = False
         while not truth_value:
@@ -344,8 +379,12 @@ class GoBoard():
         return truth_value
 
     def save_to_file(self):  # Change this to json
-        text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
-        filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
+        filename = ''
+        while len(filename) < 1:
+            text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
+            filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
+            if filename is None:
+                return
         with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
             file.write(f"{self.board_size}; {self.defaults}; {self.times_passed}; \
                 {self.turn_num}; {self.handicap}; {self.position_played_log}\n")
@@ -358,7 +397,7 @@ class GoBoard():
                 for col in range(self.board_size):
                     print_row += self.board[row][col].stone_here_color
                 file.write(print_row + '\n')
-        sg.popup(f"Saved to {filename}.txt", line_width=42)
+        sg.popup(f"Saved to {filename}.txt", line_width=42, auto_close=True, auto_close_duration=3)
 
     def load_from_file(self, inputAlr=False, inputPath=''):  # change this to loading from json
         foundFile = False
@@ -402,6 +441,12 @@ class GoBoard():
                 else:
                     self.board[xidx][yidx].stone_here_color = f" {data_to_parse[xidx][yidx]} "
 
+    def refresh_board(self, window):
+        for xidx in range(self.board_size):
+            for yidx in range(self.board_size):
+                if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
+                    window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
+
 
 def load_and_parse_file(file):
     with open(file, 'r', encoding='utf-8') as file:
@@ -412,9 +457,26 @@ def load_and_parse_file(file):
 
 def initializing_game(window, board_size, defaults=True, file_import_option=False,
                       from_file=False, fixes_handicap=False, choosen_file=None):
-    GameBoard = GoBoard(board_size, defaults=True)
+    info = "Click yes if you want to modify the player names and komi"
+    if not defaults:
+        only_modify_name = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
+        if only_modify_name == "No":
+            GameBoard = GoBoard(board_size, True)
+        else:
+            GameBoard = GoBoard(board_size, defaults)
+    else:
+        GameBoard = GoBoard(board_size, defaults)
     if file_import_option:
         GameBoard.load_from_file(True, choosen_file)
     window.close()
     window2 = setup_board_window(GameBoard)
-    GameBoard.play_game(window2, file_import_option, fixes_handicap)
+    info = "Click yes if you want to modify the handicap"
+    if fixes_handicap:
+        modify_handicap = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
+        if modify_handicap == "Yes":
+            GameBoard.play_game(window2, file_import_option, fixes_handicap=True)
+        else:
+            GameBoard.play_game(window2, file_import_option, fixes_handicap=False)
+
+    else:
+        GameBoard.play_game(window2, file_import_option, fixes_handicap)

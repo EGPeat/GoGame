@@ -3,14 +3,15 @@ import uifunctions as ui
 import PySimpleGUI as sg
 
 
-def load_board_size(file):
-    data_to_parse = go.load_and_parse_file(file)
-    board_size = int(data_to_parse[0][0])
-    return board_size
+# To do:
+# Load and Save to File using JSON
+# Remake gui in Kivy or etc
+# Add AI to game
+# Add MP to game
+# Auto scoring
 
 
-if __name__ == "__main__":
-    sg.theme('DarkAmber')
+def play_game_main():
     window = ui.setup_menu()
 
     while True:
@@ -23,7 +24,8 @@ if __name__ == "__main__":
             # WorkOn adding checks for invalid inputs in different locations
             file = file.split("/")
             file = file[-1]
-            sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15))
+            sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
+                                auto_close=True, auto_close_duration=3)
             board_size = load_board_size(file)
             go.initializing_game(window, board_size, defaults=True, file_import_option=True, from_file=True, choosen_file=file)
 
@@ -38,3 +40,14 @@ if __name__ == "__main__":
             break
 
     window.close()
+
+
+def load_board_size(file):
+    data_to_parse = go.load_and_parse_file(file)
+    board_size = int(data_to_parse[0][0])
+    return board_size
+
+
+if __name__ == "__main__":
+    sg.theme('DarkAmber')
+    play_game_main()
