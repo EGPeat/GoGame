@@ -71,6 +71,7 @@ class GoBoard():
         self.turn_num = 0
         self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visit_kill = set()
+        self.killed_last_turn = set()
         self.handicap = self.default_handicap()
 
     def print_board(self):
@@ -124,9 +125,12 @@ class GoBoard():
                 player_assignment.choose_komi()
         return player_assignment
 
+# By default there should not be any handicap.
     def default_handicap(self):
         return (False, "None", 0)
 
+# Sets up a custom handicap using a CLI.
+# Work On adding a GUI solution for this. Maybe add an option for default placement of stones, or custom.
     def custom_handicap(self, defaults, window):
         if defaults is True:
             return (False, "None", 0)
@@ -167,7 +171,7 @@ class GoBoard():
         elif self.board_size == 13:
             choosen_list = handicap_points13
         for idx in range(handicap_info):
-            row, col = choosen_list[idx]  #WorkOn. Change it for allowing players to play where they want
+            row, col = choosen_list[idx]  # WorkOn. Change it for allowing players to play where they want
             event, values = window.read()
             if player == "Black":
                 window[event].update('\u26AB')
@@ -179,9 +183,9 @@ class GoBoard():
         self.turn_num = 0
         return (True, player, handicap_info)
 
-    def play_game(self, window, fromFile=False, fixesHandicap=False):
+    def play_game(self, window, fromFile=False, fixes_handicap=False):
 
-        if fixesHandicap is True:
+        if fixes_handicap is True:
             self.handicap = self.custom_handicap(False, window)
         if fromFile is not True:
             self.setup_board()
@@ -200,7 +204,7 @@ class GoBoard():
 
         self.end_of_game(window)
 
-    def play_turn(self, window, playerChoice):
+    def play_turn(self, window, choosen_player):
         truth_value = False
         while not truth_value:
             event, values = window.read()
@@ -209,34 +213,30 @@ class GoBoard():
                     for yidx in range(self.board_size):
                         if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
                             window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
-                event, values = window.read()
             elif event == "Pass Turn":
                 sg.popup("skipped turn", line_width=42)
                 self.times_passed += 1
                 self.turn_num += 1
-                self.position_played_log.append((f"{playerChoice} passed", -2, -2))
+                self.position_played_log.append((f"{choosen_player} passed", -2, -2))
                 return
             elif event == "Save Game":
                 self.save_to_file()
-                event, values = window.read()
-                if event == "Exit Game":
-                    quit()
             elif event == "Exit Game":
-                quit()
+                quit()  # add different functionality
             else:
                 row = int(event[0])
                 col = int(event[1])
 
                 self.times_passed = 0
-                truth_value = self.play_piece(row, col, playerChoice, window)
-                if truth_value and playerChoice == "Black":
+                truth_value = self.play_piece(row, col, choosen_player, window)
+                if truth_value and choosen_player == "Black":
                     window[event].update('\u26AB')
-                if truth_value and playerChoice == "White":
+                if truth_value and choosen_player == "White":
                     window[event].update('\u26AA')
 
         return
 
-    def play_piece(self, row, col, whichPlayer, window):
+    def play_piece(self, row, col, which_player, window):
         piece = self.board[row][col]
         if (piece.stone_here_color != unicode_none):
             sg.popup("You tried to place where there is already a piece. Please try your turn again.", line_width=42)
@@ -244,37 +244,34 @@ class GoBoard():
         elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
             sg.popup("Place the piece there would break the ko rule. Please try your turn again.", line_width=42)
             return False
-        elif (self.kill_stones(piece, whichPlayer, window) is True):
-            if whichPlayer == "Black":
+        elif (self.kill_stones(piece, which_player, window) is True):
+            print(which_player)
+            if which_player == "Black":
                 piece.stone_here_color = unicode_black
             else:
                 piece.stone_here_color = unicode_white
             self.turn_num += 1
-            self.position_played_log.append((whichPlayer, row, col))
+            self.position_played_log.append((which_player, row, col))
+            self.killed_last_turn.clear()
             return True
-        elif (self.suicide(piece, whichPlayer) == 0):
+        elif (self.suicide(piece, which_player) == 0):  # This returns the number of liberties. 0 would mean suicide.
             sg.popup("Placing the piece there would commit suicide. Please try your turn again.", line_width=42)
             return False
 
-        else:
-            self.position_played_log.append((whichPlayer, row, col))
+        else:  # No rules or special cases are broken, play piece as normal.
+            self.position_played_log.append((which_player, row, col))
 
-            if whichPlayer == "Black":
+            if which_player == "Black":
                 piece.stone_here_color = unicode_black
             else:
                 piece.stone_here_color = unicode_white
-
+        self.killed_last_turn.clear()
         self.turn_num += 1
         return True
 
     def ko_rule_break(self, piece):
-        player, row, col = self.position_played_log[-2]
-        if row < 0:
-            return False
-        koSpot = self.board[row][col]
-        if piece == koSpot:
+        if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:  # The second condition might be a problem
             return True
-
         return False
 
     def check_neighbors(self, piece):
@@ -286,7 +283,7 @@ class GoBoard():
                 validNeighbors.append(coordinate)
         return validNeighbors
 
-    def suicide(self, piece, whichPlayer, visited=None):
+    def suicide(self, piece, which_player, visited=None):
         if visited is None:
             visited = set()
         visited.add(piece)
@@ -297,19 +294,20 @@ class GoBoard():
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
             if neighboring_piece.stone_here_color == unicodePrint["None"]:
                 liberties += 1
-            elif neighboring_piece.stone_here_color != unicodePrint[whichPlayer]:
+            elif neighboring_piece.stone_here_color != unicodePrint[which_player]:
                 pass
             elif neighboring_piece not in visited:
-                liberties += self.suicide(neighboring_piece, whichPlayer, visited)
+                liberties += self.suicide(neighboring_piece, which_player, visited)
         self.visit_kill = visited
         return liberties
 
-    def remove_stones(self, player_player, window):  # take in the player who is gaining the pieces
-        if player_player == "Black":
+    def remove_stones(self, choosen_player, window):  # take in the player who is gaining the pieces   
+        if choosen_player == "Black":
             player = self.player_black
         else:
             player = self.player_white
         for position in self.visit_kill:
+            self.killed_last_turn.add(position)
             player.captured += 1
             position.stone_here_color = unicodePrint["None"]
             window[(position.row, position.col)].update(' ')
@@ -337,24 +335,24 @@ class GoBoard():
             elif event == "Exit Game":
                 quit()
 
-    def kill_stones(self, piece, whichPlayer, window):  # needs to return true if it does kill stones
-        if whichPlayer == "Black":
+    def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
+        if which_player == "Black":
             piece.stone_here_color = unicode_black
         else:
             piece.stone_here_color = unicode_white
 
         neighbors = self.check_neighbors(piece)
-        notWhichPlayer = ''
+        not_which_player = ''
         truth_value = False
-        if whichPlayer == "Black":
-            notWhichPlayer = "White"
+        if which_player == "Black":
+            not_which_player = "White"
         else:
-            notWhichPlayer = "Black"
+            not_which_player = "Black"
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicodePrint[notWhichPlayer]:
-                if (self.suicide(neighboring_piece, notWhichPlayer) == 0):
-                    self.remove_stones(whichPlayer, window)
+            if neighboring_piece.stone_here_color == unicodePrint[not_which_player]:
+                if (self.suicide(neighboring_piece, not_which_player) == 0):
+                    self.remove_stones(which_player, window)
                     truth_value = True
         if truth_value is False:
             piece.stone_here_color = unicode_none

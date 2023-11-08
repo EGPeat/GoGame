@@ -20,7 +20,7 @@ if __name__ == "__main__":
             file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
             if file is None or file == "":
                 continue
-            #WorkOn adding checks for invalid inputs in different locations
+            # WorkOn adding checks for invalid inputs in different locations
             file = file.split("/")
             file = file[-1]
             sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15))
