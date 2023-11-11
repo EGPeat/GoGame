@@ -1,4 +1,4 @@
-from uifunctions import p, setup_board_window, validation_gui
+import uifunctions as ui
 import PySimpleGUI as sg
 
 
@@ -23,7 +23,7 @@ class Player():
         info = "Please Enter a name you would like to use, but keep it less than 30 characters:"
         while self.name is None:
             try:
-                player_name = validation_gui(info, str)
+                player_name = ui.validation_gui(info, str)
                 if len(player_name) > 30:
                     raise SyntaxError
                 self.name = player_name
@@ -49,7 +49,7 @@ class Player():
         while self.komi == 0 and done is not True:
             try:
                 info = f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done, but only for white:"
-                komi_value = validation_gui(info, float)
+                komi_value = ui.validation_gui(info, float)
                 self.komi = komi_value
                 break
             except ValueError:
@@ -79,7 +79,7 @@ class BoardNode():
         if hasattr(self, class_value):
             setattr(self, class_value, value)
         else:
-            p("No attribute for that")
+            ui.p("No attribute for that")
 
 
 class GoBoard():
@@ -93,31 +93,9 @@ class GoBoard():
         self.turn_num = 0
         self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visit_kill = set()
-        self.killed_last_turn = set()
+        self.killed_last_turn = set()  # Potentially unneeded
         self.killed_log = list()
         self.handicap = self.default_handicap()
-
-    def print_board(self):
-        p(f"This is the board at turn {self.turn_num}")
-        row_num = '      '
-
-        for col in range(self.board_size):
-
-            if (col < 10):
-                row_num += f"0{col}  "
-            else:
-                row_num += f"{col}  "
-        p(row_num)
-
-        for row in range(self.board_size):
-            print_row = ''
-            if (row < 10):
-                print_row += f"0{row}   "
-            else:
-                print_row += f"{row}   "
-            for col in range(self.board_size):
-                print_row += self.board[row][col].stone_here_color
-            p(print_row)
 
     # This sets up the board variable of the GoBoard class, initializing as appropriate
     def setup_board(self):
@@ -249,41 +227,37 @@ class GoBoard():
             if self.position_played_log[-1][0] == "Black":
                 self.play_turn(window, self.player_white)
 
-        if self.handicap[0] is True and self.handicap[1] == "Black" and self.turn_num == 0:
-            self.play_turn(window, self.player_white)
-
         while (self.times_passed <= 1):
-            self.play_turn(window, self.player_black)
-            if self.times_passed == 2:
-                break
-            self.play_turn(window, self.player_white)
-
+            if self.turn_num % 2 == 0:
+                self.play_turn(window, self.player_black)
+            else:
+                self.play_turn(window, self.player_white)
         self.end_of_game(window)
 
     def play_turn(self, window, choosen_player):
-        print(f"this is killed_last_turn log: {self.killed_last_turn}")
-        print(f"this is killed log: {self.killed_log}")
         truth_value = False
         while not truth_value:
             event, values = window.read()
-            # if event == "Press After Loading From File":
-            #    self.refresh_board(window)
             if event == "Pass Turn":
                 sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
                 self.times_passed += 1
                 self.turn_num += 1
                 self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
+                ui.update_scoring(self, window, choosen_player)
                 return
             elif event == "Save Game":
                 self.save_to_json()
             elif event == "Undo Turn":
-                if self.turn_num == 0:
+                if self.turn_num == 0:  # bit of a problem when there's a handicap...
                     sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
                 elif self.turn_num == 1:
                     self.undo_turn(window)
+                    ui.update_scoring(self, window, choosen_player)
+                    choosen_player = self.player_black
                 else:
                     self.undo_turn(window)
                     self.undo_turn(window)
+                    ui.update_scoring(self, window, choosen_player)
             elif event == "Exit Game":
                 from main import play_game_main
                 window.close()
@@ -297,15 +271,15 @@ class GoBoard():
                 truth_value = self.play_piece(row, col, choosen_player, window)
                 if truth_value:
                     window[event].update(choosen_player.unicode)
-        if choosen_player == self.player_black:
-            text = "It is currently White's turn.\n"
-        else:
-            text = "It is currently Black's turn.\n"
-        text = text + f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\
-    Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
-    Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
-        window['Scoring'].update(text)
+        ui.update_scoring(self, window, choosen_player)
+
+        temp_list = list()
+        for item in self.killed_last_turn:
+            if choosen_player == self.player_black:
+                temp_list.append((self.player_white.unicode, item.row, item.col))
+            else:
+                temp_list.append((self.player_black.unicode, item.row, item.col))
+        self.killed_log.append(temp_list)
         return
 
     def play_piece(self, row, col, which_player, window):
@@ -332,24 +306,44 @@ class GoBoard():
         else:  # No rules or special cases are broken, play piece as normal.
             self.position_played_log.append((which_player.color, row, col))
             piece.stone_here_color = which_player.unicode
-            self.killed_log.append(self.killed_last_turn)#unsure if this works
             self.killed_last_turn.clear()
-            
+
         self.turn_num += 1
         return True
-    
-    def undo_turn(self, window): #need to have it go back to who played...
-        #This doesn't handle stuff like captures...
+
+    def undo_turn(self, window):
         color, row, col = self.position_played_log.pop()
         self.board[row][col].stone_here_color = unicode_none
         window[(row, col)].update("")
-        self.turn_num -= 1
 
+        # This part reverts the board back to its state 1 turn ago
+        revive = self.killed_log.pop()
+        capture_update_val = len(revive)
+        if len(revive) > 0:
+            unicode = revive[1][0]
+        else:
+            unicode = unicode_none
+        for item in revive:
+            unicode, row, col = item
+            self.board[row][col].stone_here_color = unicode
+            window[(row, col)].update(unicode)
+
+        # This part updates some class values (player captures, killed_last_turn, turn_num)
+        self.turn_num -= 1
+        if unicode == unicode_black:
+            self.player_white.captured -= capture_update_val
+        elif unicode == unicode_white:
+            self.player_black.captured -= capture_update_val
+        if len(self.killed_log) > 0:
+            self.killed_last_turn.clear()
+            temp_list = self.killed_log[-1]
+            for item in temp_list:
+                temp_node = BoardNode(row_value=item[1], col_value=item[2])
+                self.killed_last_turn.add(temp_node)
 
     def ko_rule_break(self, piece, which_player):
         if self.suicide(piece, which_player) > 0:
             return False
-        # if piece in self.killed_last_turn and len(self.killed_last_turn) == 1:
         if piece in self.killed_last_turn:
             return True
         return False
@@ -383,9 +377,6 @@ class GoBoard():
 
     # This takes in the player who is gaining the captured pieces
     def remove_stones(self, choosen_player, window):
-        self.killed_log.append(self.killed_last_turn)
-        for item in self.killed_last_turn:
-            self.killed_log.append(())
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
@@ -394,14 +385,7 @@ class GoBoard():
             window[(position.row, position.col)].update(' ')
 
     def end_of_game(self, window):
-        info = f"Your game has finished. Congrats.\nPlayer Black: {self.player_black.name} captured \
-            {self.player_black.captured} and has a komi of {self.player_black.komi}\n Player White: {self.player_white.name}\
-                captured {self.player_white.captured} and has a komi of {self.player_white.komi}\
-                \n Player Black has a score of {self.player_black.komi+self.player_black.captured-self.player_white.captured}\n\
-            Player Black has a score of {self.player_white.komi+self.player_white.captured-self.player_black.captured}\n\
-            This code cannot calculate territory or dead stones, so please\
-                do that yourself\nPlease save your game to a file or exit the program."
-        sg.popup(info, line_width=200, auto_close=True, auto_close_duration=20)
+        ui.end_game_popup(self)
         event, values = window.read()
         truth_value = False
         while not truth_value:
@@ -435,7 +419,7 @@ class GoBoard():
             piece.stone_here_color = unicode_none
         return truth_value
 
-    def save_to_json(self):#add self.killed_log
+    def save_to_json(self):
         import json
         filename = ''
         while len(filename) < 1:
@@ -460,6 +444,7 @@ class GoBoard():
                 "handicap": self.handicap,
                 "position_played_log": self.position_played_log,
                 "killed_last_turn": kill_list,
+                "killed_log": self.killed_log,
                 "player_black.name": self.player_black.name,
                 "player_black.color": self.player_black.color,
                 "player_black.captured": self.player_black.captured,
@@ -476,7 +461,7 @@ class GoBoard():
             file.write(json_object)
         sg.popup(f"Saved to {filename}.json", line_width=42, auto_close=True, auto_close_duration=3)
 
-    def load_from_json(self, inputPath=''):#add self.killed_log
+    def load_from_json(self, inputPath=''):
         data = load_and_parse_file(inputPath)
         self.board_size = data["board_size"]
         self.defaults = data["defaults"]
@@ -488,7 +473,7 @@ class GoBoard():
         for item in temp_list:
             temp_node = BoardNode(row_value=item[0], col_value=item[1])
             self.killed_last_turn.add(temp_node)
-
+        self.killed_log = data['killed_log']
         self.player_black.name = data["player_black.name"]
         self.player_black.color = data["player_black.color"]
         self.player_black.captured = data["player_black.captured"]
@@ -534,7 +519,7 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
     if file_import_option:
         GameBoard.load_from_json(choosen_file)
     window.close()
-    window2 = setup_board_window(GameBoard)
+    window2 = ui.setup_board_window(GameBoard)
     info = "Click yes if you want to modify the handicap"
     if fixes_handicap:
         modify_handicap = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))

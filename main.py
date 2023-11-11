@@ -4,7 +4,7 @@ import PySimpleGUI as sg
 
 
 # To do:
-# undo button
+# change handicap choice thing to be more gui-y
 # Remake gui in Kivy or etc
 # Add AI to game
 # Add MP to game

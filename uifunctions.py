@@ -118,3 +118,26 @@ def validation_gui(info1, var_type):
         output = (sg.popup_get_text("Enter Information", title="Please Enter Text", font=('Arial Bold', 15)))
     output = var_type(output)
     return output
+
+
+def update_scoring(self, window, choosen_player):
+    if choosen_player == self.player_black:
+        text = "It is currently White's turn.\n"
+    else:
+        text = "It is currently Black's turn.\n"
+    text = text + f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
+    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\
+    Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
+    Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
+    window['Scoring'].update(text)
+
+
+def end_game_popup(self):
+    info = f"Your game has finished. Congrats.\nPlayer Black: {self.player_black.name} captured \
+            {self.player_black.captured} and has a komi of {self.player_black.komi}\n Player White: {self.player_white.name}\
+            captured {self.player_white.captured} and has a komi of {self.player_white.komi}\
+            \n Player Black has a score of {self.player_black.komi+self.player_black.captured-self.player_white.captured}\n\
+            Player Black has a score of {self.player_white.komi+self.player_white.captured-self.player_black.captured}\n\
+            This code cannot calculate territory or dead stones, so please\
+            do that yourself\nPlease save your game to a file or exit the program."
+    sg.popup(info, title="Game has Concluded", line_width=200, auto_close=True, auto_close_duration=20)
