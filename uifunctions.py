@@ -93,6 +93,7 @@ def setup_board_window(game_board):
     layout2 = [
         [sg.Button("Pass Turn", font=('Arial Bold', 12)),
          sg.Button("Save Game", font=('Arial Bold', 12)),
+         sg.Button("Undo Turn", font=('Arial Bold', 12)),
          # sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
          sg.Button("Exit Game", font=('Arial Bold', 12))],
         [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))

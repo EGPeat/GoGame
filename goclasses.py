@@ -94,6 +94,7 @@ class GoBoard():
         self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visit_kill = set()
         self.killed_last_turn = set()
+        self.killed_log = list()
         self.handicap = self.default_handicap()
 
     def print_board(self):
@@ -209,6 +210,13 @@ class GoBoard():
                         return
                     elif event == "Save Game":
                         self.save_to_json()
+                    elif event == "Undo Turn":
+                        if idx == 0:
+                            if self.turn_num == 0:
+                                sg.popup("You can't undo when nothing has happened.",
+                                         line_width=42, auto_close=True, auto_close_duration=3)
+                        else:
+                            self.undo_turn(window)
                     elif event == "Exit Game":
                         from main import play_game_main
                         window.close()
@@ -253,19 +261,29 @@ class GoBoard():
         self.end_of_game(window)
 
     def play_turn(self, window, choosen_player):
+        print(f"this is killed_last_turn log: {self.killed_last_turn}")
+        print(f"this is killed log: {self.killed_log}")
         truth_value = False
         while not truth_value:
             event, values = window.read()
             # if event == "Press After Loading From File":
             #    self.refresh_board(window)
             if event == "Pass Turn":
-                sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
+                sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
                 self.times_passed += 1
                 self.turn_num += 1
                 self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
                 return
             elif event == "Save Game":
                 self.save_to_json()
+            elif event == "Undo Turn":
+                if self.turn_num == 0:
+                    sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
+                elif self.turn_num == 1:
+                    self.undo_turn(window)
+                else:
+                    self.undo_turn(window)
+                    self.undo_turn(window)
             elif event == "Exit Game":
                 from main import play_game_main
                 window.close()
@@ -314,9 +332,19 @@ class GoBoard():
         else:  # No rules or special cases are broken, play piece as normal.
             self.position_played_log.append((which_player.color, row, col))
             piece.stone_here_color = which_player.unicode
+            self.killed_log.append(self.killed_last_turn)#unsure if this works
             self.killed_last_turn.clear()
+            
         self.turn_num += 1
         return True
+    
+    def undo_turn(self, window): #need to have it go back to who played...
+        #This doesn't handle stuff like captures...
+        color, row, col = self.position_played_log.pop()
+        self.board[row][col].stone_here_color = unicode_none
+        window[(row, col)].update("")
+        self.turn_num -= 1
+
 
     def ko_rule_break(self, piece, which_player):
         if self.suicide(piece, which_player) > 0:
@@ -355,6 +383,9 @@ class GoBoard():
 
     # This takes in the player who is gaining the captured pieces
     def remove_stones(self, choosen_player, window):
+        self.killed_log.append(self.killed_last_turn)
+        for item in self.killed_last_turn:
+            self.killed_log.append(())
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
@@ -404,7 +435,7 @@ class GoBoard():
             piece.stone_here_color = unicode_none
         return truth_value
 
-    def save_to_json(self):
+    def save_to_json(self):#add self.killed_log
         import json
         filename = ''
         while len(filename) < 1:
@@ -445,7 +476,7 @@ class GoBoard():
             file.write(json_object)
         sg.popup(f"Saved to {filename}.json", line_width=42, auto_close=True, auto_close_duration=3)
 
-    def load_from_json(self, inputPath=''):
+    def load_from_json(self, inputPath=''):#add self.killed_log
         data = load_and_parse_file(inputPath)
         self.board_size = data["board_size"]
         self.defaults = data["defaults"]
@@ -472,7 +503,6 @@ class GoBoard():
         board_list = data["places_on_board"]
         for item in board_list:
             bxidx, byidx, bcolor = item
-            print(f"hello this is x{bcolor}x")
             self.board[bxidx][byidx].stone_here_color = f"{bcolor}"
 
     def refresh_board(self, window):
