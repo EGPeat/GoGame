@@ -414,52 +414,110 @@ class GoBoard():
         #https://senseis.xmp.net/?KillingShapes
         piece = self.board[7][7] # change
         print(piece)
-        double_set = self.helper_finding_shapes(piece, which_player)
+        connected_pieces, connected_spaces = self.helper_finding_shapes(piece, which_player)##
 
         #piece = piece_set.pop()
         #piece_set.add(piece)
         #double_set = self.helper_finding_shapes(piece, which_player)
         #for item in double_set[0]:
         #   group_set.add(item)
-        for item in double_set[0]:
+        space_shapes = list()
+        destroyable_connected_spaces = connected_spaces.copy()
+        for item in connected_pieces:
             print(item)
-        for item in double_set[1]:
+        for item in connected_spaces:
             print(item)
-        eyes = 0
-        liberties = 0
-        while len(double_set[1]):
-            item = double_set[1].pop()
-            double_set[1].add(item)
-            set_of_spaces = self.helper_finding_eyes(item, which_player)
-            eyes += 1
-            liberties += len(set_of_spaces)
-            print(f"testing set of spaces, with len left of {len(double_set[1])}, eyes of {eyes} and liberties of {liberties}")
-            for item in set_of_spaces[1]: #1 or 0?
-                print(f"item is {item}")
-                
-                double_set[1].remove(item)
-        if eyes >= 2 or liberties >= 3:
-            return "Alive", double_set[0]
+        
+        while len(destroyable_connected_spaces):
+            
+            piece2=destroyable_connected_spaces.pop()
+            destroyable_connected_spaces.add(piece2)
+            temp_set = self.helper_space_shapes(piece2)
+            space_shapes.append(temp_set)          
+            print("new set of tests")
+            for item in temp_set:
+                print(item)  
+            for item in temp_set:
+                if item in destroyable_connected_spaces:
+                    destroyable_connected_spaces.remove(item) # up to here is good
+        print(len(space_shapes))
+        for item in space_shapes:
+            info = self.space_analysis(item, which_player)
+            print(info)
 
+        quit()
 
 
     #this finds and makes a set of connected pieces of a certain color, as well as a set of empty spaces nearby
     def helper_finding_shapes(self, piece, which_player, connected_empty_sets=None):
 
         if connected_empty_sets is None:
-            connected_empty_sets = (set(), set())  
-        connected_empty_sets[0].add(piece)
+            connected_empty_sets = (set(), set())
+        if piece.stone_here_color == which_player.unicode:
+            connected_empty_sets[0].add(piece)
+        else:
+            connected_empty_sets[1].add(piece)
         neighbors = self.check_neighbors(piece)
 
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none:
+            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_empty_sets[1]:
+                #self.helper_finding_shapes(neighboring_piece, which_player, connected_empty_sets)
                 connected_empty_sets[1].add(neighboring_piece)
             elif neighboring_piece.stone_here_color != which_player.unicode:
                 pass
             elif neighboring_piece not in connected_empty_sets[0]:
                 self.helper_finding_shapes(neighboring_piece, which_player, connected_empty_sets)
-        return connected_empty_sets
+        return connected_empty_sets[0], connected_empty_sets[1]
+    
+    def helper_space_shapes(self, piece, connected_area=None):
+        if connected_area is None:
+            connected_area = set()
+        connected_area.add(piece)
+        neighbors = self.check_neighbors(piece)
+
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_area:
+                self.helper_space_shapes(neighboring_piece, connected_area)
+        return connected_area
+    
+    
+    def space_analysis(self, shape, which_player):
+        if len(shape) >=10:#
+            return False#
+        
+        shape_modified = set()
+        neighborhood = set()
+        neighbor_list = list()
+        for item in shape:
+            neighbor_list += self.check_neighbors(item)
+            shape_modified.add((item.row, item.col))
+        for item in neighbor_list:
+            if item not in neighborhood:
+                neighborhood.add(item)
+
+        neighborhood -= shape_modified
+        friendly_stones=0
+        unfriendly_stones=0
+        print("this is neighborhood2")
+        for item in neighborhood:
+            print(item)
+            if self.board[item[0]][item[1]].stone_color_here == which_player.unicode:
+                friendly_stones_+=1
+            else:
+                unfriendly_stones+=1
+            
+        print(f"len of shape is {len(shape)}, len neighborhood is {len(neighborhood)}")
+        print(f"friendly stone count is {friendly_stones}, unfriendly stone count is {unfriendly_stones}")
+        return True
+        
+            
+        
+        #find all neighbors of items in the object, excluding 
+        #number of connected
+    
+    
     
     def helper_finding_eyes(self, piece, which_player, eye_set=None):
         if eye_set is None:
