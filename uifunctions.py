@@ -126,18 +126,12 @@ def setup_board_window(game_board):
         [sg.Button("Pass Turn", font=('Arial Bold', 12)),
          sg.Button("Save Game", font=('Arial Bold', 12)),
          sg.Button("Undo Turn", font=('Arial Bold', 12)),
-         # sg.Button("Press After Loading From File", font=('Arial Bold', 12)),
          sg.Button("Exit Game", font=('Arial Bold', 12))],
         [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
             for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
 
-        [sg.Multiline(text,
-                      font=('Arial Bold', 12),
-                      size=10,
-                      expand_x=True,
-                      expand_y=True,
-                      key='Scoring',
-                      justification='center')]]
+        [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
+                      key='Scoring', justification='center')]]
     window2 = sg.Window('Game Screen', layout2, size=(700, 700), finalize=True)
 
     return window2

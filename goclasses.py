@@ -61,18 +61,28 @@ class Player():
 unicodePrint = {
     "Black": u"\u26AB",
     "White": u"\u26AA",
-    "None": u"\U0001F7E9"
+    "None": u"\U0001F7E9",
+    "BlackTriangle": u"\u25B2",
+    "WhiteTriangle": u"\u25B3",
+    "DiamondBlack": u"\u25C6",
+    "DiamondWhite": u"\u25C7"
 }
 unicode_black = unicodePrint["Black"]
 unicode_white = unicodePrint["White"]
 unicode_none = unicodePrint["None"]
-
+unicode_triangle_black = unicodePrint["BlackTriangle"]
+unicode_triangle_white = unicodePrint["WhiteTriangle"]
+unicode_diamond_black = unicodePrint["DiamondBlack"]  # represents dead pieces
+unicode_diamond_white = unicodePrint["DiamondWhite"]
 
 class BoardNode():
     def __init__(self, row_value=None, col_value=None):
         self.row = row_value
         self.col = col_value
         self.stone_here_color = unicode_none
+    def __str__(self):
+        return (f"This is a BoardNode with coordinates of ({self.row},{self.col}) and a stone of {self.stone_here_color}")
+        
 
     # Allows for updating a specific variable in the BoardNode class
     def change_boardnode_value(self, class_value, value):
@@ -360,6 +370,7 @@ class GoBoard():
 
     def end_of_game(self, window):
         ui.end_game_popup(self)
+        self.counting_territory(window)
         event, values = window.read()
         truth_value = False
         while not truth_value:
@@ -373,7 +384,111 @@ class GoBoard():
                     quit()
             elif event == "Exit Game":
                 quit()
+    
+    def counting_territory(self, window):
+        empty_space_set, black_set, white_set = set(), set(), set()
+        for xidx in range(self.board_size):
+            for yidx in range(self.board_size):
+                temp_node = self.board[xidx][yidx]
+                if temp_node.stone_here_color == unicode_white:
+                    white_set.add(temp_node)
+                elif temp_node.stone_here_color == unicode_black:
+                    black_set.add(temp_node)
+                else:
+                    empty_space_set.add(temp_node)
+        print(f"empty_space_set {len(empty_space_set)}, black_set {len(black_set)}, white_set {len(white_set)}")
+        black_set_alive_dead = set()
+        #while len(black_set) > 0:
+        life_value, grouping = self.finding_eyes(black_set, self.player_black)
+        print(life_value)
+        print(grouping)
+        if life_value == "Alive":
+            for item in grouping:
+                black_set_alive_dead[0].add(item)
+        else:
+            for item in grouping:
+                black_set_alive_dead[1].add(item)
 
+
+    def finding_eyes(self, piece_set, which_player):#add something for finding dead/killable shapes
+        #https://senseis.xmp.net/?KillingShapes
+        piece = self.board[7][7] # change
+        print(piece)
+        double_set = self.helper_finding_shapes(piece, which_player)
+
+        #piece = piece_set.pop()
+        #piece_set.add(piece)
+        #double_set = self.helper_finding_shapes(piece, which_player)
+        #for item in double_set[0]:
+        #   group_set.add(item)
+        for item in double_set[0]:
+            print(item)
+        for item in double_set[1]:
+            print(item)
+        eyes = 0
+        liberties = 0
+        while len(double_set[1]):
+            item = double_set[1].pop()
+            double_set[1].add(item)
+            set_of_spaces = self.helper_finding_eyes(item, which_player)
+            eyes += 1
+            liberties += len(set_of_spaces)
+            print(f"testing set of spaces, with len left of {len(double_set[1])}, eyes of {eyes} and liberties of {liberties}")
+            for item in set_of_spaces[1]: #1 or 0?
+                print(f"item is {item}")
+                
+                double_set[1].remove(item)
+        if eyes >= 2 or liberties >= 3:
+            return "Alive", double_set[0]
+
+
+
+    #this finds and makes a set of connected pieces of a certain color, as well as a set of empty spaces nearby
+    def helper_finding_shapes(self, piece, which_player, connected_empty_sets=None):
+
+        if connected_empty_sets is None:
+            connected_empty_sets = (set(), set())  
+        connected_empty_sets[0].add(piece)
+        neighbors = self.check_neighbors(piece)
+
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            if neighboring_piece.stone_here_color == unicode_none:
+                connected_empty_sets[1].add(neighboring_piece)
+            elif neighboring_piece.stone_here_color != which_player.unicode:
+                pass
+            elif neighboring_piece not in connected_empty_sets[0]:
+                self.helper_finding_shapes(neighboring_piece, which_player, connected_empty_sets)
+        return connected_empty_sets
+    
+    def helper_finding_eyes(self, piece, which_player, eye_set=None):
+        if eye_set is None:
+            eye_set = (set(), set())  
+            # Set of verified good connected spaces, set of all connected spaces
+        eye_set[0].add(piece)
+        eye_set[1].add(piece)
+        neighbors = self.check_neighbors(piece)
+        already_removed = False
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            which_player_check = neighboring_piece.stone_here_color != which_player.unicode
+            check_unicode_none = neighboring_piece.stone_here_color != unicode_none
+            if which_player_check and check_unicode_none and already_removed == False:
+                eye_set[0].remove(piece)
+                already_removed = True
+                pass
+            elif which_player_check and check_unicode_none:
+                pass
+            elif neighboring_piece not in eye_set[1]:
+                self.helper_finding_shapes(neighboring_piece, which_player, eye_set)
+        return eye_set
+        
+        
+        
+        
+        
+        
+                
     def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
         piece.stone_here_color = which_player.unicode
         neighbors = self.check_neighbors(piece)
@@ -475,7 +590,6 @@ def load_and_parse_file(file):
     with open(file, 'r', encoding='utf-8') as file:
         import json
         data_to_parse = json.load(file)
-
     return data_to_parse
 
 
