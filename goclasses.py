@@ -137,84 +137,51 @@ class GoBoard():
             return (False, "None", 0)
         info = "Please Click Yes if you want choose where you play your handicap."
         manual_handicap = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
-        done = False
         handicap_points9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicap_points13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
         handicap_points17 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
-        info = "Please enter some information regarding a handicap.\n\
-          For the 100s place write 1 if there should be no handicap, or 2 if there should \n\
-          For the 10s place, write 1 for Black getting the handicap, or 2 for white getting it\n\
-          For the 1s place, please enter the number of stones the handicap should be\n\
-          An example would be 212, meaning there is a handicap, black has it, and black gets 2 stones\n\
-          Warning. If you have choosen a 9x9 board, you can have only a 5 piece handicap max"
-
-        while done is not True:
-            try:
-                handicap_info = None
-                while handicap_info is None:
-                    sg.popup(info, line_width=42, auto_close=True, auto_close_duration=15)
-                    handicap_info = (sg.popup_get_text("Enter number", title="Please Enter Text", font=('Arial Bold', 15)))
-                handicap_info = int(handicap_info)
-                if handicap_info % 10 > 5 and self.board_size == 9:
-                    raise ValueError
-                done = True
-            except ValueError:
-                info = "It seems you entered something that isn't correct. Please try again"
-                sg.popup(info, line_width=42, auto_close=True, auto_close_duration=2)
-        if handicap_info < 200:
-            return (False, 0, 0)  # Handicap, player, number of pieces
-        handicap_info %= 100
-        if handicap_info < 20:
-            player = self.player_black
-        else:
-            player = self.player_white
-        handicap_info %= 10
         choosen_list = handicap_points17
         if self.board_size == 9:
             choosen_list = handicap_points9
         elif self.board_size == 13:
             choosen_list = handicap_points13
-        for idx in range(handicap_info):
-            if manual_handicap == "Yes":
-                txt = f"Please place {handicap_info} number of pieces where you wish, as a handicap. Then the opponent will play."
-                sg.popup(txt, line_width=42, auto_close=True, auto_close_duration=3)
-                event, values = window.read()
-                while event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
-                    if event == "Pass Turn":
-                        sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
-                        self.times_passed += 1
-                        self.turn_num += 1
-                        self.position_played_log.append((f"{player.color} passed", -2, -2))
-                        return
-                    elif event == "Save Game":
-                        self.save_to_json()
-                    elif event == "Undo Turn":
-                        if idx == 0:
-                            if self.turn_num == 0:
-                                sg.popup("You can't undo when nothing has happened.",
-                                         line_width=42, auto_close=True, auto_close_duration=3)
-                        else:
-                            self.undo_turn(window)
-                    elif event == "Exit Game":
-                        from main import play_game_main
-                        window.close()
-                        play_game_main()
-                        quit()
-                window[event].update(player.unicode)
-
-                self.play_piece(event[0], event[1], player, window)
-                self.refresh_board(window)
-
-            else:
+        player_choice = ui.handicap_person_gui()
+        if player_choice == "Black":
+            player = self.player_black
+        elif player_choice == "White":
+            player = self.player_white
+        else:
+            return (False, "None", 0)
+        handicap_info = ui.handicap_number_gui(self.board_size)
+        if manual_handicap == "No":
+            for idx in range(handicap_info):
                 row, col = choosen_list[idx]
                 window[(row, col)].update(player.unicode)
                 self.play_piece(row, col, player, window)
                 self.refresh_board(window)
-
+        else:
+            self.manual_handicap_placement(window, handicap_info, player)
         self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
         return (True, player.color, handicap_info)
+
+    def manual_handicap_placement(self, window, handicap_info, player):
+        for idx in range(handicap_info):
+            txt = f"Please place {handicap_info} number of pieces where you wish,\
+                    as a handicap. Do not press undo. Then the opponent will play."
+            sg.popup(txt, line_width=42, auto_close=True, auto_close_duration=3)
+            event, values = window.read()
+            while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn" or event == "Exit Game":
+                if event == "Undo Turn":
+                    sg.popup("You can't undo during the handicap stage.",
+                             line_width=42, auto_close=True, auto_close_duration=3)
+                elif event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
+                    self.turn_options(window, event, player)
+            window[event].update(player.unicode)
+
+            self.play_piece(event[0], event[1], player, window)
+            self.refresh_board(window)
 
     def play_game(self, window, fromFile=False, fixes_handicap=False):
 
@@ -239,30 +206,10 @@ class GoBoard():
         while not truth_value:
             event, values = window.read()
             if event == "Pass Turn":
-                sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
-                self.times_passed += 1
-                self.turn_num += 1
-                self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
-                ui.update_scoring(self, window, choosen_player)
+                self.turn_options(window, event, choosen_player)
                 return
-            elif event == "Save Game":
-                self.save_to_json()
-            elif event == "Undo Turn":
-                if self.turn_num == 0:  # bit of a problem when there's a handicap...
-                    sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
-                elif self.turn_num == 1:
-                    self.undo_turn(window)
-                    ui.update_scoring(self, window, choosen_player)
-                    choosen_player = self.player_black
-                else:
-                    self.undo_turn(window)
-                    self.undo_turn(window)
-                    ui.update_scoring(self, window, choosen_player)
-            elif event == "Exit Game":
-                from main import play_game_main
-                window.close()
-                play_game_main()
-                quit()
+            elif event == "Save Game" or event == "Undo Turn" or event == "Exit Game":
+                self.turn_options(window, event, choosen_player)
             else:
                 row = int(event[0])
                 col = int(event[1])
@@ -281,6 +228,33 @@ class GoBoard():
                 temp_list.append((self.player_black.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
         return
+
+    def turn_options(self, window, event, choosen_player):
+        if event == "Pass Turn":
+            sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
+            self.times_passed += 1
+            self.turn_num += 1
+            self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
+            ui.update_scoring(self, window, choosen_player)
+            return
+        elif event == "Save Game":
+            self.save_to_json()
+        elif event == "Undo Turn":
+            if self.turn_num == 0:
+                sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
+            elif self.turn_num == 1:
+                self.undo_turn(window)
+                ui.update_scoring(self, window, choosen_player)
+                choosen_player = self.player_black
+            else:
+                self.undo_turn(window)
+                self.undo_turn(window)
+                ui.update_scoring(self, window, choosen_player)
+        elif event == "Exit Game":
+            from main import play_game_main
+            window.close()
+            play_game_main()
+            quit()
 
     def play_piece(self, row, col, which_player, window):
         piece = self.board[row][col]

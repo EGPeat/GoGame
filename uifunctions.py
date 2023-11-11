@@ -28,6 +28,38 @@ def start_game():
         return 17
 
 
+def handicap_person_gui():
+    info = "Please enter some information regarding a handicap. Which player will get a handicap?"
+
+    layout = [[sg.Text(info)],
+              [sg.Button("Black", font=('Arial Bold', 16)),
+              sg.Button("White", font=('Arial Bold', 16))],
+              [sg.Button("I don't want a handicap", font=('Arial Bold', 16))]]
+    window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
+    option, option2 = window2.read()
+    window2.close()
+    return option
+
+
+def handicap_number_gui(board_size):
+    info = "Please enter some information regarding a handicap. Which player will get a handicap?"
+    deflt = ('Arial Bold', 16)
+    layout = [[sg.Text(info)],
+              [sg.Button("1", font=deflt), sg.Button("2", font=deflt), sg.Button("3", font=deflt)],
+              [sg.Button("4", font=deflt), sg.Button("5", font=deflt), sg.Button("6", font=deflt)],
+              [sg.Button("7", font=deflt), sg.Button("8", font=deflt), sg.Button("9", font=deflt)]]
+    layout2 = [[sg.Text(info)],
+               [sg.Button("1", font=deflt), sg.Button("2", font=deflt), sg.Button("3", font=deflt)],
+               [sg.Button("4", font=deflt), sg.Button("5", font=deflt)]]
+    if board_size == 9:
+        window2 = sg.Window('Game Screen', layout2, size=(200, 200), finalize=True)
+    else:
+        window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
+    option, option2 = window2.read()
+    window2.close()
+    return int(option)
+
+
 # Validates that the input is of the correct type
 def input_value(max_size=16, value_type=int, options=False):
 
