@@ -81,7 +81,12 @@ def setup_menu():
 
 # Sets up the window for playing the game using PySimpleGUI
 def setup_board_window(game_board):
-    text = f"Turn Number is {game_board.turn_num}\nPlayer 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
+    if game_board.turn_num % 2 == 1:
+        text = "It is currently White's turn.\n"
+    else:
+        text = "It is currently Black's turn.\n"
+
+    text = text + f"Turn Number is {game_board.turn_num}\nPlayer 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\
     Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"

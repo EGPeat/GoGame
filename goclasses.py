@@ -1,5 +1,4 @@
-from uifunctions import p, input_value, setup_board_window, validation_gui
-import os.path
+from uifunctions import p, setup_board_window, validation_gui
 import PySimpleGUI as sg
 
 
@@ -60,9 +59,9 @@ class Player():
 
 
 unicodePrint = {
-    "Black": u" \u26AB ",
-    "White": u" \u26AA ",
-    "None": u" \U0001F7E9 "
+    "Black": u"\u26AB",
+    "White": u"\u26AA",
+    "None": u"\U0001F7E9"
 }
 unicode_black = unicodePrint["Black"]
 unicode_white = unicodePrint["White"]
@@ -157,6 +156,8 @@ class GoBoard():
     def custom_handicap(self, defaults, window):
         if defaults is True:
             return (False, "None", 0)
+        info = "Please Click Yes if you want choose where you play your handicap."
+        manual_handicap = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         done = False
         handicap_points9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicap_points13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
@@ -189,35 +190,42 @@ class GoBoard():
         else:
             player = self.player_white
         handicap_info %= 10
-        info = f"Please place {handicap_info} number of pieces where you wish, as a handicap. Then the opponent will play."
-        sg.popup(info, line_width=42, auto_close=True, auto_close_duration=3)
         choosen_list = handicap_points17
         if self.board_size == 9:
             choosen_list = handicap_points9
         elif self.board_size == 13:
             choosen_list = handicap_points13
         for idx in range(handicap_info):
-            row, col = choosen_list[idx]  # WorkOn. Change it for allowing players to play where they want
-            event, values = window.read()
-            while event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
-                if event == "Pass Turn":
-                    sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
-                    self.times_passed += 1
-                    self.turn_num += 1
-                    self.position_played_log.append((f"{player.color} passed", -2, -2))
-                    return
-                elif event == "Save Game":
-                    self.save_to_json()
-                elif event == "Exit Game":
-                    from main import play_game_main
-                    window.close()
-                    play_game_main()
-                    quit()
+            if manual_handicap == "Yes":
+                txt = f"Please place {handicap_info} number of pieces where you wish, as a handicap. Then the opponent will play."
+                sg.popup(txt, line_width=42, auto_close=True, auto_close_duration=3)
                 event, values = window.read()
-            window[event].update(player.unicode)
+                while event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
+                    if event == "Pass Turn":
+                        sg.popup("skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
+                        self.times_passed += 1
+                        self.turn_num += 1
+                        self.position_played_log.append((f"{player.color} passed", -2, -2))
+                        return
+                    elif event == "Save Game":
+                        self.save_to_json()
+                    elif event == "Exit Game":
+                        from main import play_game_main
+                        window.close()
+                        play_game_main()
+                        quit()
+                window[event].update(player.unicode)
 
-            self.play_piece(event[0], event[1], player, window)
-            self.refresh_board(window)
+                self.play_piece(event[0], event[1], player, window)
+                self.refresh_board(window)
+
+            else:
+                row, col = choosen_list[idx]
+                window[(row, col)].update(player.unicode)
+                self.play_piece(row, col, player, window)
+                self.refresh_board(window)
+
+        self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
         return (True, player.color, handicap_info)
@@ -271,7 +279,11 @@ class GoBoard():
                 truth_value = self.play_piece(row, col, choosen_player, window)
                 if truth_value:
                     window[event].update(choosen_player.unicode)
-        text = f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
+        if choosen_player == self.player_black:
+            text = "It is currently White's turn.\n"
+        else:
+            text = "It is currently Black's turn.\n"
+        text = text + f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\
     Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
@@ -392,7 +404,7 @@ class GoBoard():
             piece.stone_here_color = unicode_none
         return truth_value
 
-    def save_to_json(self):  # Change this to json
+    def save_to_json(self):
         import json
         filename = ''
         while len(filename) < 1:
@@ -406,7 +418,7 @@ class GoBoard():
         places_on_board = list()
         for xidx in range(self.board_size):
             for yidx in range(self.board_size):
-                if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
+                if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     places_on_board.append([xidx, yidx, self.board[xidx][yidx].stone_here_color])
         with open(f"{filename}.json", 'w', encoding='utf-8') as file:
             dictionary_to_json = {
@@ -431,33 +443,10 @@ class GoBoard():
             }
             json_object = json.dumps(dictionary_to_json, indent=4)
             file.write(json_object)
-        with open(f"{filename}.txt", 'w', encoding='utf-8') as file:
-            file.write(f"{self.board_size}; {self.defaults}; {self.times_passed}; \
-                {self.turn_num}; {self.handicap}; {self.position_played_log}\n")
-            file.write(f"{self.player_black.name}; {self.player_black.color}; \
-                {self.player_black.captured}; {self.player_black.komi}\n")
-            file.write(f"{self.player_white.name}; {self.player_white.color}; \
-                {self.player_white.captured}; {self.player_white.komi}\n")
-            for row in range(self.board_size):
-                print_row = ''
-                for col in range(self.board_size):
-                    print_row += self.board[row][col].stone_here_color
-                file.write(print_row + '\n')
-        sg.popup(f"Saved to {filename}.txt", line_width=42, auto_close=True, auto_close_duration=3)
+        sg.popup(f"Saved to {filename}.json", line_width=42, auto_close=True, auto_close_duration=3)
 
-    def load_from_json(self, inputAlr=False, inputPath=''):
-
-        foundFile = False
-        if inputAlr is False:
-            while foundFile is False:
-                path_filename = f"{input_value(30, str)}.txt"
-                if os.path.isfile(path_filename):
-                    foundFile = True
-                else:
-                    p("You have entered a filename that doesn't exist, please try inputing again. Don't write the .txt")
-        else:
-            path_filename = inputPath
-        data = load_and_parse_file(path_filename)
+    def load_from_json(self, inputPath=''):
+        data = load_and_parse_file(inputPath)
         self.board_size = data["board_size"]
         self.defaults = data["defaults"]
         self.times_passed = data["times_passed"]
@@ -483,13 +472,13 @@ class GoBoard():
         board_list = data["places_on_board"]
         for item in board_list:
             bxidx, byidx, bcolor = item
-            print(bxidx, byidx, bcolor)
-            self.board[bxidx][byidx].stone_here_color = f" {bcolor} "
+            print(f"hello this is x{bcolor}x")
+            self.board[bxidx][byidx].stone_here_color = f"{bcolor}"
 
     def refresh_board(self, window):
         for xidx in range(self.board_size):
             for yidx in range(self.board_size):
-                if not self.board[xidx][yidx].stone_here_color == " \U0001F7E9 ":
+                if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
 
 
@@ -513,7 +502,7 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
     else:
         GameBoard = GoBoard(board_size, defaults)
     if file_import_option:
-        GameBoard.load_from_json(True, choosen_file)
+        GameBoard.load_from_json(choosen_file)
     window.close()
     window2 = setup_board_window(GameBoard)
     info = "Click yes if you want to modify the handicap"

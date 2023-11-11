@@ -4,11 +4,11 @@ import PySimpleGUI as sg
 
 
 # To do:
+# undo button
 # Remake gui in Kivy or etc
 # Add AI to game
 # Add MP to game
 # Auto scoring
-
 def play_game_main():
     window = ui.setup_menu()
 
