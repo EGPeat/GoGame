@@ -10,7 +10,7 @@ import PySimpleGUI as sg
 # https://github.com/inclement/LazyBaduk/tree/master
 # https://github.com/dakota-marshall/python-ogs
 # https://github.com/MORaHo/Go-Baduk-Weiqi
-#https://utf8-chartable.de/unicode-utf8-table.pl?start=10624&number=512&unicodeinhtml=hex
+# https://utf8-chartable.de/unicode-utf8-table.pl?start=10624&number=512&unicodeinhtml=hex
 
 # To do:
 # Remake gui in Kivy or etc
@@ -20,7 +20,8 @@ import PySimpleGUI as sg
 # add way to resume game after auto scoring
 
 
-#handicap lets white play twice sometimes.......
+# handicap lets white play twice sometimes.......
+# loading from a game in scoring is weird
 def play_game_main():
     window = ui.setup_menu()
 

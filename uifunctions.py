@@ -178,11 +178,17 @@ def end_game_popup(self):
 
 
 def end_game_popup_two(self):
-    info = f"Your game has finished. Congrats.\nPlayer Black: {self.player_black.name} captured \
-            {self.player_black.captured} and has a komi of {self.player_black.komi}\n Player White: {self.player_white.name}\
-            captured {self.player_white.captured} and has a komi of {self.player_white.komi}\
-            \n Player Black has a score of {self.player_black.komi+self.player_black.captured-self.player_white.captured}\n\
-            Player Black has a score of {self.player_white.komi+self.player_white.captured-self.player_black.captured}\n\
-            This code cannot calculate territory or dead stones, so please\
-            do that yourself\nPlease save your game to a file or exit the program."
+    player_black_score = self.player_black.komi + self.player_black.captured + self.player_black.territory
+    player_white_score = self.player_white.komi + self.player_white.captured + self.player_white.territory
+    difference = player_black_score - player_white_score
+    info = f"Your game has finished.\nPlayer Black: {self.player_black.name} has {self.player_black.territory} territory\
+            , and captured {self.player_black.captured} pieces and has a komi of {self.player_black.komi}\
+            \n Player White: {self.player_white.name} has {self.player_white.territory} territory\
+            , and captured {self.player_white.captured} pieces and has a komi of {self.player_white.komi}\
+            \n Player Black has a score of {player_black_score}\n\
+            Player White has a score of {player_white_score}, meaning "
+    if difference > 0:
+        info = info + f"Player Black won by {difference} points"
+    else:
+        info = info + f"Player White won by {difference*-1} points"
     sg.popup(info, title="Game has Concluded", line_width=200, auto_close=True, auto_close_duration=20)

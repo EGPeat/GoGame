@@ -9,6 +9,7 @@ class Player():
         self.captured = captured
         self.komi = komi
         self.unicode = unicode_choice
+        self.territory = 0
 
     def choose_name(self):
         info = "Please Click Yes if you want to change your name"
@@ -102,15 +103,14 @@ class GoBoard():
         self.player_white = self.setup_player(self.defaults, color="White")
         self.times_passed = 0
         self.turn_num = 0
-        
         self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visit_kill = set()
         self.killed_last_turn = set()  # Potentially unneeded
         self.killed_log = list()
-        self.scoring_mode = False #add to json
+        self.scoring_mode = False
         self.scoring_mode_change = True
         self.game_finished = False
-        self.scoring_turn_num = 0 #add to json
+        self.scoring_turn_num = 0
         self.handicap = self.default_handicap()
 
     # This sets up the board variable of the GoBoard class, initializing as appropriate
@@ -200,58 +200,70 @@ class GoBoard():
             self.refresh_board(window)
 
     def play_game(self, window, fromFile=False, fixes_handicap=False):
-
-        if fixes_handicap is True:
-            self.handicap = self.custom_handicap(False, window)
-        if fromFile is not True:
-            self.setup_board()
-        else:
-            self.refresh_board(window)
-            if self.position_played_log[-1][0] == "Black":
-                self.play_turn(window, self.player_white)
-
-        while (self.times_passed <= 1):
-            if self.turn_num % 2 == 0:
-                self.play_turn(window, self.player_black)
+        if not self.scoring_mode:
+            if fixes_handicap is True:
+                self.handicap = self.custom_handicap(False, window)
+            if fromFile is not True:
+                self.setup_board()
             else:
-                self.play_turn(window, self.player_white)
-        self.scoring_mode = True
-        ui.end_game_popup(self)
-        # and then pass twice when theyre happy. Then calculate area/score
-        self.times_passed = 0
-        while not self.game_finished:
-            if self.scoring_mode_change:
-                if self.scoring_mode:
-                    window.close()
-                    window = ui.setup_board_window(self, scoring=True)
-                    self.refresh_board(window)
-                else:
-                    window.close()
-                    window = ui.setup_board_window(self)
-                    self.refresh_board(window)
-                self.scoring_mode_change = False
+                self.refresh_board(window)
+                if self.position_played_log[-1][0] == "Black":
+                    self.play_turn(window, self.player_white)
 
-            while self.scoring_mode:
-                if self.scoring_turn_num % 2 == 0:
-                    self.remove_dead(window, self.player_black)
-                else:
-                    self.remove_dead(window, self.player_white)
             while (self.times_passed <= 1):
                 if self.turn_num % 2 == 0:
                     self.play_turn(window, self.player_black)
                 else:
                     self.play_turn(window, self.player_white)
-            if self.times_passed == 2:
-                self.scoring_mode = True
-        self.scoring_game()
+            self.scoring_mode = True
+            ui.end_game_popup(self)
+            self.scoring_time(window)
+        elif self.game_finished:
+            event, values = window.read()
+            if event == "Exit Game":
+                from main import play_game_main
+                window.close()
+                play_game_main()
+                quit()
+
+        else:
+            self.scoring_mode_change = True
+            self.times_passed = 0
+            while not self.game_finished:
+                if self.scoring_mode_change:
+                    if self.scoring_mode:
+                        window.close()
+                        window = ui.setup_board_window(self, scoring=True)
+                        self.refresh_board(window)
+                    else:
+                        window.close()
+                        window = ui.setup_board_window(self)
+                        self.refresh_board(window)
+                    self.scoring_mode_change = False
+
+                while self.scoring_mode:
+                    if self.scoring_turn_num % 2 == 0:
+                        self.remove_dead(window, self.player_black)
+                    else:
+                        self.remove_dead(window, self.player_white)
+                    if self.times_passed == 2:
+                        self.game_finished = True
+                        self.scoring_mode = False
+                while (self.times_passed <= 1):
+                    if self.turn_num % 2 == 0:
+                        self.play_turn(window, self.player_black)
+                    else:
+                        self.play_turn(window, self.player_white)
+                if self.times_passed == 2:
+                    self.scoring_mode = True
+        self.counting_territory(window)
         self.end_of_game(window)
 
-    def scoring_game(self):
-        self.counting_territory()
-        
     def remove_dead(self, window, choosen_player):  # needs serious bugfixes
-        sg.popup_no_buttons(f"Please click some dead stones to remove {choosen_player.name}",
-                            title="Please Click", font=('Arial Bold', 15), auto_close=True, auto_close_duration=1)
+        if choosen_player == self.player_black:
+            ui.update_scoring(self, window, self.player_white)
+        else:
+            ui.update_scoring(self, window, self.player_black)
         truth_value = False
         while not truth_value:
             event, values = window.read()
@@ -324,28 +336,19 @@ class GoBoard():
                     for item in piece_string:
                         temp_list.append(((item[1], "Scoring"), item[0][0], item[0][1]))
                     self.killed_log.append(temp_list)
-                    ui.update_scoring(self, window, choosen_player)
                     self.scoring_turn_num += 1
                     truth_value = True
         return
 
     def end_of_game(self, window):
-        
-        
-        #self.counting_territory(window)
-        event, values = window.read()
-        truth_value = False
-        while not truth_value:
-            event, values = window.read()
-            if event == "Pass Turn":
-                pass
-            elif event == "Save Game":
-                self.save_to_json()
-                event, values = window.read()
-                if event == "Exit Game":
-                    quit()
-            elif event == "Exit Game":
-                quit()
+        ui.end_game_popup_two(self)
+        sg.popup_no_buttons("Please save to a file, thank you.", non_blocking=True, font=('Arial Bold', 15),
+                            auto_close=True, auto_close_duration=3)
+        self.save_to_json()
+        from main import play_game_main
+        window.close()
+        play_game_main()
+        quit()
 
     def play_turn(self, window, choosen_player):
         truth_value = False
@@ -465,7 +468,6 @@ class GoBoard():
             for item in temp_list:
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
-            
 
     def ko_rule_break(self, piece, which_player):
         if self.suicide(piece, which_player) > 0:
@@ -597,8 +599,7 @@ class GoBoard():
         self.scoring_mode = data["scoring_mode"]
         self.scoring_mode_change = data["scoring_mode_change"]
         self.game_finished = data["game_finished"]
-        self.scoring_turn_num = data["scoring_turn_num"] 
-
+        self.scoring_turn_num = data["scoring_turn_num"]
         self.player_white.name = data["player_white.name"]
         self.player_white.color = data["player_white.color"]
         self.player_white.captured = data["player_white.captured"]
@@ -629,7 +630,7 @@ class GoBoard():
                 pass
         return connected_pieces
 
-    def counting_territory(self):  # commenting most of it out to work bottom up  
+    def counting_territory(self, window):
         self.empty_space_set = set()
         self.black_set = set()
         self.white_set = set()
@@ -642,26 +643,58 @@ class GoBoard():
                     self.black_set.add(temp_node)
                 else:
                     self.empty_space_set.add(temp_node)
-        print(f"empty_space_set {len(self.empty_space_set)}, black_set {len(self.black_set)}, white_set {len(self.white_set)}")
-        
-        self.making_go_board_strings(self.empty_space_set)
-        quit()
- 
-    def making_go_board_strings(self, piece_set):
-        print(f"the len of this is {len(piece_set)}")
+        self.making_go_board_strings(self.empty_space_set, window)
+
+    def making_go_board_strings(self, piece_set, window):
         list_of_piece_strings = list()
         while len(piece_set):
             piece = piece_set.pop()
             string = self.making_go_board_strings_helper(piece)
             list_of_piece_strings.append(string)
             piece_set -= string
+        for item in list_of_piece_strings:
+            item2 = item.pop()
+            item.add(item2)
+            sets = self.flood_fill(item2)
+            self.assignment_logic(sets, window)
 
-        temp_val = 0
+    def assignment_logic(self, sets, window):
+        neighboring = sets[1]-sets[0]
+        pieces_string = sets[0]
+        black_pieces = 0
+        white_pieces = 0
+        for item in neighboring:
+            if item.stone_here_color == unicode_black:
+                black_pieces += 1
+            else:
+                white_pieces += 1
+        if black_pieces == 0:
+            self.player_white.territory += len(pieces_string)
+        elif white_pieces == 0:
+            self.player_black.territory += len(pieces_string)
 
-        temp_val = sum(len(item) for item in list_of_piece_strings)
-        print(f"there is a total number of {temp_val}")
-        print(f"there is a total len of {len(list_of_piece_strings)}")
-        print(f"the len of this is {len(piece_set)}")
+        if black_pieces == 0:
+            for item in pieces_string:
+                window[(item.row, item.col)].update(unicode_triangle_white)
+        elif white_pieces == 0:
+            for item in pieces_string:
+                window[(item.row, item.col)].update(unicode_triangle_black)
+        return
+
+    def flood_fill(self, piece, connected_pieces=None):
+        if connected_pieces is None:
+            connected_pieces = (set(), set())
+        connected_pieces[0].add(piece)
+        neighboring_pieces = self.check_neighbors(piece)
+
+        for coordinate in neighboring_pieces:
+            neighbor = self.board[coordinate[0]][coordinate[1]]
+            if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
+                self.flood_fill(neighbor, connected_pieces)
+            else:
+                connected_pieces[1].add(neighbor)
+                pass
+        return connected_pieces
 
 
 def load_and_parse_file(file):
