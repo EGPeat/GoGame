@@ -64,8 +64,8 @@ unicodePrint = {
     "None": u"\U0001F7E9",
     "BlackTriangle": u"\u25B2",
     "WhiteTriangle": u"\u25B3",
-    "DiamondBlack": u"\u25C6",
-    "DiamondWhite": u"\u25C7"
+    "DiamondBlack": u"\u29BF",
+    "DiamondWhite": u"\u29BE"
 }
 unicode_black = unicodePrint["Black"]
 unicode_white = unicodePrint["White"]
@@ -102,10 +102,15 @@ class GoBoard():
         self.player_white = self.setup_player(self.defaults, color="White")
         self.times_passed = 0
         self.turn_num = 0
+        
         self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
         self.visit_kill = set()
         self.killed_last_turn = set()  # Potentially unneeded
         self.killed_log = list()
+        self.scoring_mode = False #add to json
+        self.scoring_mode_change = True
+        self.game_finished = False
+        self.scoring_turn_num = 0 #add to json
         self.handicap = self.default_handicap()
 
     # This sets up the board variable of the GoBoard class, initializing as appropriate
@@ -210,7 +215,137 @@ class GoBoard():
                 self.play_turn(window, self.player_black)
             else:
                 self.play_turn(window, self.player_white)
+        self.scoring_mode = True
+        ui.end_game_popup(self)
+        # and then pass twice when theyre happy. Then calculate area/score
+        self.times_passed = 0
+        while not self.game_finished:
+            if self.scoring_mode_change:
+                if self.scoring_mode:
+                    window.close()
+                    window = ui.setup_board_window(self, scoring=True)
+                    self.refresh_board(window)
+                else:
+                    window.close()
+                    window = ui.setup_board_window(self)
+                    self.refresh_board(window)
+                self.scoring_mode_change = False
+
+            while self.scoring_mode:
+                if self.scoring_turn_num % 2 == 0:
+                    self.remove_dead(window, self.player_black)
+                else:
+                    self.remove_dead(window, self.player_white)
+            while (self.times_passed <= 1):
+                if self.turn_num % 2 == 0:
+                    self.play_turn(window, self.player_black)
+                else:
+                    self.play_turn(window, self.player_white)
+            if self.times_passed == 2:
+                self.scoring_mode = True
+        self.scoring_game()
         self.end_of_game(window)
+
+    def scoring_game(self):
+        self.counting_territory()
+        
+    def remove_dead(self, window, choosen_player):  # needs serious bugfixes
+        sg.popup_no_buttons(f"Please click some dead stones to remove {choosen_player.name}",
+                            title="Please Click", font=('Arial Bold', 15), auto_close=True, auto_close_duration=1)
+        truth_value = False
+        while not truth_value:
+            event, values = window.read()
+            if event == "Pass Turn":
+                sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=0.5)
+                self.times_passed += 1
+                self.scoring_turn_num += 1
+                self.position_played_log.append((f"{choosen_player.color} passed in scoring", -3, -3))
+                ui.update_scoring(self, window, choosen_player)
+                return
+            elif event == "Save Game":
+                self.save_to_json()
+            elif event == "Resume Game":
+                self.scoring_mode = False
+                self.scoring_mode_change = True
+                if choosen_player == self.player_black:  # could break/be weird idk
+                    if self.turn_num % 2 == 1:
+                        self.turn_num += 1
+                else:
+                    if self.turn_num % 2 == 0:
+                        self.turn_num += 1
+                return
+            elif event == "Undo Turn":
+                if self.scoring_turn_num == 0:
+                    sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=1)
+                elif self.scoring_turn_num == 1:
+                    self.undo_turn(window, scoring=True)
+                    ui.update_scoring(self, window, choosen_player)
+                    choosen_player = self.player_black
+                else:
+                    self.undo_turn(window, scoring=True)
+                    self.undo_turn(window, scoring=True)
+                    ui.update_scoring(self, window, choosen_player)
+            elif event == "Exit Game":
+                from main import play_game_main
+                window.close()
+                play_game_main()
+                quit()
+            else:
+                row = int(event[0])
+                col = int(event[1])
+
+                if self.board[row][col].stone_here_color == unicode_none:
+                    sg.popup("You can't remove empty areas", line_width=42, auto_close=True, auto_close_duration=1)
+                else:
+                    series = self.making_go_board_strings_helper(self.board[row][col])
+                    piece_string = list()
+                    for item in series:
+                        if item.stone_here_color == self.player_black.unicode:
+                            piece_string.append(((item.row, item.col), item.stone_here_color, unicode_diamond_black))
+                            window[(item.row, item.col)].update(unicode_diamond_black)
+                        else:
+                            piece_string.append(((item.row, item.col), item.stone_here_color, unicode_diamond_white))
+                            window[(item.row, item.col)].update(unicode_diamond_white)
+                    info = "Other player, please click yes if you are ok with these changes"
+                    modify_name = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
+                    if modify_name == "No":
+                        for item in series:
+                            window[(item.row, item.col)].update(item.stone_here_color)
+                        return
+
+                    for item in series:
+                        window[(item.row, item.col)].update("")
+                        self.board[item.row][item.col].stone_here_color = unicode_none
+                    if piece_string[0][1] == self.player_black.unicode:
+                        self.player_white.captured += len(piece_string)
+                    else:
+                        self.player_black.captured += len(piece_string)
+                    temp_list = list()
+                    for item in piece_string:
+                        temp_list.append(((item[1], "Scoring"), item[0][0], item[0][1]))
+                    self.killed_log.append(temp_list)
+                    ui.update_scoring(self, window, choosen_player)
+                    self.scoring_turn_num += 1
+                    truth_value = True
+        return
+
+    def end_of_game(self, window):
+        
+        
+        #self.counting_territory(window)
+        event, values = window.read()
+        truth_value = False
+        while not truth_value:
+            event, values = window.read()
+            if event == "Pass Turn":
+                pass
+            elif event == "Save Game":
+                self.save_to_json()
+                event, values = window.read()
+                if event == "Exit Game":
+                    quit()
+            elif event == "Exit Game":
+                quit()
 
     def play_turn(self, window, choosen_player):
         truth_value = False
@@ -242,7 +377,7 @@ class GoBoard():
 
     def turn_options(self, window, event, choosen_player):
         if event == "Pass Turn":
-            sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=3)
+            sg.popup("Skipped turn", line_width=42, auto_close=True, auto_close_duration=0.5)
             self.times_passed += 1
             self.turn_num += 1
             self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
@@ -296,10 +431,11 @@ class GoBoard():
         self.turn_num += 1
         return True
 
-    def undo_turn(self, window):
-        color, row, col = self.position_played_log.pop()
-        self.board[row][col].stone_here_color = unicode_none
-        window[(row, col)].update("")
+    def undo_turn(self, window, scoring=False):
+        if not scoring:
+            color, row, col = self.position_played_log.pop()
+            self.board[row][col].stone_here_color = unicode_none
+            window[(row, col)].update("")
 
         # This part reverts the board back to its state 1 turn ago
         revive = self.killed_log.pop()
@@ -314,17 +450,22 @@ class GoBoard():
             window[(row, col)].update(unicode)
 
         # This part updates some class values (player captures, killed_last_turn, turn_num)
-        self.turn_num -= 1
+        if not scoring:
+            self.turn_num -= 1
+        else:
+            self.scoring_turn_num -= 1
+
         if unicode == unicode_black:
             self.player_white.captured -= capture_update_val
         elif unicode == unicode_white:
             self.player_black.captured -= capture_update_val
-        if len(self.killed_log) > 0:
+        if len(self.killed_log) > 0 and not scoring:
             self.killed_last_turn.clear()
             temp_list = self.killed_log[-1]
             for item in temp_list:
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
+            
 
     def ko_rule_break(self, piece, which_player):
         if self.suicide(piece, which_player) > 0:
@@ -370,29 +511,6 @@ class GoBoard():
             position.stone_here_color = unicode_none
             window[(position.row, position.col)].update(' ')
 
-    def end_of_game(self, window):
-        ui.end_game_popup(self)
-        Score_Endgame = ScoreParser(self.board_size, self.defaults, self.board, self.player_black, self.player_white, window)
-        #self.counting_territory(window)
-        event, values = window.read()
-        truth_value = False
-        while not truth_value:
-            event, values = window.read()
-            if event == "Pass Turn":
-                pass
-            elif event == "Save Game":
-                self.save_to_json()
-                event, values = window.read()
-                if event == "Exit Game":
-                    quit()
-            elif event == "Exit Game":
-                quit()
-
-    
-        
-
-
-
     def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
         piece.stone_here_color = which_player.unicode
         neighbors = self.check_neighbors(piece)
@@ -416,7 +534,7 @@ class GoBoard():
         import json
         filename = ''
         while len(filename) < 1:
-            text = "Please write the name of the txt file you want to save to. Do not include '.txt' in what you write"
+            text = "Please write the name of the txt file you want to save to. Do not include '.json' in what you write"
             filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
             if filename is None:
                 return
@@ -448,7 +566,11 @@ class GoBoard():
                 "player_white.captured": self.player_white.captured,
                 "player_white.komi": self.player_white.komi,
                 "player_white.unicode": self.player_white.unicode,
-                "places_on_board": places_on_board
+                "places_on_board": places_on_board,
+                "scoring_mode": self.scoring_mode,
+                "scoring_mode_change": self.scoring_mode_change,
+                "game_finished": self.game_finished,
+                "scoring_turn_num": self.scoring_turn_num
             }
             json_object = json.dumps(dictionary_to_json, indent=4)
             file.write(json_object)
@@ -472,6 +594,10 @@ class GoBoard():
         self.player_black.captured = data["player_black.captured"]
         self.player_black.komi = data["player_black.komi"]
         self.player_black.unicode = data["player_black.unicode"]
+        self.scoring_mode = data["scoring_mode"]
+        self.scoring_mode_change = data["scoring_mode_change"]
+        self.game_finished = data["game_finished"]
+        self.scoring_turn_num = data["scoring_turn_num"] 
 
         self.player_white.name = data["player_white.name"]
         self.player_white.color = data["player_white.color"]
@@ -488,6 +614,54 @@ class GoBoard():
             for yidx in range(self.board_size):
                 if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
+
+    def making_go_board_strings_helper(self, piece, connected_pieces=None):
+        if connected_pieces is None:
+            connected_pieces = set()
+        connected_pieces.add(piece)
+        neighboring_pieces = self.check_neighbors(piece)
+
+        for coordinate in neighboring_pieces:
+            neighbor = self.board[coordinate[0]][coordinate[1]]
+            if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces:
+                self.making_go_board_strings_helper(neighbor, connected_pieces)
+            else:
+                pass
+        return connected_pieces
+
+    def counting_territory(self):  # commenting most of it out to work bottom up  
+        self.empty_space_set = set()
+        self.black_set = set()
+        self.white_set = set()
+        for xidx in range(self.board_size):  # This puts all node spots into 3 sets
+            for yidx in range(self.board_size):
+                temp_node = self.board[xidx][yidx]
+                if temp_node.stone_here_color == unicode_white:
+                    self.white_set.add(temp_node)
+                elif temp_node.stone_here_color == unicode_black:
+                    self.black_set.add(temp_node)
+                else:
+                    self.empty_space_set.add(temp_node)
+        print(f"empty_space_set {len(self.empty_space_set)}, black_set {len(self.black_set)}, white_set {len(self.white_set)}")
+        
+        self.making_go_board_strings(self.empty_space_set)
+        quit()
+ 
+    def making_go_board_strings(self, piece_set):
+        print(f"the len of this is {len(piece_set)}")
+        list_of_piece_strings = list()
+        while len(piece_set):
+            piece = piece_set.pop()
+            string = self.making_go_board_strings_helper(piece)
+            list_of_piece_strings.append(string)
+            piece_set -= string
+
+        temp_val = 0
+
+        temp_val = sum(len(item) for item in list_of_piece_strings)
+        print(f"there is a total number of {temp_val}")
+        print(f"there is a total len of {len(list_of_piece_strings)}")
+        print(f"the len of this is {len(piece_set)}")
 
 
 def load_and_parse_file(file):
@@ -522,290 +696,3 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
 
     else:
         GameBoard.play_game(window2, file_import_option, fixes_handicap)
-
-
-
-class ScoreParser(GoBoard):
-    def __init__(self, board_size2, defaults2, boards, player_black_parent, player_white_parent, window2):
-        
-        super().__init__(board_size=board_size2, defaults=defaults2)
-        empty_space_set = set()
-        black_set = set()
-        white_set = set()
-        
-        self.board = boards
-        window = window2
-
-    
-        print(f"self.board_size {self.board_size}, self.defaults {self.defaults}")
-        print(f"self.player_black {self.player_black.name, self.player_black.color, self.player_black.komi, self.player_black.unicode}")
-        print(f"self.player_black {self.player_white.name, self.player_white.color, self.player_white.komi, self.player_white.unicode}")
-        print(f"length is {len(self.board)}, and width is {len(self.board[0])}")
-        self.counting_territory(window)
-        
-        
-    def counting_territory(self, window):  # commenting most of it out to work bottom up  
-        for xidx in range(self.board_size):  # This puts all node spots into 3 sets
-            for yidx in range(self.board_size):
-                temp_node = self.board[xidx][yidx]
-                if temp_node.stone_here_color == unicode_white:
-                    self.white_set.add(temp_node)
-                elif temp_node.stone_here_color == unicode_black:
-                    self.black_set.add(temp_node)
-                else:
-                    self.empty_space_set.add(temp_node)
-        print(f"empty_space_set {len(self.empty_space_set)}, black_set {len(self.black_set)}, white_set {len(self.white_set)}")
-        
-        
-        black_set_alive_dead = set()
-        # while len(black_set) > 0:
-        life_value, grouping = self.finding_eyes(black_set, self.player_black)
-        
-        """print(f"the life_value is {life_value}")
-        print(f"the grouping is {grouping}")
-        if life_value == "Alive":
-            for item in grouping:
-                black_set_alive_dead[0].add(item)
-        else:
-            for item in grouping:
-                black_set_alive_dead[1].add(item)"""
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    def finding_eyes(self, piece_set, which_player):  # add something for finding dead/killable shapes
-        # https://senseis.xmp.net/?KillingShapes
-        piece = self.board[10][9]  # change
-        #10, 9
-        print(piece)
-        connected_pieces, connected_spaces = self.spliting_into_player_and_spaces(piece, which_player)  # #
-
-        # piece = piece_set.pop()
-        # piece_set.add(piece)
-        # double_set = self.spliting_into_player_and_spaces(piece, which_player)
-        # for item in double_set[0]:
-        #   group_set.add(item)
-        space_shapes = list()
-        destroyable_connected_spaces = connected_spaces.copy()
-        found_eyes = list()
-        
-        for item in connected_pieces:
-            print(item)
-        for item in connected_spaces:
-            print(item)
-
-        while len(destroyable_connected_spaces):
-
-            piece2 = destroyable_connected_spaces.pop()
-            destroyable_connected_spaces.add(piece2)
-            temp_set = self.helper_space_shapes(piece2)
-            space_shapes.append(temp_set)  # At this point the code has divided up the entire set of spaces into shapes
-            print("new set of tests")
-            for item in temp_set:
-                print(item)
-            for item in temp_set:
-                if item in destroyable_connected_spaces:
-                    destroyable_connected_spaces.remove(item)  # up to here is good
-        print(f"This is the number of subsets: {len(space_shapes)}")
-        
-        #for item in space_shapes: #while loop?
-        while len(space_shapes):
-            item = space_shapes.pop()
-            #space_shapes.add(item)    
-            
-            print(f" item has a length of {len(item)}")
-            if len(item) < 4:
-                info = self.spaces_length_three_or_less(item, space_shapes, which_player)#WIP
-                if info[0]:
-                    found_eyes.append(item)
-            else:
-                info = self.space_analysis_holder(item, which_player)#WIP
-            print(f"info in finding_eyes is {info}")
-        print(f"found_eyes is {found_eyes}, with len {len(found_eyes)}") #if 2+, it's alive, kill any enemy pieces inside
-            #and add those pieces to it's captured thing
-            #maybe have the thing autosave to a backup file in case ppl want to fight it and resume the game
-            #maybe have 2 screens to show the difference? or have a visual indication of killed pieces
-            #while the gamebackend just reassigns the place to empty?
-        
-        
-        quit()#
-
-    # this finds and makes a set of connected pieces of a certain color, as well as a set of empty spaces nearby
-    def spliting_into_player_and_spaces(self, piece, which_player, connected_empty_sets=None):
-
-        if connected_empty_sets is None:
-            connected_empty_sets = (set(), set())
-        if piece.stone_here_color == which_player.unicode:
-            connected_empty_sets[0].add(piece)
-        else:
-            connected_empty_sets[1].add(piece)
-        neighbors = self.check_neighbors(piece)
-
-        for coordinate in neighbors:
-            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_empty_sets[1]:
-                # self.spliting_into_player_and_spaces(neighboring_piece, which_player, connected_empty_sets)
-                connected_empty_sets[1].add(neighboring_piece)
-            elif neighboring_piece.stone_here_color != which_player.unicode:
-                pass
-            elif neighboring_piece not in connected_empty_sets[0]:
-                self.spliting_into_player_and_spaces(neighboring_piece, which_player, connected_empty_sets)
-        return connected_empty_sets[0], connected_empty_sets[1]  # returns colorshape and spaceshape
-
-    # this finds and makes a set of connected pieces of a certain color, as well as a set of empty spaces nearby
-    def spliting_into_player_and_spaces_disconnected(self, piece, which_player, connected_empty_sets=None):
-
-        if connected_empty_sets is None:
-            connected_empty_sets = (set(), set())
-        if piece.stone_here_color == which_player.unicode:
-            connected_empty_sets[0].add(piece)
-        else:
-            connected_empty_sets[1].add(piece)
-        neighbors = self.check_neighbors(piece)
-
-        for coordinate in neighbors:
-            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_empty_sets[1]:
-                # self.spliting_into_player_and_spaces(neighboring_piece, which_player, connected_empty_sets)
-                connected_empty_sets[1].add(neighboring_piece)
-                self.spliting_into_player_and_spaces_disconnected(neighboring_piece, which_player, connected_empty_sets)
-            elif neighboring_piece.stone_here_color != which_player.unicode:
-                pass
-            elif neighboring_piece not in connected_empty_sets[0]:
-                self.spliting_into_player_and_spaces_disconnected(neighboring_piece, which_player, connected_empty_sets)
-        return connected_empty_sets[0], connected_empty_sets[1]  # returns colorshape and spaceshape
-
-    def helper_space_shapes(self, piece, connected_area=None):
-        if connected_area is None:
-            connected_area = set()
-        connected_area.add(piece)
-        neighbors = self.check_neighbors(piece)
-
-        for coordinate in neighbors:
-            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_area:
-                self.helper_space_shapes(neighboring_piece, connected_area)
-        return connected_area
-
-    def spaces_length_three_or_less(self, shape, all_shapes, which_player):
-        #find out info about the space
-        #if it's surrounded by only which_player, give it as 1 eye
-        #if there is enemy area, need to check if it's inside a big which_player, then calculate if there's an eye or not
-        shape_tuple_set = set()
-        
-        neighborhood = set()
-        neighbor_list = list()
-        enemy_set = set()
-        for empty_space in shape: #should make it's own func
-            print(f"dumb empty_shape is {empty_space}, and type is {type(empty_space)}")
-            neighbor_list += self.check_neighbors(empty_space)
-            shape_tuple_set.add((empty_space.row, empty_space.col))
-        for item in neighbor_list:
-            if item not in neighborhood:
-                neighborhood.add(item)
-
-        neighborhood -= shape_tuple_set  # makes a set of only connected area
-        friendly_stones, unfriendly_stones = 0, 0
-        for item in neighborhood:
-            print(item)
-            if self.board[item[0]][item[1]].stone_here_color == which_player.unicode:
-                friendly_stones += 1
-            else:
-                unfriendly_stones += 1
-                enemy_set.add(self.board[item[0]][item[1]])
-        if unfriendly_stones == 0:
-            return (True, 1)
-        
-        else:
-            ##test subcode
-            self.finding_spaces_disturbed_by_enemy(shape, all_shapes, enemy_set, which_player)
-            return (False, 0)
-        
-    def finding_spaces_disturbed_by_enemy(self, shape, all_shapes, enemy_set, which_player):
-        #maybe make new sets which might need to be removed from previous sets?
-        
-        #make a superset of spaces (spaces_interrupted_by_enemy)
-        #figure out if the superset and enemy is surrounded by which_player
-        spaces_around_enemy = set()
-        full_enemy = set()
-        if which_player == self.player_black:
-            not_which_player = self.player_white
-        else:
-            not_which_player = self.player_black
-        
-        for item in enemy_set: # maybe more testing 1 day
-            connected_pieces, connected_spaces = self.spliting_into_player_and_spaces_disconnected(item, not_which_player)  # #
-            full_enemy = full_enemy | connected_pieces
-            spaces_around_enemy = spaces_around_enemy | connected_spaces
-            print("break1")
-            for item in connected_pieces:
-                print(item)
-            print("break2")
-            for item in connected_spaces:
-                print(item)
-        
-        print("break3")
-        for item in spaces_around_enemy:
-            print(item)
-        print("break4")
-        for item in full_enemy:
-            print(item)
-        
-
-        for item in spaces_around_enemy:
-            for shapez in all_shapes:
-                if item in shapez:
-                    shapez.remove(item)
-
-        dup_all_shapes = all_shapes.copy()
-        del all_shapes  # kinda messy
-        all_shapes = list()
-        [all_shapes.append(x) for x in dup_all_shapes if x not in all_shapes]
-
-                      
-
-        all_shapes.remove(set())
-
-        
-        
-        quit()
-            
-        #enemy_and_spaces currently only enemy and one space shape
-        
-        #for item in enemy_set/enemy_and_spaces, add all which_player pieces to something
-        #also check if any connected spaces are a new shape...
-        #for
-        
-        
-        #if new space found is in space_shape, remove it.
-        
-
-    def space_analysis_holder(self, shape, which_player):
-        if len(shape) >= 4:  #
-            return False  #
-
-
-
-
-

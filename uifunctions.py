@@ -112,7 +112,7 @@ def setup_menu():
 
 
 # Sets up the window for playing the game using PySimpleGUI
-def setup_board_window(game_board):
+def setup_board_window(game_board, scoring=False):
     if game_board.turn_num % 2 == 1:
         text = "It is currently White's turn.\n"
     else:
@@ -122,16 +122,29 @@ def setup_board_window(game_board):
     Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\
     Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
-    layout2 = [
-        [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-         sg.Button("Save Game", font=('Arial Bold', 12)),
-         sg.Button("Undo Turn", font=('Arial Bold', 12)),
-         sg.Button("Exit Game", font=('Arial Bold', 12))],
-        [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-            for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
+    if scoring:
+        layout2 = [
+            [sg.Button("Pass Turn", font=('Arial Bold', 12)),
+             sg.Button("Save Game", font=('Arial Bold', 12)),
+             sg.Button("Undo Turn", font=('Arial Bold', 12)),
+             sg.Button("Resume Game", font=('Arial Bold', 12)),
+             sg.Button("Exit Game", font=('Arial Bold', 12))],
+            [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
+                for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
 
-        [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
-                      key='Scoring', justification='center')]]
+            [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
+                          key='Scoring', justification='center')]]
+    else:
+        layout2 = [
+            [sg.Button("Pass Turn", font=('Arial Bold', 12)),
+             sg.Button("Save Game", font=('Arial Bold', 12)),
+             sg.Button("Undo Turn", font=('Arial Bold', 12)),
+             sg.Button("Exit Game", font=('Arial Bold', 12))],
+            [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
+                for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
+
+            [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
+                          key='Scoring', justification='center')]]
     window2 = sg.Window('Game Screen', layout2, size=(700, 700), finalize=True)
 
     return window2
@@ -159,6 +172,12 @@ def update_scoring(self, window, choosen_player):
 
 
 def end_game_popup(self):
+    info = "Please take turns clicking on stones that you believe are dead, and then the program will score.\
+        \n Please pass twice once you are finished scoring."
+    sg.popup(info, title="Scoring", line_width=200, auto_close=True, auto_close_duration=3)
+
+
+def end_game_popup_two(self):
     info = f"Your game has finished. Congrats.\nPlayer Black: {self.player_black.name} captured \
             {self.player_black.captured} and has a komi of {self.player_black.komi}\n Player White: {self.player_white.name}\
             captured {self.player_white.captured} and has a komi of {self.player_white.komi}\

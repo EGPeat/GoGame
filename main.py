@@ -10,6 +10,7 @@ import PySimpleGUI as sg
 # https://github.com/inclement/LazyBaduk/tree/master
 # https://github.com/dakota-marshall/python-ogs
 # https://github.com/MORaHo/Go-Baduk-Weiqi
+#https://utf8-chartable.de/unicode-utf8-table.pl?start=10624&number=512&unicodeinhtml=hex
 
 # To do:
 # Remake gui in Kivy or etc
