@@ -112,7 +112,7 @@ def setup_menu():
 
 
 # Sets up the window for playing the game using PySimpleGUI
-def setup_board_window(game_board, scoring=False):
+def setup_board_window(game_board):
     if game_board.turn_num % 2 == 1:
         text = "It is currently White's turn.\n"
     else:
@@ -122,30 +122,18 @@ def setup_board_window(game_board, scoring=False):
     Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\
     Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
-    if scoring:
-        layout2 = [
-            [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-             sg.Button("Save Game", font=('Arial Bold', 12)),
-             sg.Button("Undo Turn", font=('Arial Bold', 12)),
-             sg.Button("Resume Game", font=('Arial Bold', 12)),
-             sg.Button("Exit Game", font=('Arial Bold', 12))],
-            [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-                for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
+    layout2 = [
+        [sg.Button("Pass Turn", font=('Arial Bold', 12)),
+            sg.Button("Save Game", font=('Arial Bold', 12)),
+            sg.Button("Undo Turn", font=('Arial Bold', 12)),
+            sg.Button("Unused", font=('Arial Bold', 12), key="Res"),
+            sg.Button("Exit Game", font=('Arial Bold', 12))],
+        [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
+            for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
 
-            [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
-                          key='Scoring', justification='center')]]
-    else:
-        layout2 = [
-            [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-             sg.Button("Save Game", font=('Arial Bold', 12)),
-             sg.Button("Undo Turn", font=('Arial Bold', 12)),
-             sg.Button("Exit Game", font=('Arial Bold', 12))],
-            [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-                for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
-
-            [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
-                          key='Scoring', justification='center')]]
-    window2 = sg.Window('Game Screen', layout2, size=(700, 700), finalize=True)
+        [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
+                      key='Scoring', justification='center')]]
+    window2 = sg.Window('Game Screen', layout2, size=(700, 700), resizable=True, finalize=True)
 
     return window2
 

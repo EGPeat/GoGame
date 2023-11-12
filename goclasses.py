@@ -188,11 +188,11 @@ class GoBoard():
         sg.popup(txt, line_width=42, auto_close=True, auto_close_duration=3)
         for idx in range(handicap_info):
             event, values = window.read()
-            while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn" or event == "Exit Game":
+            while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn" or event == "Exit Game" or event == "Res":
                 if event == "Undo Turn":
                     sg.popup("You can't undo during the handicap stage.",
                              line_width=42, auto_close=True, auto_close_duration=3)
-                elif event == "Pass Turn" or event == "Save Game" or event == "Exit Game":
+                elif event == "Pass Turn" or event == "Save Game" or event == "Exit Game" or event == "Res":
                     self.turn_options(window, event, player)
             window[event].update(player.unicode)
 
@@ -217,8 +217,39 @@ class GoBoard():
                     self.play_turn(window, self.player_white)
             self.scoring_mode = True
             ui.end_game_popup(self)
-            self.scoring_time(window)
+            self.times_passed = 0
+            while not self.game_finished:
+                if self.scoring_mode_change:
+                    if self.scoring_mode:
+                        window["Res"].update("Resume Game")
+                        self.refresh_board(window)
+                    else:
+                        window["Res"].update("Unused")
+                        self.refresh_board(window)
+                    self.scoring_mode_change = False
+
+                while self.scoring_mode:
+                    if self.scoring_turn_num % 2 == 0:
+                        self.remove_dead(window, self.player_black)
+                    else:
+                        self.remove_dead(window, self.player_white)
+                    if self.times_passed == 2:
+                        self.game_finished = True
+                        self.scoring_mode = False
+                if self.scoring_mode_change:
+                    if not self.scoring_mode:
+                        window["Res"].update("Unused")
+                        self.refresh_board(window)
+                while (self.times_passed <= 1):
+                    if self.turn_num % 2 == 0:
+                        self.play_turn(window, self.player_black)
+                    else:
+                        self.play_turn(window, self.player_white)
+                if self.times_passed == 2:
+                    self.scoring_mode = True
+                    self.times_passed = 0
         elif self.game_finished:
+            self.refresh_board(window)
             event, values = window.read()
             if event == "Exit Game":
                 from main import play_game_main
@@ -232,12 +263,10 @@ class GoBoard():
             while not self.game_finished:
                 if self.scoring_mode_change:
                     if self.scoring_mode:
-                        window.close()
-                        window = ui.setup_board_window(self, scoring=True)
+                        window["Res"].update("Resume Game")
                         self.refresh_board(window)
                     else:
-                        window.close()
-                        window = ui.setup_board_window(self)
+                        window["Res"].update("Unused")
                         self.refresh_board(window)
                     self.scoring_mode_change = False
 
@@ -249,6 +278,9 @@ class GoBoard():
                     if self.times_passed == 2:
                         self.game_finished = True
                         self.scoring_mode = False
+                if self.scoring_mode_change:
+                    if not self.scoring_mode:
+                        window["Res"].update("Unused")
                 while (self.times_passed <= 1):
                     if self.turn_num % 2 == 0:
                         self.play_turn(window, self.player_black)
@@ -256,6 +288,7 @@ class GoBoard():
                         self.play_turn(window, self.player_white)
                 if self.times_passed == 2:
                     self.scoring_mode = True
+                    self.times_passed = 0
         self.counting_territory(window)
         self.end_of_game(window)
 
@@ -276,7 +309,7 @@ class GoBoard():
                 return
             elif event == "Save Game":
                 self.save_to_json()
-            elif event == "Resume Game":
+            elif event == "Res":
                 self.scoring_mode = False
                 self.scoring_mode_change = True
                 if choosen_player == self.player_black:  # could break/be weird idk
@@ -357,7 +390,7 @@ class GoBoard():
             if event == "Pass Turn":
                 self.turn_options(window, event, choosen_player)
                 return
-            elif event == "Save Game" or event == "Undo Turn" or event == "Exit Game":
+            elif event == "Save Game" or event == "Undo Turn" or event == "Exit Game" or event == "Res":
                 self.turn_options(window, event, choosen_player)
             else:
                 row = int(event[0])
@@ -388,6 +421,9 @@ class GoBoard():
             return
         elif event == "Save Game":
             self.save_to_json()
+        elif event == "Res":
+            sg.popup_no_buttons(text="Why are you clicking a unused button? It won't do anything...",
+                                non_blocking=True, font=('Arial Bold', 15), auto_close=True, auto_close_duration=3)
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
@@ -676,9 +712,11 @@ class GoBoard():
         if black_pieces == 0:
             for item in pieces_string:
                 window[(item.row, item.col)].update(unicode_triangle_white)
+                self.board[item.row][item.col].stone_here_color = unicode_triangle_white
         elif white_pieces == 0:
             for item in pieces_string:
                 window[(item.row, item.col)].update(unicode_triangle_black)
+                self.board[item.row][item.col].stone_here_color = unicode_triangle_black
         return
 
     def flood_fill(self, piece, connected_pieces=None):
