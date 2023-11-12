@@ -333,6 +333,7 @@ class GoBoard():
             return True
         return False
 
+    # Takes in a boardNode, returns a list of tuples of coordinates
     def check_neighbors(self, piece):
         neighbors = [(piece.row - 1, piece.col), (piece.row + 1, piece.col),
                      (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
@@ -371,7 +372,7 @@ class GoBoard():
 
     def end_of_game(self, window):
         ui.end_game_popup(self)
-
+        self.counting_territory(window)
         event, values = window.read()
         truth_value = False
         while not truth_value:
@@ -385,6 +386,213 @@ class GoBoard():
                     quit()
             elif event == "Exit Game":
                 quit()
+
+    def counting_territory(self, window):
+        empty_space_set, black_set, white_set = set(), set(), set()
+        for xidx in range(self.board_size):  # This puts all node spots into 3 sets
+            for yidx in range(self.board_size):
+                temp_node = self.board[xidx][yidx]
+                if temp_node.stone_here_color == unicode_white:
+                    white_set.add(temp_node)
+                elif temp_node.stone_here_color == unicode_black:
+                    black_set.add(temp_node)
+                else:
+                    empty_space_set.add(temp_node)
+        print(f"empty_space_set {len(empty_space_set)}, black_set {len(black_set)}, white_set {len(white_set)}")
+        black_set_alive_dead = set()
+        # while len(black_set) > 0:
+        life_value, grouping = self.finding_eyes(black_set, self.player_black)
+        
+        """print(f"the life_value is {life_value}")
+        print(f"the grouping is {grouping}")
+        if life_value == "Alive":
+            for item in grouping:
+                black_set_alive_dead[0].add(item)
+        else:
+            for item in grouping:
+                black_set_alive_dead[1].add(item)"""
+
+    def finding_eyes(self, piece_set, which_player):  # add something for finding dead/killable shapes
+        # https://senseis.xmp.net/?KillingShapes
+        piece = self.board[7][7]  # change
+        print(piece)
+        connected_pieces, connected_spaces = self.spliting_into_player_and_spaces(piece, which_player)  # #
+
+        # piece = piece_set.pop()
+        # piece_set.add(piece)
+        # double_set = self.spliting_into_player_and_spaces(piece, which_player)
+        # for item in double_set[0]:
+        #   group_set.add(item)
+        space_shapes = list()
+        destroyable_connected_spaces = connected_spaces.copy()
+        found_eyes = list()
+        
+        for item in connected_pieces:
+            print(item)
+        for item in connected_spaces:
+            print(item)
+
+        while len(destroyable_connected_spaces):
+
+            piece2 = destroyable_connected_spaces.pop()
+            destroyable_connected_spaces.add(piece2)
+            temp_set = self.helper_space_shapes(piece2)
+            space_shapes.append(temp_set)  # At this point the code has divided up the entire set of spaces into shapes
+            print("new set of tests")
+            for item in temp_set:
+                print(item)
+            for item in temp_set:
+                if item in destroyable_connected_spaces:
+                    destroyable_connected_spaces.remove(item)  # up to here is good
+        print(f"This is the number of subsets: {len(space_shapes)}")
+        for item in space_shapes:
+            print(f" item has a length of {len(item)}")
+            if len(item) < 4:
+                info = self.spaces_length_three_or_less(item, space_shapes, which_player)
+                if info[0]:
+                    found_eyes.append(item)
+            else:
+                info = self.space_analysis(item, which_player)
+            print(f"info in finding_eyes is {info}")
+        print(f"found_eyes is {found_eyes}, with len {len(found_eyes)}") #if 2+, it's alive, kill any enemy pieces inside
+            #and add those pieces to it's captured thing
+            #maybe have the thing autosave to a backup file in case ppl want to fight it and resume the game
+            #maybe have 2 screens to show the difference? or have a visual indication of killed pieces
+            #while the gamebackend just reassigns the place to empty?
+        
+        
+        quit()#
+
+    # this finds and makes a set of connected pieces of a certain color, as well as a set of empty spaces nearby
+    def spliting_into_player_and_spaces(self, piece, which_player, connected_empty_sets=None):
+
+        if connected_empty_sets is None:
+            connected_empty_sets = (set(), set())
+        if piece.stone_here_color == which_player.unicode:
+            connected_empty_sets[0].add(piece)
+        else:
+            connected_empty_sets[1].add(piece)
+        neighbors = self.check_neighbors(piece)
+
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_empty_sets[1]:
+                # self.spliting_into_player_and_spaces(neighboring_piece, which_player, connected_empty_sets)
+                connected_empty_sets[1].add(neighboring_piece)
+            elif neighboring_piece.stone_here_color != which_player.unicode:
+                pass
+            elif neighboring_piece not in connected_empty_sets[0]:
+                self.spliting_into_player_and_spaces(neighboring_piece, which_player, connected_empty_sets)
+        return connected_empty_sets[0], connected_empty_sets[1]
+
+    def helper_space_shapes(self, piece, connected_area=None):
+        if connected_area is None:
+            connected_area = set()
+        connected_area.add(piece)
+        neighbors = self.check_neighbors(piece)
+
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in connected_area:
+                self.helper_space_shapes(neighboring_piece, connected_area)
+        return connected_area
+
+    def spaces_length_three_or_less(self, shape, all_shapes, which_player):
+        #find out info about the space
+        #if it's surrounded by only which_player, give it as 1 eye
+        #if there is enemy area, need to check if it's inside a big which_player, then calculate if there's an eye or not
+        shape_tuple_set = set()
+        neighborhood = set()
+        neighbor_list = list()
+        enemy_set = set()
+        for empty_space in shape:
+            print(f"dumb empty_shape is {empty_space}, and type is {type(empty_space)}")
+            neighbor_list += self.check_neighbors(empty_space)
+            shape_tuple_set.add((empty_space.row, empty_space.col))
+        for item in neighbor_list:
+            if item not in neighborhood:
+                neighborhood.add(item)
+
+        neighborhood -= shape_tuple_set  # makes a set of only connected area
+        
+        friendly_stones, unfriendly_stones = 0, 0
+        for item in neighborhood:
+            print(item)
+            if self.board[item[0]][item[1]].stone_here_color == which_player.unicode:
+                friendly_stones += 1
+            else:
+                unfriendly_stones += 1
+                enemy_set.add(self.board[item[0]][item[1]])
+        if unfriendly_stones == 0:
+            return (True, 1)
+        
+        else:
+            ##test subcode
+            self.finding_spaces_disturbed_by_enemy(shape, all_shapes, enemy_set, which_player)
+            return (False, 0)
+        
+    def finding_spaces_disturbed_by_enemy(self, shape, all_shapes, enemy_set, which_player):
+        
+        
+
+    #def finding_opponent_connected(self, shape, which_player):
+    #    if len(shape) >= 7:  #
+    #        return False  #
+        
+        
+
+    def space_analysis(self, shape, which_player):
+        if len(shape) >= 7:  #
+            return False  #
+
+        shape_modified = set()
+        neighborhood = set()
+        neighbor_list = list()
+        for item in shape:
+            neighbor_list += self.check_neighbors(item)
+            shape_modified.add((item.row, item.col))
+        for item in neighbor_list:
+            if item not in neighborhood:
+                neighborhood.add(item)
+
+        neighborhood -= shape_modified
+        friendly_stones, unfriendly_stones = 0, 0
+        print("this is neighborhood2")
+        for item in neighborhood:
+            print(item)
+            if self.board[item[0]][item[1]].stone_here_color == which_player.unicode:
+                friendly_stones += 1
+            else:
+                unfriendly_stones += 1
+
+        print(f"len of shape is {len(shape)}, len neighborhood is {len(neighborhood)}")
+        print(f"friendly stone count is {friendly_stones}, unfriendly stone count is {unfriendly_stones}")
+        return True
+
+        # find all neighbors of items in the object, excluding
+        # number of connected
+
+    def helper_finding_eyes(self, piece, which_player, eye_set=None):
+        if eye_set is None:
+            eye_set = (set(), set())
+            # Set of verified good connected spaces, set of all connected spaces
+        eye_set[0].add(piece)
+        eye_set[1].add(piece)
+        neighbors = self.check_neighbors(piece)
+        already_removed = False
+        for coordinate in neighbors:
+            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
+            which_player_check = neighboring_piece.stone_here_color != which_player.unicode
+            check_unicode_none = neighboring_piece.stone_here_color != unicode_none
+            if which_player_check and check_unicode_none and already_removed is False:
+                eye_set[0].remove(piece)
+                already_removed = True
+                pass
+            elif which_player_check and check_unicode_none:
+                pass
+            elif neighboring_piece not in eye_set[1]:
+                self.helper_finding_shapes(neighboring_piece, which_player, eye_set)
+        return eye_set
 
     def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
         piece.stone_here_color = which_player.unicode
