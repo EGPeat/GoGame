@@ -5,7 +5,7 @@ import PySimpleGUI as sg
 # Stuff to look into
 # https://github.com/wonsiks/BadukMegapack
 # https://github.com/mattheww/sgfmill
-# https://www.oipaz.net/Carta.pdf
+# https://www.oipaz.net/Carta.pdf   could provide a way for the computer to calculate score completely
 # https://github.com/search?q=baduk+language%3APython&type=repositories&p=1&l=Python
 # https://github.com/inclement/LazyBaduk/tree/master
 # https://github.com/dakota-marshall/python-ogs
@@ -19,6 +19,7 @@ import PySimpleGUI as sg
 # add way to resume game after auto scoring
 
 
+#handicap lets white play twice sometimes.......
 def play_game_main():
     window = ui.setup_menu()
 
