@@ -531,7 +531,7 @@ class GoBoard():
         liberties = 0
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none:
+            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in visited:
                 liberties += 1
             elif neighboring_piece.stone_here_color != which_player.unicode:
                 pass
@@ -695,7 +695,7 @@ class GoBoard():
             self.assignment_logic(sets, window)
 
     def assignment_logic(self, sets, window):
-        neighboring = sets[1]-sets[0]
+        neighboring = sets[1] - sets[0]
         pieces_string = sets[0]
         black_pieces = 0
         white_pieces = 0
