@@ -422,8 +422,8 @@ class GoBoard():
         elif event == "Save Game":
             self.save_to_json()
         elif event == "Res":
-            sg.popup_no_buttons(text="Why are you clicking a unused button? It won't do anything...",
-                                non_blocking=True, font=('Arial Bold', 15), auto_close=True, auto_close_duration=3)
+            sg.popup_no_buttons("Why are you clicking a unused button? It won't do anything...",
+                                non_blocking=True, font=('Arial Bold', 15), auto_close=True, auto_close_duration=1.5)
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
@@ -651,6 +651,18 @@ class GoBoard():
             for yidx in range(self.board_size):
                 if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
+        star = u"\u2B50"
+        size = self.board_size
+        lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
+        lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
+        if self.board_size == 9:
+            for item in lst9:
+                if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9":
+                    window[(item[0], item[1])].update(star)
+        else:
+            for item in lst_not_9:
+                if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9":
+                    window[(item[0], item[1])].update(star)
 
     def making_go_board_strings_helper(self, piece, connected_pieces=None):
         if connected_pieces is None:

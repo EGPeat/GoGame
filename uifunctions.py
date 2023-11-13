@@ -113,6 +113,7 @@ def setup_menu():
 
 # Sets up the window for playing the game using PySimpleGUI
 def setup_board_window(game_board):
+    size = game_board.board_size
     if game_board.turn_num % 2 == 1:
         text = "It is currently White's turn.\n"
     else:
@@ -129,12 +130,22 @@ def setup_board_window(game_board):
             sg.Button("Unused", font=('Arial Bold', 12), key="Res"),
             sg.Button("Exit Game", font=('Arial Bold', 12))],
         [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-            for j in range(game_board.board_size)] for i in range(game_board.board_size)],  # This does NOT size correctly
+            for j in range(size)] for i in range(size)],  # This does NOT size correctly
 
         [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
                       key='Scoring', justification='center')]]
     window2 = sg.Window('Game Screen', layout2, size=(700, 700), resizable=True, finalize=True)
-
+    star = u"\u2B50"
+    if size == 9:
+        window2[(2, 2)].update(star)
+        window2[(size - 3, 2)].update(star)
+        window2[(size - 3, size - 3)].update(star)
+        window2[(2, size - 3)].update(star)
+    else:
+        window2[(3, 3)].update(star)
+        window2[(size - 4, 3)].update(star)
+        window2[(size - 4, size - 4)].update(star)
+        window2[(3, size - 4)].update(star)
     return window2
 
 
