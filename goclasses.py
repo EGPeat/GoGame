@@ -212,8 +212,10 @@ class GoBoard():
 
             while (self.times_passed <= 1):
                 if self.turn_num % 2 == 0:
+                    print("black turn")
                     self.play_turn(window, self.player_black)
                 else:
+                    print("white turn")
                     self.play_turn(window, self.player_white)
             self.scoring_mode = True
             ui.end_game_popup(self)
@@ -322,7 +324,7 @@ class GoBoard():
             elif event == "Undo Turn":
                 if self.scoring_turn_num == 0:
                     sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=1)
-                elif self.scoring_turn_num == 1:
+                elif self.scoring_turn_num == 1:  # Something about this is wrong?
                     self.undo_turn(window, scoring=True)
                     ui.update_scoring(self, window, choosen_player)
                     choosen_player = self.player_black
@@ -361,13 +363,14 @@ class GoBoard():
                     for item in series:
                         window[(item.row, item.col)].update("")
                         self.board[item.row][item.col].stone_here_color = unicode_none
+                        self.fix_star_spot(window, (row, col))
                     if piece_string[0][1] == self.player_black.unicode:
                         self.player_white.captured += len(piece_string)
                     else:
                         self.player_black.captured += len(piece_string)
                     temp_list = list()
                     for item in piece_string:
-                        temp_list.append(((item[1], "Scoring"), item[0][0], item[0][1]))
+                        temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
                     self.killed_log.append(temp_list)
                     self.scoring_turn_num += 1
                     truth_value = True
@@ -427,10 +430,10 @@ class GoBoard():
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 sg.popup("You can't undo when nothing has happened.", line_width=42, auto_close=True, auto_close_duration=3)
-            elif self.turn_num == 1:
+            elif self.turn_num == 1:  # Something about this is wrong
                 self.undo_turn(window)
                 ui.update_scoring(self, window, choosen_player)
-                choosen_player = self.player_black
+                self.play_turn(window, self.player_black)
             else:
                 self.undo_turn(window)
                 self.undo_turn(window)
@@ -470,23 +473,47 @@ class GoBoard():
         self.turn_num += 1
         return True
 
+    def fix_star_spot(self, window, item, unicode_test=None):
+        row, col = item
+        size = self.board_size
+        lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
+        lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
+        star = u"\u2B50"
+
+        if unicode_test is None:
+            if size == 9 and (row, col) in lst9:
+                window[(row, col)].update(star)
+            elif (size == 13 or size == 17) and (row, col) in lst_not_9:
+                window[(row, col)].update(star)
+        else:
+            if size == 9 and (row, col) in lst9 and unicode_test == unicode_none:
+                window[(row, col)].update(star)
+            elif (size == 13 or size == 17) and (row, col) in lst_not_9 and unicode_test == unicode_none:
+                window[(row, col)].update(star)
+
     def undo_turn(self, window, scoring=False):
         if not scoring:
             color, row, col = self.position_played_log.pop()
             self.board[row][col].stone_here_color = unicode_none
             window[(row, col)].update("")
+            self.fix_star_spot(window, (row, col))
 
         # This part reverts the board back to its state 1 turn ago
         revive = self.killed_log.pop()
         capture_update_val = len(revive)
+
         if len(revive) > 0:
-            unicode = revive[1][0]
+            unicode = revive[0][0]
         else:
             unicode = unicode_none
         for item in revive:
-            unicode, row, col = item
+            if not scoring:
+                unicode, row, col = item
+            else:
+                unicode, row, col, scoring = item  # annoying code
             self.board[row][col].stone_here_color = unicode
             window[(row, col)].update(unicode)
+            self.fix_star_spot(window, (row, col), unicode_test=unicode)
 
         # This part updates some class values (player captures, killed_last_turn, turn_num)
         if not scoring:
