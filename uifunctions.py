@@ -119,16 +119,17 @@ def setup_board_window(game_board):
     else:
         text = "It is currently Black's turn.\n"
 
-    text = text + f"Turn Number is {game_board.turn_num}\nPlayer 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\
+    text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
+    Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
+    Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\n\n\
     Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
     layout2 = [
         [sg.Button("Pass Turn", font=('Arial Bold', 12)),
             sg.Button("Save Game", font=('Arial Bold', 12)),
             sg.Button("Undo Turn", font=('Arial Bold', 12)),
-            sg.Button("Unused", font=('Arial Bold', 12), key="Res"),
-            sg.Button("Exit Game", font=('Arial Bold', 12))],
+            sg.Button("Quit Program", font=('Arial Bold', 12), key="Res"),
+            sg.Button("Exit To Menu", font=('Arial Bold', 12), key="Exit Game")],
         [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
             for j in range(size)] for i in range(size)],  # This does NOT size correctly
 
@@ -163,8 +164,8 @@ def update_scoring(self, window, choosen_player):
         text = "It is currently White's turn.\n"
     else:
         text = "It is currently Black's turn.\n"
-    text = text + f"Turn Number is {self.turn_num}\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\
+    text = text + f"Turn Number is {self.turn_num}\n\n\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
+    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\n\n\
     Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
     window['Scoring'].update(text)
@@ -191,3 +192,12 @@ def end_game_popup_two(self):
     else:
         info = info + f"Player White won by {difference*-1} points"
     sg.popup(info, title="Game has Concluded", line_width=200, auto_close=True, auto_close_duration=20)
+
+
+def default_popup_no_button(info, time):
+    sg.popup_no_buttons(info, non_blocking=True, font=('Arial Bold', 15),
+                        auto_close=True, auto_close_duration=time)
+
+
+def def_popup(info, time):
+    sg.popup(info, line_width=42, auto_close=True, auto_close_duration=time)

@@ -18,6 +18,10 @@ import PySimpleGUI as sg
 # Add AI to game
 # Add MP to game
 
+# resuming then undoing turn is messed up
+# passing and then undoing is also messed up
+# removing dead stones removes the wrong ones? Maybe?
+
 
 def play_game_main():
     window = ui.setup_menu()
