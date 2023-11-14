@@ -159,11 +159,8 @@ def validation_gui(info1, var_type):
     return output
 
 
-def update_scoring(self, window, choosen_player):
-    if choosen_player == self.player_black:
-        text = "It is currently White's turn.\n"
-    else:
-        text = "It is currently Black's turn.\n"
+def update_scoring(self, window):
+    text = f"It is currently {self.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {self.turn_num}\n\n\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\n\n\
     Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
@@ -171,21 +168,22 @@ def update_scoring(self, window, choosen_player):
     window['Scoring'].update(text)
 
 
-def end_game_popup(self):
+def end_game_popup():
     info = "Please take turns clicking on stones that you believe are dead, and then the program will score.\
         \n Please pass twice once you are finished scoring."
     sg.popup(info, title="Scoring", line_width=200, auto_close=True, auto_close_duration=3)
 
 
 def end_game_popup_two(self):
-    player_black_score = self.player_black.komi + self.player_black.captured + self.player_black.territory
-    player_white_score = self.player_white.komi + self.player_white.captured + self.player_white.territory
+    pb = self.player_black
+    pw = self.player_white
+    player_black_score = pb.komi + pb.captured + pb.territory
+    player_white_score = pw.komi + pw.captured + pw.territory
     difference = player_black_score - player_white_score
-    info = f"Your game has finished.\nPlayer Black: {self.player_black.name} has {self.player_black.territory} territory\
-            , and captured {self.player_black.captured} pieces and has a komi of {self.player_black.komi}\
-            \n Player White: {self.player_white.name} has {self.player_white.territory} territory\
-            , and captured {self.player_white.captured} pieces and has a komi of {self.player_white.komi}\
-            \n Player Black has a score of {player_black_score}\n\
+    info = f"Your game has finished.\nPlayer Black: {pb.name} has {pb.territory} territory\
+            , and captured {pb.captured} pieces and has a komi of {pb.komi}\
+            \n Player White: {pw.name} has {pw.territory} territory, and captured {pw.captured} pieces\
+              and has a komi of {pw.komi}\n Player Black has a score of {player_black_score}\n\
             Player White has a score of {player_white_score}, meaning "
     if difference > 0:
         info = info + f"Player Black won by {difference} points"

@@ -81,16 +81,16 @@ class GoBoard():
         self.board = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         self.player_black = self.setup_player(self.defaults, "Player One", "Black", unicode_black)
         self.player_white = self.setup_player(self.defaults, "Player Two", "White", unicode_white)
-        self.whose_turn = self.player_black
+        self.whose_turn = self.player_black#
+        self.not_whose_turn = self.player_white#
         self.times_passed = 0
         self.turn_num = 0
-        self.position_played_log = list()  # (-1,-1) shows the boundary between a handicap and normal play
+        self.position_played_log = list()
         self.visit_kill = set()  #potentially removeable
-        self.killed_last_turn = set()  # Potentially unneeded
+        self.killed_last_turn = set()
         self.killed_log = list()
         self.mode = "Playing"
         self.mode_change = True
-        self.scoring_turn_num = 0
         self.handicap = self.default_handicap()
 
     # This sets up the Player class, assigning appropriate values to each player as needed
@@ -110,8 +110,14 @@ class GoBoard():
     def default_handicap(self):
         return (False, "None", 0)
 
-# Sets up a custom handicap using a CLI.
-# Work On adding a GUI solution for this. Maybe add an option for default placement of stones, or custom.
+    def switch_player(self):
+        if self.whose_turn == self.player_black:
+            self.whose_turn = self.player_white
+            self.not_whose_turn = self.player_black
+        else:
+            self.whose_turn = self.player_black
+            self.not_whose_turn = self.player_white
+
     def custom_handicap(self, defaults, window):
         if defaults is True:
             return (False, "None", 0)
@@ -169,16 +175,15 @@ class GoBoard():
             else:
                 self.refresh_board(window)
                 if self.position_played_log[-1][0] == "Black":
-                    self.play_turn(window, self.player_white)
+                    self.switch_player()
+                    self.play_turn(window)
 
             while (self.times_passed <= 1):
-                if self.turn_num % 2 == 0:
-                    self.play_turn(window, self.player_black)
-                else:
-                    self.play_turn(window, self.player_white)
+                self.play_turn(window)
             self.mode = "Scoring"
-            ui.end_game_popup(self)
             self.times_passed = 0
+            self.resuming_scoring_buffer("Scoring")
+            ui.end_game_popup()
             self.scoring_block(window)
         elif self.mode == "Finished":
             self.refresh_board(window)
@@ -193,21 +198,19 @@ class GoBoard():
             self.times_passed = 0
             self.scoring_block(window)
 
-    def scoring_block(self, window):
+    def scoring_block(self, window): #this and playlog could use work lol. kinda works odd...
+        #same for quit to menu idk
         while not self.mode == "Finished":
             if self.mode_change:
                 if self.mode == "Scoring":
                     window["Res"].update("Resume Game")
-                    self.refresh_board(window)
+                    self.times_passed = 0
                 elif self.mode == "Playing":
                     window["Res"].update("Quit Program")
-                    self.refresh_board(window)
+                self.refresh_board(window)
                 self.mode_change = False
             while self.mode == "Scoring":
-                if self.scoring_turn_num % 2 == 0:
-                    self.remove_dead(window, self.player_black)
-                else:
-                    self.remove_dead(window, self.player_white)
+                self.remove_dead(window)
                 if self.times_passed == 2:
                     self.mode = "Finished"
             if self.mode_change:
@@ -215,54 +218,40 @@ class GoBoard():
                     window["Res"].update("Quit Program")
                     self.refresh_board(window)
             while (self.times_passed <= 1):
-                if self.turn_num % 2 == 0:
-                    self.play_turn(window, self.player_black)
-                else:
-                    self.play_turn(window, self.player_white)
+                self.play_turn(window)
             if self.times_passed == 2 and self.mode == "Playing":
                 self.mode = "Scoring"
+                self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
         self.counting_territory(window)
         self.end_of_game(window)
-
-    def remove_dead(self, window, choosen_player):  # needs serious bugfixes
-        if choosen_player == self.player_black:
-            ui.update_scoring(self, window, self.player_white)
-        else:
-            ui.update_scoring(self, window, self.player_black)
+    def resuming_scoring_buffer(self, text):
+        self.turn_num += 1
+        self.position_played_log.append(text)
+        self.killed_log.append([])
+    
+    def remove_dead(self, window):  # needs serious bugfixes
+        self.killed_last_turn.clear()
+        ui.update_scoring(self, window)
         truth_value = False
         while not truth_value:
             event, values = window.read()
             if event == "Pass Turn":
-                ui.def_popup("Skipped turn", 0.5)
-                self.times_passed += 1
-                self.scoring_turn_num += 1
-                self.position_played_log.append((f"{choosen_player.color} passed in scoring", -3, -3))
-                ui.update_scoring(self, window, choosen_player)
+                self.turn_options(window, event, text="Scoring Passed")
                 return
             elif event == "Save Game":
                 self.save_to_json()
             elif event == "Res":
                 self.mode = "Playing"
                 self.mode_change = True
-                if choosen_player == self.player_black:  # could break/be weird idk
-                    if self.turn_num % 2 == 1:
-                        self.turn_num += 1
-                else:
-                    if self.turn_num % 2 == 0:
-                        self.turn_num += 1
+                self.resuming_scoring_buffer("Resumed")
                 return
             elif event == "Undo Turn":
-                if self.scoring_turn_num == 0:
+                if self.turn_num == 0:
                     ui.def_popup("You can't undo when nothing has happened.", 1)
-                elif self.scoring_turn_num == 1:  # Something about this is wrong?
+                elif self.turn_num >= 1:
                     self.undo_turn(window, scoring=True)
-                    ui.update_scoring(self, window, choosen_player)
-                    choosen_player = self.player_black
-                else:
-                    self.undo_turn(window, scoring=True)
-                    self.undo_turn(window, scoring=True)
-                    ui.update_scoring(self, window, choosen_player)
+                    return
             elif event == "Exit Game":
                 from main import play_game_main
                 window.close()
@@ -303,8 +292,10 @@ class GoBoard():
                     for item in piece_string:
                         temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
                     self.killed_log.append(temp_list)
-                    self.scoring_turn_num += 1
+                    self.position_played_log.append("Dead Removed")
+                    self.turn_num += 1
                     truth_value = True
+        self.switch_player()
         return
 
     def end_of_game(self, window):
@@ -316,39 +307,36 @@ class GoBoard():
         play_game_main()
         quit()
 
-    def play_turn(self, window, choosen_player):
+    def play_turn(self, window):
+        ui.update_scoring(self, window)
         truth_value = False
         while not truth_value:
             event, values = window.read()
             if not isinstance(event, tuple):
-                self.turn_options(window, event, choosen_player)
-                if event == "Pass Turn":
+                self.turn_options(window, event, text="Passed")
+                if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
                 row, col = int(event[0]), int(event[1])
                 self.times_passed = 0
-                truth_value = self.play_piece(row, col, choosen_player, window)
+                truth_value = self.play_piece(row, col, self.whose_turn, window)
                 if truth_value:
-                    window[event].update(choosen_player.unicode)
-        ui.update_scoring(self, window, choosen_player)
-
+                    window[event].update(self.whose_turn.unicode)
         temp_list = list()
         for item in self.killed_last_turn:
-            if choosen_player == self.player_black:
-                temp_list.append((self.player_white.unicode, item.row, item.col))
-            else:
-                temp_list.append((self.player_black.unicode, item.row, item.col))
-        self.killed_log.append(temp_list)
+            temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
+        self.killed_log.append(temp_list)#!
+        self.switch_player()
         return
 
-    def turn_options(self, window, event, choosen_player):
+    def turn_options(self, window, event, text=None):
         if event == "Pass Turn":
             ui.def_popup("Skipped turn", 0.5)
             self.times_passed += 1
             self.turn_num += 1
-            self.position_played_log.append((f"{choosen_player.color} passed", -2, -2))
-            ui.update_scoring(self, window, choosen_player)
-            return
+            self.position_played_log.append((text, -3, -3))
+            self.killed_log.append([])
+            self.switch_player()
         elif event == "Save Game":
             self.save_to_json()
         elif event == "Res":
@@ -356,14 +344,9 @@ class GoBoard():
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 ui.def_popup("You can't undo when nothing has happened.", 2)
-            elif self.turn_num == 1:  # Something about this is wrong
-                self.undo_turn(window)
-                ui.update_scoring(self, window, choosen_player)
-                self.play_turn(window, self.player_black)
-            else:
-                self.undo_turn(window)
-                self.undo_turn(window)
-                ui.update_scoring(self, window, choosen_player)
+            elif self.turn_num >= 1:
+                self.undo_checker(window)
+                return    
         elif event == "Exit Game":
             from main import play_game_main
             window.close()
@@ -414,13 +397,42 @@ class GoBoard():
             elif (size == 13 or size == 17) and (row, col) in lst_not_9 and unicode_test == unicode_none:
                 window[(row, col)].update(star)
 
+    def undo_checker(self, window):
+        if self.mode == "Scoring":
+            self.undo_turn(window, scoring=True)
+        else:
+            self.undo_turn(window)
+
     def undo_turn(self, window, scoring=False):
+        if self.position_played_log[-1] == "Resumed" or self.position_played_log[-1] == "Scoring":
+            tmp = self.position_played_log.pop()
+            self.move_back(scoring)
+            self.turn_num -= 1
+            if tmp == "Resumed":
+                self.mode = "Scoring"
+                self.times_passed = 2
+            elif tmp == "Scoring":
+                self.mode = "Playing"
+            self.mode_change = True
+            return
+
+        elif self.position_played_log[-1][0] == "Passed" or self.position_played_log[-1][0] == "Scoring Passed":
+            self.position_played_log.pop()
+            self.move_back(scoring)
+            self.turn_num -= 1
+            self.times_passed = 0
+            if self.position_played_log[-1][0] == "Passed" or self.position_played_log[-1][0] == "Scoring Passed":
+                self.times_passed = 1
+            self.switch_player()
+            return
+
         if not scoring:
             color, row, col = self.position_played_log.pop()
             self.board[row][col].stone_here_color = unicode_none
             window[(row, col)].update("")
             self.fix_star_spot(window, (row, col))
-
+        else:
+            self.position_played_log.pop()
         # This part reverts the board back to its state 1 turn ago
         revive = self.killed_log.pop()
         capture_update_val = len(revive)
@@ -435,22 +447,20 @@ class GoBoard():
             else:
                 unicode, row, col, scoring = item  # annoying code
             self.board[row][col].stone_here_color = unicode
-            window[(row, col)].update(unicode)
+            window[(row, col)].update(unicode)#make new function
             self.fix_star_spot(window, (row, col), unicode_test=unicode)
-
         # This part updates some class values (player captures, killed_last_turn, turn_num)
-        if not scoring:
-            self.turn_num -= 1
-        else:
-            self.scoring_turn_num -= 1
-
+        self.turn_num -= 1
         if unicode == unicode_black:
             self.player_white.captured -= capture_update_val
         elif unicode == unicode_white:
             self.player_black.captured -= capture_update_val
-        if len(self.killed_log) > 0 and not scoring:
+        self.switch_player()
+
+    def move_back(self, scoring=False):
+        if len(self.killed_log) > 0:
             self.killed_last_turn.clear()
-            temp_list = self.killed_log[-1]
+            temp_list = self.killed_log.pop()
             for item in temp_list:
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
@@ -557,7 +567,8 @@ class GoBoard():
                 "places_on_board": places_on_board,
                 "mode": self.mode,
                 "mode_change": self.mode_change,
-                "scoring_turn_num": self.scoring_turn_num
+                "whose_turn": self.whose_turn,
+                "not_whose_turn": self.not_whose_turn
             }
             json_object = json.dumps(dictionary_to_json, indent=4)
             file.write(json_object)
@@ -581,9 +592,10 @@ class GoBoard():
         self.player_black.captured = data["player_black.captured"]
         self.player_black.komi = data["player_black.komi"]
         self.player_black.unicode = data["player_black.unicode"]
+        self.whose_turn = data["whose_turn"]
+        self.not_whose_turn = data['not_whose_turn']
         self.mode = data["mode"]
         self.mode_change = data["mode_change"]
-        self.scoring_turn_num = data["scoring_turn_num"]
         self.player_white.name = data["player_white.name"]
         self.player_white.color = data["player_white.color"]
         self.player_white.captured = data["player_white.captured"]
