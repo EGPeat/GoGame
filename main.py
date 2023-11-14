@@ -42,7 +42,7 @@ def play_game_main():
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()
-            go.initializing_game(window, board_size, defaults=False, from_file=False, fixes_handicap=True)
+            go.initializing_game(window, board_size, defaults=False, fixes_handicap=True)
 
         elif event == "New Game From Default":
             go.initializing_game(window, 9, True)

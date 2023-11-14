@@ -81,8 +81,8 @@ class GoBoard():
         self.board = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         self.player_black = self.setup_player(self.defaults, "Player One", "Black", unicode_black)
         self.player_white = self.setup_player(self.defaults, "Player Two", "White", unicode_white)
-        self.whose_turn = self.player_black#
-        self.not_whose_turn = self.player_white#
+        self.whose_turn = self.player_black
+        self.not_whose_turn = self.player_white
         self.times_passed = 0
         self.turn_num = 0
         self.position_played_log = list()
@@ -133,26 +133,26 @@ class GoBoard():
             choosen_list = handicap_points13
         player_choice = ui.handicap_person_gui()
         if player_choice == "Black":
-            player = self.player_black
+            self.whose_turn = self.player_black
         elif player_choice == "White":
-            player = self.player_white
+            self.whose_turn = self.player_white
         else:
             return (False, "None", 0)
         handicap_info = ui.handicap_number_gui(self.board_size)
         if manual_handicap == "No":
             for idx in range(handicap_info):
                 row, col = choosen_list[idx]
-                window[(row, col)].update(player.unicode)
-                self.play_piece(row, col, player, window)
+                window[(row, col)].update(self.whose_turn.unicode)
+                self.play_piece(row, col, window)
                 self.refresh_board(window)
         else:
-            self.manual_handicap_placement(window, handicap_info, player)
+            self.manual_handicap_placement(window, handicap_info)
         self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
-        return (True, player.color, handicap_info)
+        return (True, self.whose_turn.color, handicap_info)
 
-    def manual_handicap_placement(self, window, handicap_info, player):
+    def manual_handicap_placement(self, window, handicap_info):
         ui.def_popup(f"Please place {handicap_info} number of pieces where you wish,\
                     as a handicap.Then the opponent will play.", 3)
         for idx in range(handicap_info):
@@ -161,10 +161,11 @@ class GoBoard():
                 ui.def_popup("You can't do these actions during the handicap stage.", 3)
                 event, values = window.read()
             if event == "Exit Game" or event == "Res":
-                self.turn_options(window, event, player)
-            window[event].update(player.unicode)
-            self.play_piece(event[0], event[1], player, window)
+                self.turn_options(window, event)
+            window[event].update(self.whose_turn.unicode)
+            self.play_piece(event[0], event[1], window)
             self.refresh_board(window)
+        self.switch_player()
 
     def play_game(self, window, fromFile=False, fixes_handicap=False):
         if self.mode == "Playing":
@@ -207,7 +208,6 @@ class GoBoard():
                     self.times_passed = 0
                 elif self.mode == "Playing":
                     window["Res"].update("Quit Program")
-                self.refresh_board(window)
                 self.mode_change = False
             while self.mode == "Scoring":
                 self.remove_dead(window)
@@ -216,7 +216,6 @@ class GoBoard():
             if self.mode_change:
                 if not self.mode == "Scoring":
                     window["Res"].update("Quit Program")
-                    self.refresh_board(window)
             while (self.times_passed <= 1):
                 self.play_turn(window)
             if self.times_passed == 2 and self.mode == "Playing":
@@ -225,11 +224,12 @@ class GoBoard():
                 self.times_passed = 0
         self.counting_territory(window)
         self.end_of_game(window)
+
     def resuming_scoring_buffer(self, text):
         self.turn_num += 1
         self.position_played_log.append(text)
         self.killed_log.append([])
-    
+
     def remove_dead(self, window):  # needs serious bugfixes
         self.killed_last_turn.clear()
         ui.update_scoring(self, window)
@@ -285,7 +285,7 @@ class GoBoard():
                         self.board[item.row][item.col].stone_here_color = unicode_none
                         self.fix_star_spot(window, (row, col))
                     if piece_string[0][1] == self.player_black.unicode:
-                        self.player_white.captured += len(piece_string)
+                        self.player_white.captured += len(piece_string)#pretty sure i can use use whose_turn and not_whose_turn
                     else:
                         self.player_black.captured += len(piece_string)
                     temp_list = list()
@@ -319,7 +319,7 @@ class GoBoard():
             else:
                 row, col = int(event[0]), int(event[1])
                 self.times_passed = 0
-                truth_value = self.play_piece(row, col, self.whose_turn, window)
+                truth_value = self.play_piece(row, col, window)
                 if truth_value:
                     window[event].update(self.whose_turn.unicode)
         temp_list = list()
@@ -346,36 +346,35 @@ class GoBoard():
                 ui.def_popup("You can't undo when nothing has happened.", 2)
             elif self.turn_num >= 1:
                 self.undo_checker(window)
-                return    
+                return
         elif event == "Exit Game":
             from main import play_game_main
             window.close()
             play_game_main()
             quit()
 
-    def play_piece(self, row, col, which_player, window):
+    def play_piece(self, row, col, window):
         piece = self.board[row][col]
         suicidal_liberty_value = 0
         if (piece.stone_here_color != unicode_none):
             ui.def_popup("You tried to place where there is already a piece. Please try your turn again.", 2)
             return False
-        elif (self.turn_num > 2 and self.ko_rule_break(piece, which_player) is True):
+        elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
             ui.def_popup("Place the piece there would break the ko rule. Please try your turn again.", 2)
             return False
-        elif (self.kill_stones(piece, which_player, window) is True):
-            piece.stone_here_color = which_player.unicode
+        elif (self.kill_stones(piece, window) is True):
+            piece.stone_here_color = self.whose_turn.unicode
             self.turn_num += 1
-            self.position_played_log.append((which_player.color, row, col))
+            self.position_played_log.append((self.whose_turn.color, row, col))
             return True
-        elif (self.suicide(piece, which_player) == suicidal_liberty_value):
+        elif (self.suicide(piece, self.whose_turn) == suicidal_liberty_value):
             ui.def_popup("Place the piece there would break the ko rule. Please try your turn again.", 2)
             return False
 
         else:  # No rules or special cases are broken, play piece as normal.
-            self.position_played_log.append((which_player.color, row, col))
-            piece.stone_here_color = which_player.unicode
+            self.position_played_log.append((self.whose_turn.color, row, col))
+            piece.stone_here_color = self.whose_turn.unicode
             self.killed_last_turn.clear()
-
         self.turn_num += 1
         return True
 
@@ -465,8 +464,8 @@ class GoBoard():
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
 
-    def ko_rule_break(self, piece, which_player):
-        if self.suicide(piece, which_player) > 0:
+    def ko_rule_break(self, piece):
+        if self.suicide(piece, self.whose_turn) > 0:
             return False
         if piece in self.killed_last_turn:
             return True
@@ -483,7 +482,7 @@ class GoBoard():
         return valid_neighbors
 
     # Uses BFS to figure out liberties and connected pieces of the same type
-    def suicide(self, piece, which_player, visited=None):
+    def suicide(self, piece, which_player, visited=None):  # needs to be which_player, not whose_turn
         if visited is None:
             visited = set()
         visited.add(piece)
@@ -501,28 +500,25 @@ class GoBoard():
         return liberties
 
     # This takes in the player who is gaining the captured pieces
-    def remove_stones(self, choosen_player, window):
+    def remove_stones(self, window):
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
-            choosen_player.captured += 1
+            self.whose_turn.captured += 1
             position.stone_here_color = unicode_none
             window[(position.row, position.col)].update(' ')
+            
 
-    def kill_stones(self, piece, which_player, window):  # needs to return true if it does kill stones
-        piece.stone_here_color = which_player.unicode
+    def kill_stones(self, piece, window):  # needs to return true if it does kill stones
+        piece.stone_here_color = self.whose_turn.unicode
         neighbors = self.check_neighbors(piece)
         truth_value = False
-        if which_player == self.player_black:
-            not_which_player = self.player_white
-        else:
-            not_which_player = self.player_black
 
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == not_which_player.unicode:
-                if (self.suicide(neighboring_piece, not_which_player) == 0):
-                    self.remove_stones(which_player, window)
+            if neighboring_piece.stone_here_color == self.not_whose_turn.unicode:
+                if (self.suicide(neighboring_piece, self.not_whose_turn) == 0):
+                    self.remove_stones(window)
                     truth_value = True
         if truth_value is False:
             piece.stone_here_color = unicode_none
@@ -606,6 +602,10 @@ class GoBoard():
             bxidx, byidx, bcolor = item
             self.board[bxidx][byidx].stone_here_color = f"{bcolor}"
 
+    def update_both_boards(self, window, idx, visual_choice1, visual_choice2=None):
+        window[(idx.row, idx.col)].update(visual_choice1)
+        self.board[idx.row][idx.col].stone_here_color = visual_choice1
+    
     def refresh_board(self, window):
         for xidx in range(self.board_size):
             for yidx in range(self.board_size):
@@ -669,26 +669,20 @@ class GoBoard():
     def assignment_logic(self, sets, window):
         neighboring = sets[1] - sets[0]
         pieces_string = sets[0]
-        black_pieces = 0
-        white_pieces = 0
+        black_pieces, white_pieces = 0, 0
         for item in neighboring:
             if item.stone_here_color == unicode_black:
                 black_pieces += 1
             else:
                 white_pieces += 1
-        if black_pieces == 0:
-            self.player_white.territory += len(pieces_string)
-        elif white_pieces == 0:
-            self.player_black.territory += len(pieces_string)
-
-        if black_pieces == 0:
+        if black_pieces == 0 or white_pieces == 0:
+            if black_pieces == 0:
+                player, unicode_choice = self.player_white, unicode_triangle_white
+            elif white_pieces == 0:
+                player, unicode_choice = self.player_black, unicode_triangle_black
+            player.territory += len(pieces_string)
             for item in pieces_string:
-                window[(item.row, item.col)].update(unicode_triangle_white)
-                self.board[item.row][item.col].stone_here_color = unicode_triangle_white
-        elif white_pieces == 0:
-            for item in pieces_string:
-                window[(item.row, item.col)].update(unicode_triangle_black)
-                self.board[item.row][item.col].stone_here_color = unicode_triangle_black
+                self.update_both_boards(window, item, unicode_choice)
         return
 
     def flood_fill(self, piece, connected_pieces=None):
@@ -714,8 +708,7 @@ def load_and_parse_file(file):
     return data_to_parse
 
 
-def initializing_game(window, board_size, defaults=True, file_import_option=False,
-                      from_file=False, fixes_handicap=False, choosen_file=None):
+def initializing_game(window, board_size, defaults=True, file_import_option=False, fixes_handicap=False, choosen_file=None):
     info = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
