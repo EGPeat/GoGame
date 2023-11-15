@@ -136,18 +136,27 @@ def setup_board_window(game_board):
         [sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
                       key='Scoring', justification='center')]]
     window2 = sg.Window('Game Screen', layout2, size=(700, 700), resizable=True, finalize=True)
-    star = u"\u2B50"
-    if size == 9:
-        window2[(2, 2)].update(star)
-        window2[(size - 3, 2)].update(star)
-        window2[(size - 3, size - 3)].update(star)
-        window2[(2, size - 3)].update(star)
-    else:
-        window2[(3, 3)].update(star)
-        window2[(size - 4, 3)].update(star)
-        window2[(size - 4, size - 4)].update(star)
-        window2[(3, size - 4)].update(star)
+    stars(game_board, window2, setup=True)
     return window2
+
+
+def stars(self, window, setup=False):
+    star = u"\u2B50"
+    size = self.board_size
+    lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
+    lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
+    if size == 9:
+        for item in lst9:
+            if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9" and not setup:
+                window[(item[0], item[1])].update(star)
+            elif setup:
+                window[(item[0], item[1])].update(star)
+    else:
+        for item in lst_not_9:
+            if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9" and not setup:
+                window[(item[0], item[1])].update(star)
+            elif setup:
+                window[(item[0], item[1])].update(star)
 
 
 def validation_gui(info1, var_type):

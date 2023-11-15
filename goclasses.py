@@ -86,7 +86,7 @@ class GoBoard():
         self.times_passed = 0
         self.turn_num = 0
         self.position_played_log = list()
-        self.visit_kill = set()  #potentially removeable
+        self.visit_kill = set()
         self.killed_last_turn = set()
         self.killed_log = list()
         self.mode = "Playing"
@@ -199,16 +199,18 @@ class GoBoard():
             self.times_passed = 0
             self.scoring_block(window)
 
-    def scoring_block(self, window): #this and playlog could use work lol. kinda works odd...
-        #same for quit to menu idk
+    def switch_button_mode(self, window):
+        if self.mode == "Scoring":
+            window["Res"].update("Resume Game")
+            self.times_passed = 0
+        elif self.mode == "Playing":
+            window["Res"].update("Quit Program")
+        self.mode_change = False
+
+    def scoring_block(self, window):
         while not self.mode == "Finished":
             if self.mode_change:
-                if self.mode == "Scoring":
-                    window["Res"].update("Resume Game")
-                    self.times_passed = 0
-                elif self.mode == "Playing":
-                    window["Res"].update("Quit Program")
-                self.mode_change = False
+                self.switch_button_mode(window)
             while self.mode == "Scoring":
                 self.remove_dead(window)
                 if self.times_passed == 2:
@@ -247,11 +249,8 @@ class GoBoard():
                 self.resuming_scoring_buffer("Resumed")
                 return
             elif event == "Undo Turn":
-                if self.turn_num == 0:
-                    ui.def_popup("You can't undo when nothing has happened.", 1)
-                elif self.turn_num >= 1:
-                    self.undo_turn(window, scoring=True)
-                    return
+                self.turn_options(window, event)
+                return
             elif event == "Exit Game":
                 from main import play_game_main
                 window.close()
@@ -285,7 +284,7 @@ class GoBoard():
                         self.board[item.row][item.col].stone_here_color = unicode_none
                         self.fix_star_spot(window, (row, col))
                     if piece_string[0][1] == self.player_black.unicode:
-                        self.player_white.captured += len(piece_string)#pretty sure i can use use whose_turn and not_whose_turn
+                        self.player_white.captured += len(piece_string)
                     else:
                         self.player_black.captured += len(piece_string)
                     temp_list = list()
@@ -325,7 +324,7 @@ class GoBoard():
         temp_list = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
-        self.killed_log.append(temp_list)#!
+        self.killed_log.append(temp_list)
         self.switch_player()
         return
 
@@ -355,7 +354,7 @@ class GoBoard():
 
     def play_piece(self, row, col, window):
         piece = self.board[row][col]
-        suicidal_liberty_value = 0
+        liberty_value = 0
         if (piece.stone_here_color != unicode_none):
             ui.def_popup("You tried to place where there is already a piece. Please try your turn again.", 2)
             return False
@@ -366,9 +365,10 @@ class GoBoard():
             piece.stone_here_color = self.whose_turn.unicode
             self.turn_num += 1
             self.position_played_log.append((self.whose_turn.color, row, col))
+            self.refresh_board(window)
             return True
-        elif (self.suicide(piece, self.whose_turn) == suicidal_liberty_value):
-            ui.def_popup("Place the piece there would break the ko rule. Please try your turn again.", 2)
+        elif (self.sfunction(piece, self.whose_turn) == liberty_value):
+            ui.def_popup("Place the piece there would break the self death rule. Please try your turn again.", 2)
             return False
 
         else:  # No rules or special cases are broken, play piece as normal.
@@ -407,12 +407,12 @@ class GoBoard():
             tmp = self.position_played_log.pop()
             self.move_back(scoring)
             self.turn_num -= 1
-            if tmp == "Resumed":
+            self.mode_change = True
+            if tmp == "Resumed":  # Could modify this to undo two turns somehow.
                 self.mode = "Scoring"
                 self.times_passed = 2
             elif tmp == "Scoring":
                 self.mode = "Playing"
-            self.mode_change = True
             return
 
         elif self.position_played_log[-1][0] == "Passed" or self.position_played_log[-1][0] == "Scoring Passed":
@@ -444,16 +444,13 @@ class GoBoard():
             if not scoring:
                 unicode, row, col = item
             else:
-                unicode, row, col, scoring = item  # annoying code
+                unicode, row, col, scoring = item
             self.board[row][col].stone_here_color = unicode
-            window[(row, col)].update(unicode)#make new function
+            window[(row, col)].update(unicode)
             self.fix_star_spot(window, (row, col), unicode_test=unicode)
         # This part updates some class values (player captures, killed_last_turn, turn_num)
         self.turn_num -= 1
-        if unicode == unicode_black:
-            self.player_white.captured -= capture_update_val
-        elif unicode == unicode_white:
-            self.player_black.captured -= capture_update_val
+        self.not_whose_turn.captured -= capture_update_val
         self.switch_player()
 
     def move_back(self, scoring=False):
@@ -465,7 +462,7 @@ class GoBoard():
                 self.killed_last_turn.add(temp_node)
 
     def ko_rule_break(self, piece):
-        if self.suicide(piece, self.whose_turn) > 0:
+        if self.sfunction(piece, self.whose_turn) > 0:
             return False
         if piece in self.killed_last_turn:
             return True
@@ -482,7 +479,7 @@ class GoBoard():
         return valid_neighbors
 
     # Uses BFS to figure out liberties and connected pieces of the same type
-    def suicide(self, piece, which_player, visited=None):  # needs to be which_player, not whose_turn
+    def sfunction(self, piece, which_player, visited=None):  # needs to be which_player, not whose_turn
         if visited is None:
             visited = set()
         visited.add(piece)
@@ -495,7 +492,7 @@ class GoBoard():
             elif neighboring_piece.stone_here_color != which_player.unicode:
                 pass
             elif neighboring_piece not in visited:
-                liberties += self.suicide(neighboring_piece, which_player, visited)
+                liberties += self.sfunction(neighboring_piece, which_player, visited)
         self.visit_kill = visited
         return liberties
 
@@ -507,7 +504,6 @@ class GoBoard():
             self.whose_turn.captured += 1
             position.stone_here_color = unicode_none
             window[(position.row, position.col)].update(' ')
-            
 
     def kill_stones(self, piece, window):  # needs to return true if it does kill stones
         piece.stone_here_color = self.whose_turn.unicode
@@ -517,7 +513,7 @@ class GoBoard():
         for coordinate in neighbors:
             neighboring_piece = self.board[coordinate[0]][coordinate[1]]
             if neighboring_piece.stone_here_color == self.not_whose_turn.unicode:
-                if (self.suicide(neighboring_piece, self.not_whose_turn) == 0):
+                if (self.sfunction(neighboring_piece, self.not_whose_turn) == 0):
                     self.remove_stones(window)
                     truth_value = True
         if truth_value is False:
@@ -605,24 +601,13 @@ class GoBoard():
     def update_both_boards(self, window, idx, visual_choice1, visual_choice2=None):
         window[(idx.row, idx.col)].update(visual_choice1)
         self.board[idx.row][idx.col].stone_here_color = visual_choice1
-    
+
     def refresh_board(self, window):
         for xidx in range(self.board_size):
             for yidx in range(self.board_size):
                 if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
-        star = u"\u2B50"
-        size = self.board_size
-        lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
-        lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
-        if self.board_size == 9:
-            for item in lst9:
-                if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9":
-                    window[(item[0], item[1])].update(star)
-        else:
-            for item in lst_not_9:
-                if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9":
-                    window[(item[0], item[1])].update(star)
+        ui.stars(self, window)
 
     def making_go_board_strings_helper(self, piece, connected_pieces=None):
         if connected_pieces is None:
