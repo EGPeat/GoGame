@@ -24,7 +24,7 @@ def play_game_main():
             sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
                                 auto_close=True, auto_close_duration=3)
             board_size = load_board_size(file)
-            go.initializing_game(window, board_size, defaults=True, file_import_option=True, from_file=True, choosen_file=file)
+            go.initializing_game(window, board_size, defaults=True, file_import_option=True, choosen_file=file)
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()

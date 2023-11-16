@@ -520,6 +520,55 @@ class GoBoard():
             piece.stone_here_color = unicode_none
         return truth_value
 
+    def save_to_SGF(self, filename2):
+        with open(f"{filename2}.sgf", 'w', encoding='utf-8') as file:
+            from datetime import date
+            seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed", "Resumed", "Scoring", "Scoring Passed"]
+            movement_string = ""
+            today = date.today()
+            text = f"(;\nFF[4]\nCA[UTF-8]\nGM[1]\nDT[{today}]\nGN[relaxed]\n\
+            PC[https://github.com/EGPeat/GoGame]\n\
+            PB[{self.player_black.name}]\n\
+            PW[{self.player_white.name}]\n\
+            BR[Unknown]\nWR[Unknown]\n\
+            OT[Error: time control missing]\nRE[?]\n\
+            SZ[{self.board_size}]\nKM[{self.player_white.komi}]\nRU[Japanese];"
+            file.write(text)
+            handicap_idx = 0
+            handicap_flag = self.handicap[0]
+            for item in self.position_played_log:
+                if handicap_flag and handicap_idx < self.handicap[2]:
+                    row = chr(97 + int(item[1]))
+                    col = chr(97 + int(item[2]))
+                    if self.handicap[1] == "Black":
+                        text2 = f";AB[{col}{row}]\n"
+                        movement_string += text2
+                    elif self.handicap[1] == "White":
+                        text2 = f";AW[{col}{row}]\n"
+                        movement_string += text2
+                    else:
+                        raise IndexError
+                    handicap_idx += 1
+
+                elif item[0] in seqs or item in seqs:
+                    pass
+                elif item[0] == "Passed":
+                    if movement_string[-7] == "B" or movement_string[-5] == "B":
+                        text2 = ";W[]\n"
+                    else:
+                        text2 = ";B[]\n"
+                    movement_string += text2
+                else:
+                    row = chr(97 + int(item[1]))
+                    col = chr(97 + int(item[2]))
+                    if item[0] == self.player_black.color:
+                        text2 = f";B[{col}{row}]\n"
+                    else:
+                        text2 = f";W[{col}{row}]\n"
+                    movement_string += text2
+            movement_string += ")"
+            file.write(movement_string)
+
     def save_to_json(self):
         import json
         filename = ''
@@ -536,6 +585,7 @@ class GoBoard():
             for yidx in range(self.board_size):
                 if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
                     places_on_board.append([xidx, yidx, self.board[xidx][yidx].stone_here_color])
+        self.save_to_SGF(filename)
         with open(f"{filename}.json", 'w', encoding='utf-8') as file:
             dictionary_to_json = {
                 "board_size": self.board_size,
@@ -559,8 +609,8 @@ class GoBoard():
                 "places_on_board": places_on_board,
                 "mode": self.mode,
                 "mode_change": self.mode_change,
-                "whose_turn": self.whose_turn,
-                "not_whose_turn": self.not_whose_turn
+                "whose_turn": self.whose_turn.color,
+                "not_whose_turn": self.not_whose_turn.color
             }
             json_object = json.dumps(dictionary_to_json, indent=4)
             file.write(json_object)
@@ -584,8 +634,6 @@ class GoBoard():
         self.player_black.captured = data["player_black.captured"]
         self.player_black.komi = data["player_black.komi"]
         self.player_black.unicode = data["player_black.unicode"]
-        self.whose_turn = data["whose_turn"]
-        self.not_whose_turn = data['not_whose_turn']
         self.mode = data["mode"]
         self.mode_change = data["mode_change"]
         self.player_white.name = data["player_white.name"]
@@ -597,6 +645,14 @@ class GoBoard():
         for item in board_list:
             bxidx, byidx, bcolor = item
             self.board[bxidx][byidx].stone_here_color = f"{bcolor}"
+        if data["whose_turn"] == "Black":
+            self.whose_turn = self.player_black
+            self.not_whose_turn = self.player_white
+        elif data["whose_turn"] == "White":
+            self.whose_turn = self.player_white
+            self.not_whose_turn = self.player_black
+        else:
+            raise NameError
 
     def update_both_boards(self, window, idx, visual_choice1, visual_choice2=None):
         window[(idx.row, idx.col)].update(visual_choice1)
