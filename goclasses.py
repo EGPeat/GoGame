@@ -523,7 +523,8 @@ class GoBoard():
     def save_to_SGF(self, filename2):
         with open(f"{filename2}.sgf", 'w', encoding='utf-8') as file:
             from datetime import date
-            seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed", "Resumed", "Scoring", "Scoring Passed"]
+            seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed",
+                    "Resumed", "Scoring", "Scoring Passed"]
             movement_string = ""
             today = date.today()
             text = f"(;\nFF[4]\nCA[UTF-8]\nGM[1]\nDT[{today}]\nGN[relaxed]\n\
