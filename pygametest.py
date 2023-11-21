@@ -2,7 +2,9 @@ import pygame
 import math
 import random
 from typing import Tuple
-
+import PySimpleGUI as sg
+import os
+import platform
 
 RADIUS = 80
 CIRC_RAD = 20
@@ -98,7 +100,7 @@ def find_circle(screen, input_location, nodes):
             item.stone_here_color = (238, 75, 43)
             pygame.draw.circle(screen, (238, 75, 43), (item.screen_x, item.screen_y), CIRC_RAD)
             pygame.display.flip()
-            print(item.stone_here_color)
+            print(item_location)
             return True
 
 
@@ -126,11 +128,76 @@ def main():
                 temp = event.dict["pos"]
                 location = [temp[0], temp[1]]
                 find_circle(screen, location, nodes[0])
-            if event.type == pygame.QUIT:
+            elif event.type == pygame.QUIT:
                 terminated = True
 
         clock.tick(50)
     pygame.display.quit()
 
 
-main()
+# https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
+layout = [[sg.Text('Test of PySimpleGUI with PyGame')],
+          [sg.Graph((800, 800), (800, 0), (0, 800),
+                    background_color='lightblue', key='-GRAPH-', enable_events=True)],
+          [sg.Button('Draw'), sg.Exit()]]
+
+window = sg.Window('PySimpleGUI + PyGame', layout, finalize=True)
+graph = window['-GRAPH-']
+
+embed = graph.TKCanvas
+os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
+if platform.system == "Linux":
+    os.environ['SDL_VIDEODRIVER'] = "x11"
+elif platform.system == "Windows":
+    os.environ['SDL_VIDEODRIVER'] = 'windib'
+
+screen = pygame.display.set_mode((800, 800))
+pygame.display.init()
+pygame.display.update()
+while True:
+    event, values = window.read(timeout=10)
+    pygame.display.update()
+    break
+
+screen.fill(pygame.Color(200, 162, 200))
+clock = pygame.time.Clock()
+pygame.display.init()
+pygame.display.update()
+nodes = generate_board(6, (100, 500))
+
+for item in nodes[0]:
+    for neighbor in item.neighbors.values():
+        pygame.draw.line(screen, (0, 0, 0), (item.screen_x, item.screen_y), (neighbor.screen_x, neighbor.screen_y))
+
+for item in nodes[0]:
+    pygame.draw.circle(screen, get_random_colour(), (item.screen_x, item.screen_y), CIRC_RAD)
+print(f"this is the length {len(nodes[0])}")
+
+pygame.display.flip()
+
+
+while True:
+    event, values = window.read()
+    print(event)
+    print(values)
+    print(type(event))
+    print(type(values))
+    if event in (sg.WIN_CLOSED, 'Exit'):
+        print("tried to quit uwu")
+        #pygame.display.quit()
+        break
+    
+    elif event == '-GRAPH-':
+
+        temp = values['-GRAPH-']
+        print(temp)
+        print(type(temp))
+        location = [temp[1], temp[0]]
+        print(location)
+        print('lets go')
+        find_circle(screen, location, nodes[0])
+        pygame.display.flip()
+    pygame.display.update()
+
+    clock.tick(50)
+pygame.display.quit()
