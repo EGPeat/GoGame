@@ -3,6 +3,7 @@ import math
 import random
 import PySimpleGUI as sg
 from uifunctions import hex_ui_setup
+import goclasses
 
 
 class HexNode():
@@ -26,8 +27,9 @@ class HexNode():
             print("No attribute for that")
 
 
-class HexGo():  # make it inherit from the goclasses.py class
-    def __init__(self, window, screen, radius=60, circ_rad=15, side_length=6):
+class HexGo(goclasses.GoBoard):  # make it inherit from the goclasses.py class
+    def __init__(self, window, screen, radius=60, circ_rad=15, side_length=6, baseboard_size=17, defaults=True):
+        super().__init__(board_size=baseboard_size, defaults=defaults)
         self.radius = radius
         self.circ_rad = circ_rad
         self.side_length = side_length
@@ -103,7 +105,7 @@ def setup_pygame_board(window):
         event, values = window.read(timeout=10)
         pygame.display.update()
         break
-    screen.fill(pygame.Color(200, 162, 200))
+    screen.fill(pygame.Color(110, 162, 170))
     pygame.display.init()
     pygame.display.update()
 
@@ -125,14 +127,13 @@ def main():
 
     while True:  # eventually should be eaten by the pysimplegui from main/goclasses.py
         event, values = window.read()
-        print(event)
-        print(values)
         if event in (sg.WIN_CLOSED, 'Exit Game'):
             quit()
 
         elif event == '-GRAPH-':
             temp = values['-GRAPH-']
             hex_game.find_circle([temp[0], temp[1]])
+            #output,  =hex_game.find_piece_click([temp[0], temp[1]])
             pygame.display.flip()
         pygame.display.update()
     pygame.display.quit()

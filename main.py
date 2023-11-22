@@ -4,7 +4,6 @@ import PySimpleGUI as sg
 import pygametest as pygt
 
 # To do:
-# Remake gui in Kivy or etc
 # Add AI to game
 # Add MP to game
 
@@ -23,8 +22,11 @@ def play_game_main():
             file = file[-1]
             sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
                                 auto_close=True, auto_close_duration=3)
-            board_size = load_board_size(file)
-            go.initializing_game(window, board_size, defaults=True, file_import_option=True, choosen_file=file)
+            go_board = go.GoBoard()
+            friend = go_board.load_pkl(file)
+            ui.setup_board_window_pygame(friend)
+            window.close()
+            friend.play_game(True, False)
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()
@@ -33,19 +35,13 @@ def play_game_main():
         elif event == "New Game From Default":
             go.initializing_game(window, 9, True)
         elif event == "New Hex Game":
-            #! close the old board?
+            window.close()
             pygt.main()
 
         if event in (sg.WIN_CLOSED, 'Exit Game'):
             break
 
     window.close()
-
-
-def load_board_size(file):
-    data_to_parse = go.load_and_parse_file(file)
-    board_size = data_to_parse["board_size"]
-    return board_size
 
 
 if __name__ == "__main__":

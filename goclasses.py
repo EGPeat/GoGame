@@ -139,7 +139,7 @@ class GoBoard():
             self.whose_turn = self.player_black
             self.not_whose_turn = self.player_white
 
-    def custom_handicap(self, defaults, window):
+    def custom_handicap(self, defaults):
         if defaults is True:
             return (False, "None", 0)
         info = "Please Click Yes if you want choose where you play your handicap."
@@ -164,29 +164,29 @@ class GoBoard():
             for idx in range(handicap_info):
                 row, col = choosen_list[idx]
                 place = self.board[row][col]
-                self.play_piece(row, col, window)
+                self.play_piece(row, col)
                 pygame.draw.circle(self.screen, self.whose_turn.unicode,
                                    (place.screen_row, place.screen_col), self.pygame_board_vals[2])
             self.refresh_board_pygame()
             self.switch_player()
         else:
-            self.manual_handicap_placement(window, handicap_info)
+            self.manual_handicap_placement(handicap_info)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
         return (True, self.not_whose_turn.color, handicap_info)
 
-    def manual_handicap_placement(self, window, handicap_info):
+    def manual_handicap_placement(self, handicap_info):
         ui.def_popup(f"Please place {handicap_info} number of pieces where you wish,\
                     as a handicap.Then the opponent will play.", 3)
         for idx in range(handicap_info):
             valid_piece = False
             while not valid_piece:
-                event, values = window.read()
+                event, values = self.window.read()
                 while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn":
                     ui.def_popup("You can't do these actions during the handicap stage.", 3)
-                    event, values = window.read()
+                    event, values = self.window.read()
                 if event == "Exit Game" or event == "Res":
-                    self.turn_options(window, event)
+                    self.turn_options(event)
                 row, col = values['-GRAPH-']
                 found_piece, piece = self.find_piece_click([row, col])
                 if found_piece:
@@ -195,14 +195,14 @@ class GoBoard():
 
             if found_piece:
                 self.times_passed = 0
-                truth_value = self.play_piece(piece.row, piece.col, window)
+                truth_value = self.play_piece(piece.row, piece.col)
                 if truth_value:
                     pygame.draw.circle(self.screen, self.whose_turn.unicode,
                                        (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
                     pygame.display.update()
         self.switch_player()
 
-    def play_game(self, window, fromFile=False, fixes_handicap=False):
+    def play_game(self, fromFile=False, fixes_handicap=False):
         if self.mode == "Playing":
             if fromFile is not True:
                 self.board = self.setup_board()
@@ -210,23 +210,23 @@ class GoBoard():
                 self.refresh_board_pygame()
                 if self.position_played_log[-1][0] == "Black":
                     self.switch_player()
-                    self.play_turn(window)
+                    self.play_turn()
             if fixes_handicap is True:
-                self.handicap = self.custom_handicap(False, window)
+                self.handicap = self.custom_handicap(False)
 
             while (self.times_passed <= 1):
-                self.play_turn(window)
+                self.play_turn()
             self.mode = "Scoring"
             self.times_passed = 0
             self.resuming_scoring_buffer("Scoring")
             ui.end_game_popup()
-            self.scoring_block(window)
+            self.scoring_block()
         elif self.mode == "Finished":
-            self.refresh_board(window)
-            event, values = window.read()
+            self.refresh_board_pygame()
+            event, values = self.window.read()
             if event == "Exit Game":
                 from main import play_game_main
-                window.close()
+                self.window.close()
                 play_game_main()
                 quit()
             elif event == sg.WIN_CLOSED:
@@ -234,63 +234,63 @@ class GoBoard():
         else:
             self.mode_change = True
             self.times_passed = 0
-            self.scoring_block(window)
+            self.scoring_block()
 
-    def switch_button_mode(self, window):
+    def switch_button_mode(self):
         if self.mode == "Scoring":
-            window["Res"].update("Resume Game")
+            self.window["Res"].update("Resume Game")
             self.times_passed = 0
         elif self.mode == "Playing":
-            window["Res"].update("Quit Program")
+            self.window["Res"].update("Quit Program")
         self.mode_change = False
 
-    def scoring_block(self, window):
+    def scoring_block(self):
         while not self.mode == "Finished":
             if self.mode_change:
-                self.switch_button_mode(window)
+                self.switch_button_mode()
             while self.mode == "Scoring":
-                self.remove_dead(window)
+                self.remove_dead()
                 if self.times_passed == 2:
                     self.mode = "Finished"
             if self.mode_change:
                 if not self.mode == "Scoring":
-                    window["Res"].update("Quit Program")
+                    self.window["Res"].update("Quit Program")
             while (self.times_passed <= 1):
-                self.play_turn(window)
+                self.play_turn()
             if self.times_passed == 2 and self.mode == "Playing":
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        self.counting_territory(window)
-        self.end_of_game(window)
+        self.counting_territory()
+        self.end_of_game()
 
     def resuming_scoring_buffer(self, text):
         self.turn_num += 1
         self.position_played_log.append(text)
         self.killed_log.append([])
 
-    def remove_dead(self, window):  # make shorter
+    def remove_dead(self):  # make shorter
         self.killed_last_turn.clear()
-        ui.update_scoring(self, window)
+        ui.update_scoring(self)
         truth_value = False
         while not truth_value:
-            event, values = window.read()
+            event, values = self.window.read()
             if event == "Pass Turn":
-                self.turn_options(window, event, text="Scoring Passed")
+                self.turn_options(event, text="Scoring Passed")
                 return
             elif event == "Save Game":
-                self.save_to_json()
+                self.save_pickle()
             elif event == "Res":
                 self.mode = "Playing"
                 self.mode_change = True
                 self.resuming_scoring_buffer("Resumed")
                 return
             elif event == "Undo Turn":
-                self.turn_options(window, event)
+                self.turn_options(event)
                 return
             elif event == "Exit Game":
                 from main import play_game_main
-                window.close()
+                self.window.close()
                 play_game_main()
                 quit()
             elif event == sg.WIN_CLOSED:
@@ -341,12 +341,12 @@ class GoBoard():
         self.switch_player()
         return
 
-    def end_of_game(self, window):
+    def end_of_game(self):
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
-        self.save_to_json()
+        self.save_pickle()
         from main import play_game_main
-        window.close()
+        self.window.close()
         play_game_main()
         quit()
 
@@ -358,20 +358,20 @@ class GoBoard():
                     return True, item
         return False, [-1, -1]
 
-    def play_turn(self, window):
-        ui.update_scoring(self, window)
+    def play_turn(self):
+        ui.update_scoring(self)
         truth_value = False
         while not truth_value:
-            event, values = window.read()
+            event, values = self.window.read()
             if event != "-GRAPH-":
-                self.turn_options(window, event, text="Passed")
+                self.turn_options(event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
                 row, col = values['-GRAPH-']
                 found_piece, piece = self.find_piece_click([row, col])
                 if found_piece:
-                    truth_value = self.play_piece(piece.row, piece.col, window)
+                    truth_value = self.play_piece(piece.row, piece.col)
                     if truth_value:
                         self.times_passed = 0
                         pygame.draw.circle(self.screen, self.whose_turn.unicode,
@@ -384,7 +384,7 @@ class GoBoard():
         self.switch_player()
         return
 
-    def turn_options(self, window, event, text=None):
+    def turn_options(self, event, text=None):
         if event in (sg.WIN_CLOSED, "Res"):
             quit()
         if event == "Pass Turn":
@@ -395,22 +395,22 @@ class GoBoard():
             self.killed_log.append([])
             self.switch_player()
         elif event == "Save Game":
-            self.save_to_json()
+            self.save_pickle()
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 ui.def_popup("You can't undo when nothing has happened.", 2)
             elif self.turn_num >= 1:
-                self.undo_checker(window)
+                self.undo_checker()
                 return
         elif event == "Exit Game":
             from main import play_game_main
-            window.close()
+            self.window.close()
             play_game_main()
             quit()
         else:
             raise ValueError
 
-    def play_piece(self, row, col, window):
+    def play_piece(self, row, col):
         piece = self.board[row][col]
         liberty_value = 0
         if (piece.stone_here_color != unicode_none):
@@ -419,7 +419,7 @@ class GoBoard():
         elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
             ui.def_popup("Place the piece there would break the ko rule. Please try your turn again.", 2)
             return False
-        elif (self.kill_stones(piece, window) is True):
+        elif (self.kill_stones(piece) is True):
             piece.stone_here_color = self.whose_turn.unicode
             self.turn_num += 1
             self.position_played_log.append((self.whose_turn.color, row, col))
@@ -436,13 +436,13 @@ class GoBoard():
         self.turn_num += 1
         return True
 
-    def undo_checker(self, window):
+    def undo_checker(self):
         if self.mode == "Scoring":
-            self.undo_turn(window, scoring=True)
+            self.undo_turn(scoring=True)
         else:
-            self.undo_turn(window)
+            self.undo_turn()
 
-    def undo_turn(self, window, scoring=False):
+    def undo_turn(self, scoring=False):
         if self.position_played_log[-1] == "Resumed" or self.position_played_log[-1] == "Scoring":
             tmp = self.position_played_log.pop()
             self.move_back(scoring)
@@ -533,21 +533,21 @@ class GoBoard():
         return liberties
 
     # This takes in the player who is gaining the captured pieces
-    def remove_stones(self, window):
+    def remove_stones(self):
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
             self.whose_turn.captured += 1
             position.stone_here_color = unicode_none
 
-    def kill_stones(self, piece, window):  # needs to return true if it does kill stones
+    def kill_stones(self, piece):  # needs to return true if it does kill stones
         piece.stone_here_color = self.whose_turn.unicode
         neighboring_pieces = piece.connections
         truth_value = False
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == self.not_whose_turn.unicode:
                 if (self.sfunction(neighbor, self.not_whose_turn) == 0):
-                    self.remove_stones(window)
+                    self.remove_stones()
                     truth_value = True
         if truth_value is False:
             piece.stone_here_color = unicode_none
@@ -603,90 +603,25 @@ class GoBoard():
             movement_string += ")"
             file.write(movement_string)
 
-    def save_to_json(self):
-        import json
+    def save_pickle(self):
+        import pickle
         filename = ''
         while len(filename) < 1:
-            text = "Please write the name of the txt file you want to save to. Do not include '.json' in what you write"
+            text = "Please write the name of the file you want to save to. Do not include the file extension in what you write"
             filename = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
             if filename is None:
                 return
-        kill_list = []
-        for item in self.killed_last_turn:
-            kill_list.append([item.row, item.col])
-        places_on_board = list()
-        for xidx in range(self.board_size):
-            for yidx in range(self.board_size):
-                if not self.board[xidx][yidx].stone_here_color == unicode_none:
-                    places_on_board.append([xidx, yidx, self.board[xidx][yidx].stone_here_color])
-        self.save_to_SGF(filename)
-        with open(f"{filename}.json", 'w', encoding='utf-8') as file:
-            dictionary_to_json = {
-                "board_size": self.board_size,
-                "defaults": self.defaults,
-                "times_passed": self.times_passed,
-                "turn_num": self.turn_num,
-                "handicap": self.handicap,
-                "position_played_log": self.position_played_log,
-                "killed_last_turn": kill_list,
-                "killed_log": self.killed_log,
-                "player_black.name": self.player_black.name,
-                "player_black.color": self.player_black.color,
-                "player_black.captured": self.player_black.captured,
-                "player_black.komi": self.player_black.komi,
-                "player_black.unicode": self.player_black.unicode,
-                "player_white.name": self.player_white.name,
-                "player_white.color": self.player_white.color,
-                "player_white.captured": self.player_white.captured,
-                "player_white.komi": self.player_white.komi,
-                "player_white.unicode": self.player_white.unicode,
-                "places_on_board": places_on_board,
-                "mode": self.mode,
-                "mode_change": self.mode_change,
-                "whose_turn": self.whose_turn.color,
-                "not_whose_turn": self.not_whose_turn.color
-            }
-            json_object = json.dumps(dictionary_to_json, indent=4)
-            file.write(json_object)
-        ui.def_popup(f"Saved to {filename}.json", 2)
+        with open(f"{filename}.pkl", "wb") as pkl_file:
+            del self.window
+            del self.screen
+            del self.backup_board
+            pickle.dump(self, pkl_file)
 
-    def load_from_json(self, inputPath=''):
-        data = load_and_parse_file(inputPath)
-        self.board_size = data["board_size"]
-        self.defaults = data["defaults"]
-        self.times_passed = data["times_passed"]
-        self.turn_num = data["turn_num"]
-        self.handicap = data["handicap"]
-        self.position_played_log = data["position_played_log"]
-        temp_list = data['killed_last_turn']
-        for item in temp_list:
-            temp_node = BoardNode(row_value=item[0], col_value=item[1])
-            self.killed_last_turn.add(temp_node)
-        self.killed_log = data['killed_log']
-        self.player_black.name = data["player_black.name"]
-        self.player_black.color = data["player_black.color"]
-        self.player_black.captured = data["player_black.captured"]
-        self.player_black.komi = data["player_black.komi"]
-        self.player_black.unicode = data["player_black.unicode"]
-        self.mode = data["mode"]
-        self.mode_change = data["mode_change"]
-        self.player_white.name = data["player_white.name"]
-        self.player_white.color = data["player_white.color"]
-        self.player_white.captured = data["player_white.captured"]
-        self.player_white.komi = data["player_white.komi"]
-        self.player_white.unicode = data["player_white.unicode"]
-        board_list = data["places_on_board"]
-        for item in board_list:
-            bxidx, byidx, bcolor = item
-            self.board[bxidx][byidx].stone_here_color = f"{bcolor}"
-        if data["whose_turn"] == "Black":
-            self.whose_turn = self.player_black
-            self.not_whose_turn = self.player_white
-        elif data["whose_turn"] == "White":
-            self.whose_turn = self.player_white
-            self.not_whose_turn = self.player_black
-        else:
-            raise NameError
+    def load_pkl(self, inputPath):
+        import pickle
+        with open(inputPath, 'rb') as file:
+            friend = pickle.load(file)
+        return friend
 
     def refresh_board_pygame(self):
         self.screen.blit(self.backup_board, (0, 0))
@@ -716,7 +651,7 @@ class GoBoard():
                 pass
         return connected_pieces
 
-    def counting_territory(self, window):
+    def counting_territory(self):
         self.empty_space_set = set()
         self.black_set = set()
         self.white_set = set()
@@ -729,9 +664,9 @@ class GoBoard():
                     self.black_set.add(temp_node)
                 else:
                     self.empty_space_set.add(temp_node)
-        self.making_go_board_strings(self.empty_space_set, window)
+        self.making_go_board_strings(self.empty_space_set)
 
-    def making_go_board_strings(self, piece_set, window):
+    def making_go_board_strings(self, piece_set):
         list_of_piece_strings = list()
         while len(piece_set):
             piece = piece_set.pop()
@@ -742,9 +677,9 @@ class GoBoard():
             item2 = item.pop()
             item.add(item2)
             sets = self.flood_fill(item2)
-            self.assignment_logic(sets, window)
+            self.assignment_logic(sets)
 
-    def assignment_logic(self, sets, window):
+    def assignment_logic(self, sets):
         neighboring = sets[1] - sets[0]
         pieces_string = sets[0]
         black_pieces, white_pieces = 0, 0
@@ -760,7 +695,6 @@ class GoBoard():
                 player, unicode_choice = self.player_black, unicode_triangle_black
             player.territory += len(pieces_string)
             for item in pieces_string:
-                #! unsure if item is a board node or not.....
                 pygame.draw.circle(self.screen, unicode_choice,
                                    (item.screen_row, item.screen_col), self.pygame_board_vals[2])
                 self.board[item.row][item.col].stone_here_color = unicode_choice
@@ -780,14 +714,7 @@ class GoBoard():
         return connected_pieces
 
 
-def load_and_parse_file(file):
-    with open(file, 'r', encoding='utf-8') as file:
-        import json
-        data_to_parse = json.load(file)
-    return data_to_parse
-
-
-def initializing_game(window, board_size, defaults=True, file_import_option=False, fixes_handicap=False, choosen_file=None):
+def initializing_game(window, board_size, defaults=True, fixes_handicap=False, choosen_file=None):
     info = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
@@ -797,17 +724,15 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
             GameBoard = GoBoard(board_size, defaults)
     else:
         GameBoard = GoBoard(board_size, defaults)
-    if file_import_option:
-        GameBoard.load_from_json(choosen_file)
     window.close()
-    window2 = ui.setup_board_window_pygame(GameBoard)
+    ui.setup_board_window_pygame(GameBoard)
     info = "Click yes if you want to modify the handicap"
     if fixes_handicap:
         modify_handicap = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if modify_handicap == "Yes":
-            GameBoard.play_game(window2, file_import_option, fixes_handicap=True)
+            GameBoard.play_game(fixes_handicap=True)
         else:
-            GameBoard.play_game(window2, file_import_option, fixes_handicap=False)
+            GameBoard.play_game(fixes_handicap=False)
 
     else:
-        GameBoard.play_game(window2, file_import_option, fixes_handicap)
+        GameBoard.play_game(fixes_handicap)

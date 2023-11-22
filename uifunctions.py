@@ -116,8 +116,9 @@ def setup_menu():
 
 
 # Sets up the window for playing the game using PySimpleGUI
-def setup_board_window_sidebar(game_board):
-    size = game_board.board_size
+def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
+    # Many thanks to the following github demo for PySimpleGUI
+    # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
     text = f"It is currently {game_board.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
     Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
@@ -131,8 +132,7 @@ def setup_board_window_sidebar(game_board):
          sg.Button("Quit Program", font=('Arial Bold', 12), key="Res"),
          sg.Button("Exit To Menu", font=('Arial Bold', 12), key="Exit Game")]
     ]
-    layout_board = [[sg.Button('', size=(4, 2), key=(i, j), pad=(0, 0))
-                    for j in range(size)] for i in range(size)]  # This does NOT size correctly
+    layout_board = [[sg.Graph((700, 700), (0, 700), (700, 0), key='-GRAPH-', enable_events=True)]]
     layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
                       key='Scoring', justification='center')]]
     full_layout = [[layout_buttons,
@@ -140,28 +140,29 @@ def setup_board_window_sidebar(game_board):
                    sg.VSeparator(),
                    sg.Column(layout_board)]]
 
-    window2 = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)
-    #stars(game_board, window2, setup=True)
-    return window2
+    window = sg.Window('Game Screen', full_layout, size=(1000, 900), resizable=True, finalize=True)
+    graph = window['-GRAPH-']
 
+    embed = graph.TKCanvas
+    os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
+    if platform.system == "Linux":
+        os.environ['SDL_VIDEODRIVER'] = "x11"
+    elif platform.system == "Windows":
+        os.environ['SDL_VIDEODRIVER'] = 'windib'
+    screen = pygame.display.set_mode((700, 700))
+    game_board.screen = screen
+    game_board.window = window
+    while True:  # For some reason this is required
+        event, values = window.read(timeout=10)
+        pygame.display.update()
+        break
+    screen.fill(pygame.Color(200, 162, 200))
+    pygame.display.init()
+    pygame.display.update()
 
-def stars(self, window, setup=False):
-    star = u"\u2B50"
-    size = self.board_size
-    lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
-    lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
-    if size == 9:
-        for item in lst9:
-            if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9" and not setup:
-                window[(item[0], item[1])].update(star)
-            elif setup:
-                window[(item[0], item[1])].update(star)
-    else:
-        for item in lst_not_9:
-            if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9" and not setup:
-                window[(item[0], item[1])].update(star)
-            elif setup:
-                window[(item[0], item[1])].update(star)
+    draw_gameboard(game_board, screen)
+    pygame.display.update()
+    return window
 
 
 def validation_gui(info1, var_type):
@@ -173,13 +174,13 @@ def validation_gui(info1, var_type):
     return output
 
 
-def update_scoring(self, window):
+def update_scoring(self):
     text = f"It is currently {self.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {self.turn_num}\n\n\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\n\n\
     Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
     Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
-    window['Scoring'].update(text)
+    self.window['Scoring'].update(text)
 
 
 def end_game_popup():
@@ -216,6 +217,7 @@ def def_popup(info, time):
 
 
 def hex_ui_setup():
+    # Many thanks to the following github demo for PySimpleGUI
     # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
     text = "It is currently PLACEHOLDER turn. \n"
     layout_buttons = [
@@ -245,53 +247,6 @@ def hex_ui_setup():
     return window
 
 
-def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
-    text = f"It is currently {game_board.whose_turn.color}'s turn. \n"
-    text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
-    Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\n\n\
-    Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
-    Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
-    layout_buttons = [
-        [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-         sg.Button("Save Game", font=('Arial Bold', 12)),
-         sg.Button("Undo Turn", font=('Arial Bold', 12)),
-         sg.Button("Quit Program", font=('Arial Bold', 12), key="Res"),
-         sg.Button("Exit To Menu", font=('Arial Bold', 12), key="Exit Game")]
-    ]
-    layout_board = [[sg.Graph((700, 700), (0, 700), (700, 0), key='-GRAPH-', enable_events=True)]]  # This does NOT size correctly
-    layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
-                      key='Scoring', justification='center')]]
-    full_layout = [[layout_buttons,
-                    sg.Column(layout_sidebar, expand_x=True, expand_y=True),
-                   sg.VSeparator(),
-                   sg.Column(layout_board)]]
-
-    window = sg.Window('Game Screen', full_layout, size=(1000, 900), resizable=True, finalize=True)
-    graph = window['-GRAPH-']
-
-    embed = graph.TKCanvas
-    os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
-    if platform.system == "Linux":
-        os.environ['SDL_VIDEODRIVER'] = "x11"
-    elif platform.system == "Windows":
-        os.environ['SDL_VIDEODRIVER'] = 'windib'
-    screen = pygame.display.set_mode((700, 700))
-    game_board.screen = screen
-    game_board.window = window
-    while True:  # For some reason this is required
-        event, values = window.read(timeout=10)
-        pygame.display.update()
-        break
-    screen.fill(pygame.Color(200, 162, 200))
-    pygame.display.init()
-    pygame.display.update()
-
-    draw_gameboard(game_board, screen)
-    pygame.display.update()
-    return window#!
-
-
 def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
     workable_area = 620
     distance = workable_area/(game_board.board_size-1)
@@ -313,8 +268,8 @@ def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
     stars_pygame(game_board, gameboard_surface, circle_radius, setup=True)
     screen.blit(gameboard_surface, (0, 0))
     game_board.backup_board = gameboard_surface
-            
-    
+
+
 def stars_pygame(self, window, circle_radius, setup=False):
     size = self.board_size
     lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
