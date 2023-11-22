@@ -145,19 +145,20 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
 
     embed = graph.TKCanvas
     os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
-    if platform.system == "Linux":
+    if platform.system() == "Linux":
         os.environ['SDL_VIDEODRIVER'] = "x11"
-    elif platform.system == "Windows":
+    elif platform.system() == "Windows":
         os.environ['SDL_VIDEODRIVER'] = 'windib'
     screen = pygame.display.set_mode((700, 700))
     game_board.screen = screen
     game_board.window = window
-    while True:  # For some reason this is required
-        event, values = window.read(timeout=10)
-        pygame.display.update()
-        break
-    screen.fill(pygame.Color(200, 162, 200))
+    if platform.system() == "Linux":  # This might not be needed
+        while True:  # For some reason this is required
+            event, values = window.read(timeout=10)
+            pygame.display.update()
+            break
     pygame.display.init()
+    screen.fill(pygame.Color(200, 162, 200))
     pygame.display.update()
 
     draw_gameboard(game_board, screen)
@@ -240,17 +241,26 @@ def hex_ui_setup():
 
     embed = graph.TKCanvas
     os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
-    if platform.system == "Linux":
+    print(platform.system())
+    print(platform.system_alias)
+    if platform.system() == "Linux":
         os.environ['SDL_VIDEODRIVER'] = "x11"
-    elif platform.system == "Windows":
+    elif platform.system() == "Windows":
         os.environ['SDL_VIDEODRIVER'] = 'windib'
+        screen = pygame.display.set_mode((700, 700))
+        pygame.display.init()
+        pygame.display.update()
+        while True:
+            event, values = window.read(timeout=10)
+            pygame.display.update()
+            break
     return window
 
 
 def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
     workable_area = 620
-    distance = workable_area/(game_board.board_size-1)
-    circle_radius = distance/3
+    distance = workable_area / (game_board.board_size - 1)
+    circle_radius = distance / 3
     game_board.pygame_board_vals = (workable_area, distance, circle_radius)
     gameboard_surface = pygame.surface.Surface((700, 700))
     gameboard_surface.fill(pygame.Color(200, 162, 200))

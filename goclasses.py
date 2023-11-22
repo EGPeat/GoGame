@@ -106,9 +106,9 @@ class GoBoard():
         board2 = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         for item_row in board2:
             for item in item_row:
-                workable_area = 620/(self.board_size-1)
-                item.screen_row = 40 + workable_area*item.row  # hardcoded values. Suboptimal
-                item.screen_col = 40 + workable_area*item.col  # hardcoded values. Suboptimal
+                workable_area = 620 / (self.board_size - 1)
+                item.screen_row = 40 + workable_area * item.row  # hardcoded values. Suboptimal
+                item.screen_col = 40 + workable_area * item.col  # hardcoded values. Suboptimal
                 friends = self.check_neighbors(item)
                 for place in friends:
                     item.connections.add(board2[place[0]][place[1]])
@@ -372,6 +372,7 @@ class GoBoard():
                 found_piece, piece = self.find_piece_click([row, col])
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
+
                     if truth_value:
                         self.times_passed = 0
                         pygame.draw.circle(self.screen, self.whose_turn.unicode,
@@ -460,8 +461,9 @@ class GoBoard():
             self.move_back(scoring)
             self.turn_num -= 1
             self.times_passed = 0
-            if self.position_played_log[-1][0] == "Passed" or self.position_played_log[-1][0] == "Scoring Passed":
-                self.times_passed = 1
+            if len(self.position_played_log) > 0:
+                if self.position_played_log[-1][0] == "Passed" or self.position_played_log[-1][0] == "Scoring Passed":
+                    self.times_passed = 1
             self.switch_player()
             return
 

@@ -37,7 +37,7 @@ class HexGo(goclasses.GoBoard):  # make it inherit from the goclasses.py class
         self.pygame_screen = screen
         self.nodes_set = set()
         self.nodes_dict = dict()
-        self.board_array = [[]]*(2*side_length-1)
+        self.board_array = [[]] * (2 * side_length - 1)
 
     def generate_board(self, start_point):
         self.generate_row(self.side_length - 1, (self.side_length * 2) - 1, start_point, False)
@@ -133,7 +133,7 @@ def main():
         elif event == '-GRAPH-':
             temp = values['-GRAPH-']
             hex_game.find_circle([temp[0], temp[1]])
-            #output,  =hex_game.find_piece_click([temp[0], temp[1]])
+            # output,  =hex_game.find_piece_click([temp[0], temp[1]])
             pygame.display.flip()
         pygame.display.update()
     pygame.display.quit()
