@@ -1,7 +1,7 @@
 import goclasses as go
 import uifunctions as ui
 import PySimpleGUI as sg
-
+import pygametest as pygt
 
 # To do:
 # Remake gui in Kivy or etc
@@ -32,6 +32,9 @@ def play_game_main():
 
         elif event == "New Game From Default":
             go.initializing_game(window, 9, True)
+        elif event == "New Hex Game":
+            #! close the old board?
+            pygt.main()
 
         if event in (sg.WIN_CLOSED, 'Exit Game'):
             break

@@ -1,6 +1,8 @@
 import uifunctions as ui
 import PySimpleGUI as sg
 from time import sleep
+import math
+import pygame
 
 
 class Player():
@@ -48,20 +50,23 @@ class Player():
                 sleep(1.3)
 
 
-unicode_black = u"\u26AB"
-unicode_white = u"\u26AA"
-unicode_none = u"\U0001F7E9"
-unicode_triangle_black = u"\u25B2"
-unicode_triangle_white = u"\u25B3"
-unicode_diamond_black = u"\u29BF"  # represents dead pieces
-unicode_diamond_white = u"\u29BE"
+unicode_black = (0, 0, 0)
+unicode_white = (255, 255, 255)
+unicode_none = (120, 120, 120)
+unicode_triangle_black = (120, 80, 40)
+unicode_triangle_white = (160, 80, 0)
+unicode_diamond_black = (169, 169, 169)  # represents dead pieces
+unicode_diamond_white = (69, 69, 69)
 
 
 class BoardNode():
     def __init__(self, row_value=None, col_value=None):
         self.row = row_value
         self.col = col_value
+        self.screen_row = None
+        self.screen_col = None
         self.stone_here_color = unicode_none
+        self.connections = set()
 
     def __str__(self):
         return (f"This is a BoardNode with coordinates of ({self.row},{self.col}) and a stone of {self.stone_here_color}")
@@ -78,7 +83,7 @@ class GoBoard():
     def __init__(self, board_size=17, defaults=True):
         self.board_size = board_size
         self.defaults = defaults
-        self.board = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
+        self.board = self.setup_board()
         self.player_black = self.setup_player(self.defaults, "Player One", "Black", unicode_black)
         self.player_white = self.setup_player(self.defaults, "Player Two", "White", unicode_white)
         self.whose_turn = self.player_black
@@ -92,6 +97,22 @@ class GoBoard():
         self.mode = "Playing"
         self.mode_change = True
         self.handicap = self.default_handicap()
+        self.window = None
+        self.screen = None  # Could make problems
+        self.backup_board = None
+        self.pygame_board_vals = None  # (workable_area, distance, circle_radius)
+
+    def setup_board(self):
+        board2 = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
+        for item_row in board2:
+            for item in item_row:
+                workable_area = 620/(self.board_size-1)
+                item.screen_row = 40 + workable_area*item.row  # hardcoded values. Suboptimal
+                item.screen_col = 40 + workable_area*item.col  # hardcoded values. Suboptimal
+                friends = self.check_neighbors(item)
+                for place in friends:
+                    item.connections.add(board2[place[0]][place[1]])
+        return board2
 
     # This sets up the Player class, assigning appropriate values to each player as needed
     def setup_player(self, defaults, nme, clr, uc):
@@ -142,42 +163,56 @@ class GoBoard():
         if manual_handicap == "No":
             for idx in range(handicap_info):
                 row, col = choosen_list[idx]
-                window[(row, col)].update(self.whose_turn.unicode)
+                place = self.board[row][col]
                 self.play_piece(row, col, window)
-                self.refresh_board(window)
+                pygame.draw.circle(self.screen, self.whose_turn.unicode,
+                                   (place.screen_row, place.screen_col), self.pygame_board_vals[2])
+            self.refresh_board_pygame()
+            self.switch_player()
         else:
             self.manual_handicap_placement(window, handicap_info)
-        self.refresh_board(window)
         self.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.turn_num = 0
-        return (True, self.whose_turn.color, handicap_info)
+        return (True, self.not_whose_turn.color, handicap_info)
 
     def manual_handicap_placement(self, window, handicap_info):
         ui.def_popup(f"Please place {handicap_info} number of pieces where you wish,\
                     as a handicap.Then the opponent will play.", 3)
         for idx in range(handicap_info):
-            event, values = window.read()
-            while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn":
-                ui.def_popup("You can't do these actions during the handicap stage.", 3)
+            valid_piece = False
+            while not valid_piece:
                 event, values = window.read()
-            if event == "Exit Game" or event == "Res":
-                self.turn_options(window, event)
-            window[event].update(self.whose_turn.unicode)
-            self.play_piece(event[0], event[1], window)
-            self.refresh_board(window)
+                while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn":
+                    ui.def_popup("You can't do these actions during the handicap stage.", 3)
+                    event, values = window.read()
+                if event == "Exit Game" or event == "Res":
+                    self.turn_options(window, event)
+                row, col = values['-GRAPH-']
+                found_piece, piece = self.find_piece_click([row, col])
+                if found_piece:
+                    if piece.stone_here_color == unicode_none:
+                        valid_piece = found_piece
+
+            if found_piece:
+                self.times_passed = 0
+                truth_value = self.play_piece(piece.row, piece.col, window)
+                if truth_value:
+                    pygame.draw.circle(self.screen, self.whose_turn.unicode,
+                                       (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
+                    pygame.display.update()
         self.switch_player()
 
     def play_game(self, window, fromFile=False, fixes_handicap=False):
         if self.mode == "Playing":
-            if fixes_handicap is True:
-                self.handicap = self.custom_handicap(False, window)
             if fromFile is not True:
-                self.board = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
+                self.board = self.setup_board()
             else:
-                self.refresh_board(window)
+                self.refresh_board_pygame()
                 if self.position_played_log[-1][0] == "Black":
                     self.switch_player()
                     self.play_turn(window)
+            if fixes_handicap is True:
+                self.handicap = self.custom_handicap(False, window)
 
             while (self.times_passed <= 1):
                 self.play_turn(window)
@@ -193,6 +228,8 @@ class GoBoard():
                 from main import play_game_main
                 window.close()
                 play_game_main()
+                quit()
+            elif event == sg.WIN_CLOSED:
                 quit()
         else:
             self.mode_change = True
@@ -232,7 +269,7 @@ class GoBoard():
         self.position_played_log.append(text)
         self.killed_log.append([])
 
-    def remove_dead(self, window):  # needs serious bugfixes
+    def remove_dead(self, window):  # make shorter
         self.killed_last_turn.clear()
         ui.update_scoring(self, window)
         truth_value = False
@@ -256,33 +293,40 @@ class GoBoard():
                 window.close()
                 play_game_main()
                 quit()
+            elif event == sg.WIN_CLOSED:
+                quit()
             else:
-                row = int(event[0])
-                col = int(event[1])
+                row, col = values['-GRAPH-']
+                found_piece, piece = self.find_piece_click([row, col])
 
-                if self.board[row][col].stone_here_color == unicode_none:
+                if found_piece and piece.stone_here_color == unicode_none:
                     ui.def_popup("You can't remove empty areas", 1)
-                else:
-                    series = self.making_go_board_strings_helper(self.board[row][col])
+                elif found_piece:
+                    series = self.making_go_board_strings_helper(piece)
                     piece_string = list()
                     for item in series:
                         if item.stone_here_color == self.player_black.unicode:
                             piece_string.append(((item.row, item.col), item.stone_here_color, unicode_diamond_black))
-                            window[(item.row, item.col)].update(unicode_diamond_black)
+                            item.stone_here_color = unicode_diamond_black
+
                         else:
                             piece_string.append(((item.row, item.col), item.stone_here_color, unicode_diamond_white))
-                            window[(item.row, item.col)].update(unicode_diamond_white)
+                            item.stone_here_color = unicode_diamond_white
+                    self.refresh_board_pygame()
                     info = "Other player, please click yes if you are ok with these changes"
                     modify_name = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
                     if modify_name == "No":
                         for item in series:
-                            window[(item.row, item.col)].update(item.stone_here_color)
+                            if item.stone_here_color == unicode_diamond_black:
+                                item.stone_here_color = self.player_black.unicode
+                            elif item.stone_here_color == unicode_diamond_white:
+                                item.stone_here_color = self.player_white.unicode
+                        self.refresh_board_pygame()
                         return
 
                     for item in series:
-                        window[(item.row, item.col)].update("")
                         self.board[item.row][item.col].stone_here_color = unicode_none
-                        self.fix_star_spot(window, (row, col))
+                    self.refresh_board_pygame()
                     if piece_string[0][1] == self.player_black.unicode:
                         self.player_white.captured += len(piece_string)
                     else:
@@ -306,21 +350,33 @@ class GoBoard():
         play_game_main()
         quit()
 
+    def find_piece_click(self, input_location):
+        for item_row in self.board:  # ! list comprehension?
+            for item in item_row:
+                item_location = [item.screen_row, item.screen_col]
+                if math.dist(input_location, item_location) <= self.pygame_board_vals[2]:
+                    return True, item
+        return False, [-1, -1]
+
     def play_turn(self, window):
         ui.update_scoring(self, window)
         truth_value = False
         while not truth_value:
             event, values = window.read()
-            if not isinstance(event, tuple):
+            if event != "-GRAPH-":
                 self.turn_options(window, event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
-                row, col = int(event[0]), int(event[1])
-                self.times_passed = 0
-                truth_value = self.play_piece(row, col, window)
-                if truth_value:
-                    window[event].update(self.whose_turn.unicode)
+                row, col = values['-GRAPH-']
+                found_piece, piece = self.find_piece_click([row, col])
+                if found_piece:
+                    truth_value = self.play_piece(piece.row, piece.col, window)
+                    if truth_value:
+                        self.times_passed = 0
+                        pygame.draw.circle(self.screen, self.whose_turn.unicode,
+                                           (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
+                        pygame.display.update()
         temp_list = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
@@ -329,6 +385,8 @@ class GoBoard():
         return
 
     def turn_options(self, window, event, text=None):
+        if event in (sg.WIN_CLOSED, "Res"):
+            quit()
         if event == "Pass Turn":
             ui.def_popup("Skipped turn", 0.5)
             self.times_passed += 1
@@ -338,8 +396,6 @@ class GoBoard():
             self.switch_player()
         elif event == "Save Game":
             self.save_to_json()
-        elif event == "Res":
-            quit()
         elif event == "Undo Turn":
             if self.turn_num == 0:
                 ui.def_popup("You can't undo when nothing has happened.", 2)
@@ -351,6 +407,8 @@ class GoBoard():
             window.close()
             play_game_main()
             quit()
+        else:
+            raise ValueError
 
     def play_piece(self, row, col, window):
         piece = self.board[row][col]
@@ -365,7 +423,7 @@ class GoBoard():
             piece.stone_here_color = self.whose_turn.unicode
             self.turn_num += 1
             self.position_played_log.append((self.whose_turn.color, row, col))
-            self.refresh_board(window)
+            self.refresh_board_pygame()
             return True
         elif (self.sfunction(piece, self.whose_turn) == liberty_value):
             ui.def_popup("Place the piece there would break the self death rule. Please try your turn again.", 2)
@@ -377,24 +435,6 @@ class GoBoard():
             self.killed_last_turn.clear()
         self.turn_num += 1
         return True
-
-    def fix_star_spot(self, window, item, unicode_test=None):
-        row, col = item
-        size = self.board_size
-        lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
-        lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
-        star = u"\u2B50"
-
-        if unicode_test is None:
-            if size == 9 and (row, col) in lst9:
-                window[(row, col)].update(star)
-            elif (size == 13 or size == 17) and (row, col) in lst_not_9:
-                window[(row, col)].update(star)
-        else:
-            if size == 9 and (row, col) in lst9 and unicode_test == unicode_none:
-                window[(row, col)].update(star)
-            elif (size == 13 or size == 17) and (row, col) in lst_not_9 and unicode_test == unicode_none:
-                window[(row, col)].update(star)
 
     def undo_checker(self, window):
         if self.mode == "Scoring":
@@ -428,8 +468,6 @@ class GoBoard():
         if not scoring:
             color, row, col = self.position_played_log.pop()
             self.board[row][col].stone_here_color = unicode_none
-            window[(row, col)].update("")
-            self.fix_star_spot(window, (row, col))
         else:
             self.position_played_log.pop()
         # This part reverts the board back to its state 1 turn ago
@@ -445,10 +483,9 @@ class GoBoard():
                 unicode, row, col = item
             else:
                 unicode, row, col, scoring = item
-            self.board[row][col].stone_here_color = unicode
-            window[(row, col)].update(unicode)
-            self.fix_star_spot(window, (row, col), unicode_test=unicode)
-        # This part updates some class values (player captures, killed_last_turn, turn_num)
+            place = self.board[row][col]
+            place.stone_here_color = unicode
+        self.refresh_board_pygame()
         self.turn_num -= 1
         self.not_whose_turn.captured -= capture_update_val
         self.switch_player()
@@ -483,16 +520,15 @@ class GoBoard():
         if visited is None:
             visited = set()
         visited.add(piece)
-        neighbors = self.check_neighbors(piece)
+        neighboring_piece = piece.connections
         liberties = 0
-        for coordinate in neighbors:
-            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == unicode_none and neighboring_piece not in visited:
+        for neighbor in neighboring_piece:
+            if neighbor.stone_here_color == unicode_none and neighbor not in visited:
                 liberties += 1
-            elif neighboring_piece.stone_here_color != which_player.unicode:
+            elif neighbor.stone_here_color != which_player.unicode:
                 pass
-            elif neighboring_piece not in visited:
-                liberties += self.sfunction(neighboring_piece, which_player, visited)
+            elif neighbor not in visited:
+                liberties += self.sfunction(neighbor, which_player, visited)
         self.visit_kill = visited
         return liberties
 
@@ -503,17 +539,14 @@ class GoBoard():
             self.killed_last_turn.add(position)
             self.whose_turn.captured += 1
             position.stone_here_color = unicode_none
-            window[(position.row, position.col)].update(' ')
 
     def kill_stones(self, piece, window):  # needs to return true if it does kill stones
         piece.stone_here_color = self.whose_turn.unicode
-        neighbors = self.check_neighbors(piece)
+        neighboring_pieces = piece.connections
         truth_value = False
-
-        for coordinate in neighbors:
-            neighboring_piece = self.board[coordinate[0]][coordinate[1]]
-            if neighboring_piece.stone_here_color == self.not_whose_turn.unicode:
-                if (self.sfunction(neighboring_piece, self.not_whose_turn) == 0):
+        for neighbor in neighboring_pieces:
+            if neighbor.stone_here_color == self.not_whose_turn.unicode:
+                if (self.sfunction(neighbor, self.not_whose_turn) == 0):
                     self.remove_stones(window)
                     truth_value = True
         if truth_value is False:
@@ -584,7 +617,7 @@ class GoBoard():
         places_on_board = list()
         for xidx in range(self.board_size):
             for yidx in range(self.board_size):
-                if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
+                if not self.board[xidx][yidx].stone_here_color == unicode_none:
                     places_on_board.append([xidx, yidx, self.board[xidx][yidx].stone_here_color])
         self.save_to_SGF(filename)
         with open(f"{filename}.json", 'w', encoding='utf-8') as file:
@@ -655,25 +688,28 @@ class GoBoard():
         else:
             raise NameError
 
-    def update_both_boards(self, window, idx, visual_choice1, visual_choice2=None):
-        window[(idx.row, idx.col)].update(visual_choice1)
-        self.board[idx.row][idx.col].stone_here_color = visual_choice1
+    def refresh_board_pygame(self):
+        self.screen.blit(self.backup_board, (0, 0))
+        for board_row in self.board:
+            for item in board_row:
+                if item.stone_here_color == unicode_black or item.stone_here_color == unicode_white:  # this is bad, fix
+                    pygame.draw.circle(self.screen, item.stone_here_color,
+                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
+                elif item.stone_here_color == unicode_diamond_black or item.stone_here_color == unicode_diamond_white:
+                    pygame.draw.circle(self.screen, item.stone_here_color,
+                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
+                elif item.stone_here_color == unicode_triangle_black or item.stone_here_color == unicode_triangle_white:
+                    pygame.draw.circle(self.screen, item.stone_here_color,
+                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
 
-    def refresh_board(self, window):
-        for xidx in range(self.board_size):
-            for yidx in range(self.board_size):
-                if not self.board[xidx][yidx].stone_here_color == "\U0001F7E9":
-                    window[(xidx, yidx)].update(self.board[xidx][yidx].stone_here_color)
-        ui.stars(self, window)
+        pygame.display.update()
 
     def making_go_board_strings_helper(self, piece, connected_pieces=None):
         if connected_pieces is None:
             connected_pieces = set()
         connected_pieces.add(piece)
-        neighboring_pieces = self.check_neighbors(piece)
-
-        for coordinate in neighboring_pieces:
-            neighbor = self.board[coordinate[0]][coordinate[1]]
+        neighboring_pieces = piece.connections
+        for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces:
                 self.making_go_board_strings_helper(neighbor, connected_pieces)
             else:
@@ -724,17 +760,18 @@ class GoBoard():
                 player, unicode_choice = self.player_black, unicode_triangle_black
             player.territory += len(pieces_string)
             for item in pieces_string:
-                self.update_both_boards(window, item, unicode_choice)
+                #! unsure if item is a board node or not.....
+                pygame.draw.circle(self.screen, unicode_choice,
+                                   (item.screen_row, item.screen_col), self.pygame_board_vals[2])
+                self.board[item.row][item.col].stone_here_color = unicode_choice
         return
 
     def flood_fill(self, piece, connected_pieces=None):
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
-        neighboring_pieces = self.check_neighbors(piece)
-
-        for coordinate in neighboring_pieces:
-            neighbor = self.board[coordinate[0]][coordinate[1]]
+        neighboring_pieces = piece.connections
+        for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
                 self.flood_fill(neighbor, connected_pieces)
             else:
@@ -763,7 +800,7 @@ def initializing_game(window, board_size, defaults=True, file_import_option=Fals
     if file_import_option:
         GameBoard.load_from_json(choosen_file)
     window.close()
-    window2 = ui.setup_board_window(GameBoard)
+    window2 = ui.setup_board_window_pygame(GameBoard)
     info = "Click yes if you want to modify the handicap"
     if fixes_handicap:
         modify_handicap = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
