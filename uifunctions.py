@@ -154,10 +154,14 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     game_board.window = window
     if platform.system() == "Linux":  # This might not be needed
         while True:  # For some reason this is required
-            event, values = window.read(timeout=10)
+            event, values = window.read(timeout=100)
             pygame.display.update()
             break
     pygame.display.init()
+    while True:  # For some reason this is required
+        event, values = window.read(timeout=100)
+        pygame.display.update()
+        break
     screen.fill(pygame.Color(200, 162, 200))
     pygame.display.update()
 
