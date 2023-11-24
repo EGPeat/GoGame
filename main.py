@@ -9,6 +9,7 @@ import pygametest as pygt
 # loading a pkl when in the counting phase doesnt work right
 # change scoring to chinese/aga
 
+
 def play_game_main():
     window = ui.setup_menu()
 
