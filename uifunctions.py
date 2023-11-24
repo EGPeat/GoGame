@@ -19,7 +19,7 @@ def start_game():
     layout = [[sg.Text(info)],
               [sg.Button("9x9", font=('Arial Bold', 16)),
               sg.Button("13x13", font=('Arial Bold', 16)),
-              sg.Button("17x17", font=('Arial Bold', 16))]]
+              sg.Button("19x19", font=('Arial Bold', 16))]]
     window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
     option, option2 = window2.read()
     window2.close()
@@ -28,7 +28,7 @@ def start_game():
     elif option == "13x13":
         return 13
     else:
-        return 17
+        return 19
 
 
 def handicap_person_gui():
@@ -197,12 +197,12 @@ def end_game_popup():
 def end_game_popup_two(self):
     pb = self.player_black
     pw = self.player_white
-    player_black_score = pb.komi + pb.captured + pb.territory
-    player_white_score = pw.komi + pw.captured + pw.territory
+    player_black_score = pb.komi + pb.territory + len(self.black_set)
+    player_white_score = pw.komi + pw.territory + len(self.white_set)
     difference = player_black_score - player_white_score
     info = f"Your game has finished.\nPlayer Black: {pb.name} has {pb.territory} territory\
-            , and captured {pb.captured} pieces and has a komi of {pb.komi}\
-            \n Player White: {pw.name} has {pw.territory} territory, and captured {pw.captured} pieces\
+            , and played {len(self.black_set)} pieces and has a komi of {pb.komi}\
+            \n Player White: {pw.name} has {pw.territory} territory, and played {len(self.white_set)} pieces\
               and has a komi of {pw.komi}\n Player Black has a score of {player_black_score}\n\
             Player White has a score of {player_white_score}, meaning "
     if difference > 0:

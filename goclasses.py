@@ -39,7 +39,7 @@ class Player():
         modify_komi = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_komi == "No":
             if self.color == "White":
-                self.komi = 6.5
+                self.komi = 7.5
             return
         done = False
 
@@ -90,7 +90,7 @@ class BoardString():  # probably not needed eventually, but using it to prototyp
         from operator import itemgetter
         sorting_list = []
         for item in set_objects:
-            sorting_list.append((item.col, item.row))  #idk why it's weird...
+            sorting_list.append((item.col, item.row))
         sorting_list.sort(key=lambda item: (item[0], item[1]))
         self.xmax = sorting_list[-1][0]
         self.xmin = sorting_list[0][0]
@@ -100,7 +100,7 @@ class BoardString():  # probably not needed eventually, but using it to prototyp
 
 
 class GoBoard():
-    def __init__(self, board_size=17, defaults=True):
+    def __init__(self, board_size=19, defaults=True):
         self.board_size = board_size
         self.defaults = defaults
         self.board = self.setup_board()
@@ -169,8 +169,8 @@ class GoBoard():
         manual_handicap = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         handicap_points9 = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicap_points13 = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
-        handicap_points17 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
-        choosen_list = handicap_points17
+        handicap_points19 = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
+        choosen_list = handicap_points19
         if self.board_size == 9:
             choosen_list = handicap_points9
         elif self.board_size == 13:
@@ -236,7 +236,7 @@ class GoBoard():
                     self.play_turn()
             if fixes_handicap is True:
                 self.handicap = self.custom_handicap(False)
-
+            #self.dealing_with_dead_stones()#! remove
             while (self.times_passed <= 1):
                 self.play_turn()
             self.mode = "Scoring"
@@ -255,6 +255,7 @@ class GoBoard():
             elif event == sg.WIN_CLOSED:
                 quit()
         else:
+            self.refresh_board_pygame()
             self.mode_change = True
             self.times_passed = 0
             self.scoring_block()
@@ -284,9 +285,9 @@ class GoBoard():
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        self.dealing_with_dead_stones()
-        #self.counting_territory()
-        #self.end_of_game()
+        #self.dealing_with_dead_stones()
+        self.counting_territory()
+        self.end_of_game()
 
     def resuming_scoring_buffer(self, text):
         self.turn_num += 1
@@ -366,6 +367,7 @@ class GoBoard():
         return
 
     def end_of_game(self):
+        self.pieces_into_sets()
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         self.save_pickle()
@@ -524,7 +526,7 @@ class GoBoard():
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
 
-    def ko_rule_break(self, piece):
+    def ko_rule_break(self, piece):  # no superko, but if it becomes a problem...
         if self.sfunction(piece, self.whose_turn) > 0:
             return False
         if piece in self.killed_last_turn:
@@ -715,7 +717,7 @@ class GoBoard():
                 for item in o_str.member_set:
                     pygame.draw.circle(self.screen, (195, 33, 72), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
                 pygame.display.update()
-                sleep(5)
+                sleep(3)
                 self.refresh_board_pygame()
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
@@ -739,31 +741,36 @@ class GoBoard():
                 for item in o_str.member_set:
                     pygame.draw.circle(self.screen, (195, 33, 72), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
                 pygame.display.update()
-                sleep(5)
+                sleep(3)
                 self.refresh_board_pygame()
-                
+
     def find_neighbor_get_string(self, piece, color, visited=None):
         if visited is None:
             visited = set()
 
         visited.add(piece)
-        recursive_result = (False, -1)
         neighboring_piece = piece.connections
+        recursive_result = (False, -1)
 
         for neighbor in neighboring_piece:
-            if neighbor.stone_here_color == color and neighbor not in visited:
-                if color == unicode_black:
-                    for item in self.black_strings:
-                        if (neighbor.col, neighbor.row) in item.list_idx:
-                            if len(item.list_idx) > 1:
-                                return (True, item)
+            if neighbor not in visited:
+                if neighbor.stone_here_color == color:
+                    if color == unicode_black:
+                        for item in self.black_strings:
+                            if (neighbor.col, neighbor.row) in item.list_idx:
+                                if len(item.list_idx) > 1:
+                                    recursive_result = (True, item)
+                                    break
+                    else:
+                        for item in self.white_strings:
+                            if (neighbor.col, neighbor.row) in item.list_idx:
+                                if len(item.list_idx) > 1:
+                                    recursive_result = (True, item)
+                                    break
                 else:
-                    for item in self.white_strings:
-                        if (neighbor.col, neighbor.row) in item.list_idx:
-                            if len(item.list_idx) > 1:
-                                return (True, item)
-            elif neighbor not in visited:
-                recursive_result = self.find_neighbor_get_string(neighbor, color, visited)
+                    recursive_result = self.find_neighbor_get_string(neighbor, color, visited.copy())
+                    if recursive_result[0]:
+                        break
         return recursive_result
 
     def counting_territory(self):  #something somewhere makes row and col switch...
@@ -799,8 +806,6 @@ class GoBoard():
         else:
             if strings_set == self.black_strings:
                 self.mixed_string_set_removal(copy.deepcopy(connections), color, self.white_strings)
-                #probably need to remake the set of strings? using like pieces into sets, and then sets to strings idk
-                #bc i need to run the thing twice, on black and on white
             else:
                 self.mixed_string_set_removal(copy.deepcopy(connections), color, self.black_strings)
             return (True, connections_string, disconnected_strings)
@@ -877,10 +882,6 @@ class GoBoard():
                 yopen = self.board[piece.row][piece.col + ydiff].stone_here_color == unicode_none
                 if xopen or yopen:
                     self.making_go_board_strings_helper(diagonal, connected_pieces)
-                else:
-                    pass
-            else:
-                pass
         return connected_pieces
 
     def assignment_logic(self, sets, empty):
@@ -903,6 +904,9 @@ class GoBoard():
                     pygame.draw.circle(self.screen, unicode_choice, (item.screen_row, item.screen_col), self.pygame_board_vals[2])
                     self.board[item.row][item.col].stone_here_color = unicode_choice
                 pygame.display.update()
+        else:
+            self.player_black.territory += len(pieces_string) * 0.5
+            self.player_white.territory += len(pieces_string) * 0.5
         return
 
     def flood_fill(self, piece, connected_pieces=None):

@@ -6,8 +6,6 @@ import pygametest as pygt
 # To do:
 # Add AI to game
 # Add MP to game
-# loading a pkl when in the counting phase doesnt work right
-# change scoring to chinese/aga
 
 
 def play_game_main():
@@ -28,6 +26,7 @@ def play_game_main():
             friend = go_board.load_pkl(file)
             ui.setup_board_window_pygame(friend)
             window.close()
+            print(f"friend is {friend.mode}")
             friend.play_game(True, False)
 
         elif event == "New Game From Custom":
