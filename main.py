@@ -6,7 +6,8 @@ import pygametest as pygt
 # To do:
 # Add AI to game
 # Add MP to game
-
+# loading a pkl when in the counting phase doesnt work right
+# change scoring to chinese/aga
 
 def play_game_main():
     window = ui.setup_menu()
