@@ -285,7 +285,7 @@ class GoBoard():
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        #self.dealing_with_dead_stones()
+        self.dealing_with_dead_stones()
         self.counting_territory()
         self.end_of_game()
 
@@ -670,7 +670,6 @@ class GoBoard():
                 elif item.stone_here_color == unicode_triangle_black or item.stone_here_color == unicode_triangle_white:
                     pygame.draw.circle(self.screen, item.stone_here_color,
                                        (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-
         pygame.display.update()
 
     def pieces_into_sets(self):
@@ -687,6 +686,28 @@ class GoBoard():
                 else:
                     self.empty_space_set.add(temp_node)
 
+    def dead_stone_helper(self, mixed_str_color, outer_str_color, player, player_strings, unicode):
+        while self.empty_strings:
+            obj = self.empty_strings.pop()
+            obj_obj = obj.member_set.pop()
+            truthy, original_string = self.find_neighbor_get_string(obj_obj, unicode)
+            if not truthy:
+                raise RecursionError
+            tmp = self.making_mixed_string(obj_obj, player.unicode, original_string, player_strings)
+            if tmp[0]:
+                mixed_str_color.append(tmp[1])
+                outer_str_color.append(tmp[2])
+                m_str = tmp[1]
+                o_str = tmp[2]
+                for item in m_str.member_set:
+                    pygame.draw.circle(self.screen, (50, 205, 50), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
+                pygame.display.update()
+                for item in o_str.member_set:
+                    pygame.draw.circle(self.screen, (195, 33, 72), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
+                pygame.display.update()
+                sleep(1.5)
+                self.refresh_board_pygame()
+
     def dealing_with_dead_stones(self):
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, unicode_none, False)
@@ -699,142 +720,104 @@ class GoBoard():
         self.mixed_string_for_white = list()
         self.outer_string_black = list()
         self.outer_string_white = list()
-        while self.empty_strings:
-            obj = self.empty_strings.pop()
-            obj_obj = obj.member_set.pop()
-            truthy, original_string = self.find_neighbor_get_string(obj_obj, unicode_black)
-            if not truthy:
-                raise RecursionError
-            tmp = self.making_mixed_string(obj_obj, self.player_black.unicode, original_string, self.black_strings)
-            if tmp[0]:
-                self.mixed_string_for_black.append(tmp[1])
-                self.outer_string_black.append(tmp[2])
-                m_str = tmp[1]
-                o_str = tmp[2]
-                for item in m_str.member_set:
-                    pygame.draw.circle(self.screen, (50, 205, 50), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                pygame.display.update()
-                for item in o_str.member_set:
-                    pygame.draw.circle(self.screen, (195, 33, 72), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                pygame.display.update()
-                sleep(3)
-                self.refresh_board_pygame()
+        self.dead_stone_helper(self.mixed_string_for_black, self.outer_string_black,
+                               self.player_black, self.black_strings, unicode_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
-
-        while self.empty_strings:
-            obj = self.empty_strings.pop()
-            obj_obj = obj.member_set.pop()
-            truthy, original_string = self.find_neighbor_get_string(obj_obj, unicode_white)
-            if not truthy:
-                raise RecursionError
-            tmp = self.making_mixed_string(obj_obj, self.player_white.unicode, original_string, self.white_strings)
-            if tmp[0]:
-                self.mixed_string_for_white.append(tmp[1])
-                self.outer_string_white.append(tmp[2])
-                m_str = tmp[1]
-                o_str = tmp[2]
-                for item in m_str.member_set:
-                    pygame.draw.circle(self.screen, (50, 205, 50), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                pygame.display.update()
-                for item in o_str.member_set:
-                    pygame.draw.circle(self.screen, (195, 33, 72), (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                pygame.display.update()
-                sleep(3)
-                self.refresh_board_pygame()
+        self.dead_stone_helper(self.mixed_string_for_white, self.outer_string_white,
+                               self.player_white, self.white_strings, unicode_white)
 
     def find_neighbor_get_string(self, piece, color, visited=None):
         if visited is None:
             visited = set()
-
         visited.add(piece)
         neighboring_piece = piece.connections
         recursive_result = (False, -1)
 
         for neighbor in neighboring_piece:
-            if neighbor not in visited:
-                if neighbor.stone_here_color == color:
-                    if color == unicode_black:
-                        for item in self.black_strings:
-                            if (neighbor.col, neighbor.row) in item.list_idx:
-                                if len(item.list_idx) > 1:
-                                    recursive_result = (True, item)
-                                    break
-                    else:
-                        for item in self.white_strings:
-                            if (neighbor.col, neighbor.row) in item.list_idx:
-                                if len(item.list_idx) > 1:
-                                    recursive_result = (True, item)
-                                    break
-                else:
-                    recursive_result = self.find_neighbor_get_string(neighbor, color, visited.copy())
-                    if recursive_result[0]:
+            if neighbor not in visited and neighbor.stone_here_color == color and color == unicode_black:
+                for item in self.black_strings:
+                    if (neighbor.col, neighbor.row) in item.list_idx and len(item.list_idx) > 1:
+                        recursive_result = (True, item)
                         break
-        return recursive_result
+
+            elif neighbor not in visited and neighbor.stone_here_color == color and color == unicode_white:
+                for item in self.white_strings:
+                    if (neighbor.col, neighbor.row) in item.list_idx and len(item.list_idx) > 1:
+                        recursive_result = (True, item)
+                        break
+            elif neighbor not in visited:
+                recursive_result = self.find_neighbor_get_string(neighbor, color, visited.copy())
+                if recursive_result[0]:
+                    break
+        return (recursive_result[0], recursive_result[1])
 
     def counting_territory(self):  #something somewhere makes row and col switch...
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, unicode_none, True)
 
-    def mixed_string_set_removal(self, connections_set, color, enemy_list):
+    def mixed_string_set_removal(self, connections_set, color):
         while connections_set:
             piece = connections_set.pop()
             piece_color = piece.stone_here_color
             piece_string = self.flood_fill(piece)
             piece_string_obj = BoardString(color, piece_string[0])
-            if piece_color == unicode_none:
-                for obj in self.empty_strings:
-                    if obj.list_idx == piece_string_obj.list_idx:
-                        self.empty_strings.remove(obj)
-            elif piece_color != color:
-                for obj in enemy_list:
-                    if obj.list_idx == piece_string_obj.list_idx:
-                        enemy_list.remove(obj)
-            else:
-                print(piece_color, color)
-                print("WrongColorInSetError")
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, unicode_none, self.empty_strings)
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, unicode_white, self.white_strings)
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, unicode_black, self.black_strings)
+            # No wrong color in set checker...
+
+    def mixed_string_set_removal_loop_remove(self, p_string, p_color, comp_color, enemy_strings):
+        if p_color == comp_color:
+            for obj in enemy_strings:
+                if obj.list_idx == p_string.list_idx:
+                    enemy_strings.remove(obj)
 
     def making_mixed_string(self, piece, color, original_string, strings_set):
-        connections, disconnected_temp = self.making_mixed_string_helper(piece, color, original_string, strings_set)
-        connections_string = BoardString("Empty and Enemy", connections)
-        disconnected_strings = BoardString("Disconnected Outer String", disconnected_temp)
-        if connections_string.xmin < disconnected_strings.xmin or connections_string.xmax > disconnected_strings.xmax:
+        connections, disconnected_temp, outer_temp = self.making_mixed_string_helper(piece, color, original_string, strings_set)
+        if len(outer_temp) > 1:
+            ot_str = BoardString("Testing", outer_temp)
+        temp_str = BoardString("Empty and Enemy", connections)
+        if len(outer_temp) > 1:
+            if temp_str.xmin > ot_str.xmin or temp_str.xmax < ot_str.xmax or \
+               temp_str.ymin > ot_str.ymin or temp_str.ymax < ot_str.ymax:
+                disconnected_temp.update(outer_temp)
+            else:
+                connections.update(outer_temp)
+        con_str = BoardString("Empty and Enemy", connections)
+        discon_str = BoardString("Disconnected Outer String", disconnected_temp)
+        if con_str.xmin < discon_str.xmin or con_str.xmax > discon_str.xmax:
             return (False, -1)
-        elif connections_string.ymin < disconnected_strings.ymin or connections_string.ymax > disconnected_strings.ymax:
+        elif con_str.ymin < discon_str.ymin or con_str.ymax > discon_str.ymax:
             return (False, -1)
         else:
-            if strings_set == self.black_strings:
-                self.mixed_string_set_removal(copy.deepcopy(connections), color, self.white_strings)
-            else:
-                self.mixed_string_set_removal(copy.deepcopy(connections), color, self.black_strings)
-            return (True, connections_string, disconnected_strings)
+            self.mixed_string_set_removal(copy.deepcopy(connections), color)
+            return (True, con_str, discon_str)
 
-    def making_mixed_string_helper(self, piece, color, original_string, strings_set, connected_pieces=None, outer_pieces=None):
-        if connected_pieces is None:
-            connected_pieces = set()
+    def making_mixed_string_helper(self, piece, color, og_str, str_set, conn_piece=None, outer_pieces=None, temp_outer=None):
+        if conn_piece is None:
+            conn_piece = set()
         if outer_pieces is None:
-            outer_pieces = original_string.member_set
-        connected_pieces.add(piece)
+            outer_pieces = og_str.member_set
+        if temp_outer is None:
+            temp_outer = set()
+        conn_piece.add(piece)
         neighboring_pieces = piece.connections
         for neighbor in neighboring_pieces:
-            if neighbor.stone_here_color != color and neighbor not in connected_pieces:
-                self.making_mixed_string_helper(neighbor, color, original_string, strings_set, connected_pieces, outer_pieces)
+            if neighbor.stone_here_color != color and neighbor not in conn_piece:
+                self.making_mixed_string_helper(neighbor, color, og_str, str_set, conn_piece, outer_pieces, temp_outer)
             elif neighbor.stone_here_color == color:
-                if neighbor not in outer_pieces:
-                    diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-                    diagonals = set()
-                    for item in diagonal_change:
-                        new_row = piece.row + item[0]
-                        new_col = piece.col + item[1]
-                        if new_row >= 0 and new_row < self.board_size and new_col >= 0 and new_col < self.board_size:
-                            diagonals.add(self.board[new_row][new_col])
+                if neighbor not in outer_pieces and neighbor not in temp_outer:
+                    diagonals = self.diagonals_setup(piece)
                     for diagonal in diagonals:
-                        if diagonal.stone_here_color == piece.stone_here_color and diagonal not in connected_pieces:
-                            for item in strings_set.copy():
-                                if (neighbor.col, neighbor.row) in item.list_idx:
-                                    outer_pieces.update(item.member_set)
-        return connected_pieces, outer_pieces
+                        if diagonal.stone_here_color == color and diagonal not in conn_piece:
+                            for friend in diagonal.connections:
+                                if friend in conn_piece:
+                                    for item in str_set.copy():
+                                        if (neighbor.col, neighbor.row) in item.list_idx:
+                                            temp_outer.update(item.member_set)
+        return conn_piece, outer_pieces, temp_outer
 
     def making_go_board_strings(self, piece_set, piece_type, final):
         list_of_piece_strings = list()
@@ -857,11 +840,7 @@ class GoBoard():
                 sets = self.flood_fill(item2)
                 self.assignment_logic(sets, piece_type)
 
-    def making_go_board_strings_helper(self, piece, connected_pieces=None):
-        if connected_pieces is None:
-            connected_pieces = set()
-        connected_pieces.add(piece)
-        neighboring_pieces = piece.connections
+    def diagonals_setup(self, piece):
         diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
         diagonals = set()
         for item in diagonal_change:
@@ -869,6 +848,14 @@ class GoBoard():
             new_col = piece.col + item[1]
             if new_row >= 0 and new_row < self.board_size and new_col >= 0 and new_col < self.board_size:
                 diagonals.add(self.board[new_row][new_col])
+        return diagonals
+
+    def making_go_board_strings_helper(self, piece, connected_pieces=None):
+        if connected_pieces is None:
+            connected_pieces = set()
+        connected_pieces.add(piece)
+        neighboring_pieces = piece.connections
+        diagonals = self.diagonals_setup(piece)
 
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces:
