@@ -6,6 +6,9 @@ import pygametest as pygt
 # To do:
 # Add AI to game
 # Add MP to game
+# MCTS for scoring
+# add in type hinting
+# revamp classes
 
 
 def play_game_main():
