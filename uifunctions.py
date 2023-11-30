@@ -2,6 +2,7 @@ import PySimpleGUI as sg
 import os
 import platform
 import pygame
+from typing import Tuple, List
 
 
 def p(input):
@@ -13,7 +14,7 @@ def pt(input):
 
 
 # Starts the game, asking for user input regarding the size of the board.
-def start_game():
+def start_game() -> int:
     info = "Please click the size you wish to have your Go Board as."
 
     layout = [[sg.Text(info)],
@@ -31,7 +32,7 @@ def start_game():
         return 19
 
 
-def handicap_person_gui():
+def handicap_person_gui() -> str:
     info = "Please enter some information regarding a handicap. Which player will get a handicap?"
 
     layout = [[sg.Text(info)],
@@ -44,7 +45,7 @@ def handicap_person_gui():
     return option
 
 
-def handicap_number_gui(board_size):
+def handicap_number_gui(board_size: int) -> int:
     info = "Please enter some information regarding a handicap. Which player will get a handicap?"
     deflt = ('Arial Bold', 16)
     layout = [[sg.Text(info)],
@@ -61,35 +62,6 @@ def handicap_number_gui(board_size):
     option, option2 = window2.read()
     window2.close()
     return int(option)
-
-
-# Validates that the input is of the correct type
-def input_value(max_size=16, value_type=int, options=False):
-
-    while True:
-        try:
-            if not options:
-                info = value_type(input())
-                if isinstance(info, str) and (len(info) > max_size):
-                    raise IndexError
-                elif isinstance(info, int) and (info > max_size):
-                    raise IndexError
-                return info
-            else:
-                info = input()
-                if info.isnumeric():
-                    info = int(info)
-                    if info > max_size:
-                        raise IndexError
-                    return info
-                elif isinstance(info, str) and (len(info) > max_size):
-                    raise IndexError
-                return info
-
-        except ValueError:
-            info = f"It seems you entered something that isn't a {value_type}. Please try again"
-        except IndexError:
-            info = "you put in something that is a larger int than is allowed, or a longer string than is allowed"
 
 
 # Sets up the main window using PySimpleGUI
@@ -262,19 +234,19 @@ def hex_ui_setup():
 
 
 def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
-    workable_area = 620
-    distance = workable_area / (game_board.board_size - 1)
-    circle_radius = distance / 3
+    workable_area: int = 620
+    distance: float = workable_area / (game_board.board_size - 1)
+    circle_radius: float = distance / 3
     game_board.pygame_board_vals = (workable_area, distance, circle_radius)
     gameboard_surface = pygame.surface.Surface((700, 700))
     gameboard_surface.fill(pygame.Color(200, 162, 200))
 
     for xidx in range(game_board.board_size):
-        x_val = 40 + xidx * distance
-        x_val_previous = x_val - distance
+        x_val: float = 40 + xidx * distance
+        x_val_previous: float = x_val - distance
         for yidx in range(game_board.board_size):
-            y_val = 40 + yidx * distance
-            y_val_previous = y_val - distance
+            y_val: float = 40 + yidx * distance
+            y_val_previous: float = y_val - distance
             if xidx > 0:
                 pygame.draw.line(gameboard_surface, (0, 0, 0), (x_val_previous, y_val), (x_val, y_val))
             if yidx > 0:
@@ -284,10 +256,10 @@ def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
     game_board.backup_board = gameboard_surface
 
 
-def stars_pygame(self, window, circle_radius, setup=False):
-    size = self.board_size
-    lst9 = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
-    lst_not_9 = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
+def stars_pygame(self, window, circle_radius: float, setup: bool = False):
+    size: int = self.board_size
+    lst9: List[Tuple[int, int]] = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
+    lst_not_9: List[Tuple[int, int]] = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
     if size == 9:
         for item in lst9:
             node = self.board[item[0]][item[1]]

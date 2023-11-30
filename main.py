@@ -2,13 +2,16 @@ import goclasses as go
 import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
-
 # To do:
 # Add AI to game
 # Add MP to game
 # MCTS for scoring
 # add in type hinting
+# Especially for custom classes
 # revamp classes
+# a class for the turn actions (playing pieces, checking ko rule, etc)
+# a class for the logic of the game (turn choice, etc, etc)
+# a class for the end game calculations
 
 
 def play_game_main():
@@ -48,6 +51,5 @@ def play_game_main():
 
 
 if __name__ == "__main__":
-
     sg.theme('DarkAmber')
     play_game_main()
