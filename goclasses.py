@@ -6,7 +6,7 @@ import sys
 from player import Player
 from handicap import Handicap
 import config as cf
-from typing import Tuple, Optional, List, Set, Union, Literal
+from typing import Tuple, Optional, List, Set, Union
 
 
 sys.setrecursionlimit(10000)
@@ -44,13 +44,13 @@ class BoardNode():
         self.screen_row: float = None
         self.screen_col: float = None
         self.stone_here_color: Tuple[int, int, int] = cf.unicode_none
-        self.connections: Set[BoardNode] = set()  #!
+        self.connections: Set[BoardNode] = set()
 
     def __str__(self) -> str:
         return (f"This is a BoardNode with coordinates of ({self.col},{self.row}) and a stone of {self.stone_here_color}")
 
 
-class BoardString():  # probably not needed eventually, but using it to prototype stuff
+class BoardString():
     def __init__(self, color: str, member_set: Set[BoardNode]) -> None:
         self.color: str = color
         self.member_set: Set[BoardNode] = member_set
@@ -84,15 +84,17 @@ class GoBoard():
         self.not_whose_turn: Player = self.player_white
         self.times_passed: int = 0
         self.turn_num: int = 0
-        self.position_played_log = list()  # Typehint
-        self.visit_kill = set()  # Typehint
-        self.killed_last_turn = set()  # Typehint
-        self.killed_log = list()  # Typehint
+        PPL_Type = List[Union[str, Tuple[str, int, int], Tuple[str, int, int], str, Tuple[str, int, int]]]
+        self.position_played_log: PPL_Type = list()
+        self.visit_kill: Set[BoardNode] = set()
+        self.killed_last_turn: Set[BoardNode] = set()
+        KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
+        self.killed_log: KL_Type = list()
         self.mode: str = "Playing"
         self.mode_change: bool = True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
         self.window: sg.Window = None
-        self.screen: pygame.Surface = None  # Could make problems
+        self.screen: pygame.Surface = None
         self.backup_board: pygame.Surface = None
         self.pygame_board_vals: Tuple[int, float, float] = None  # (workable_area, distance, circle_radius)
 
@@ -101,8 +103,8 @@ class GoBoard():
         for node in board:
             for item in node:
                 workable_area: int = 620 / (self.board_size - 1)
-                item.screen_row: float = 40 + workable_area * item.row  # hardcoded values. Suboptimal
-                item.screen_col: float = 40 + workable_area * item.col  # hardcoded values. Suboptimal
+                item.screen_row: float = 40 + workable_area * item.row
+                item.screen_col: float = 40 + workable_area * item.col
                 friends: List[Tuple[int, int]] = self.check_neighbors(item)
                 for place in friends:
                     item.connections.add(board[place[0]][place[1]])
@@ -155,7 +157,7 @@ class GoBoard():
         event, values = self.window.read()
         if event == "Exit Game":
             from main import play_game_main
-            self.window.close()
+            self.close_window()
             play_game_main()
             quit()
         elif event == sg.WIN_CLOSED:
@@ -269,12 +271,12 @@ class GoBoard():
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         self.save_pickle()
         from main import play_game_main
-        self.window.close()
+        self.close_window()
         play_game_main()
         quit()
 
     def find_piece_click(self, input_location: Tuple[float, float]) -> Tuple[bool, Union[List[int], BoardNode]]:
-        for item_row in self.board:  # ! list comprehension?
+        for item_row in self.board:
             for item in item_row:
                 item_location = [item.screen_row, item.screen_col]
                 if math.dist(input_location, item_location) <= self.pygame_board_vals[2]:
@@ -328,7 +330,7 @@ class GoBoard():
                 return
         elif event == "Exit Game":
             from main import play_game_main
-            self.window.close()
+            self.close_window()
             play_game_main()
             quit()
         else:
@@ -350,7 +352,7 @@ class GoBoard():
             return
         elif event == "Exit Game":
             from main import play_game_main
-            self.window.close()
+            self.close_window()
             play_game_main()
             quit()
         elif event == sg.WIN_CLOSED:
@@ -568,7 +570,7 @@ class GoBoard():
             self.screen: pygame.Surface = backup_screen
             self.backup_board: pygame.Surface = backup_backup_board
 
-    def load_pkl(self, inputPath):  # Typehint?
+    def load_pkl(self, inputPath):
         import pickle
         with open(inputPath, 'rb') as file:
             friend = pickle.load(file)
@@ -589,10 +591,28 @@ class GoBoard():
                                        (item.screen_row, item.screen_col), self.pygame_board_vals[2])
         pygame.display.update()
 
+    def close_window(self):
+        import platform
+        if platform.system() == "Linux":
+            self.window.close()
+        elif platform.system() == "Windows":
+            self.window.close()
+            del self.window
+            del self.backup_board
+            pygame.display.quit()
+
     def making_score_board_object(self):
         from scoringboard import ScoringBoard
+        import platform  # Required as for some reason the code/window behaves differently between linux and windows
         self.scoring_dead = ScoringBoard(self)
-        self.window.close()
-        ui.setup_board_window_pygame(self.scoring_dead)  #Makes a window, but nothing you click will do anything
-        self.scoring_dead.refresh_board_pygame()
+        if platform.system() == "Linux":
+            self.window.close()
+            ui.setup_board_window_pygame(self.scoring_dead)  # Makes a window, but nothing you click will do anything
+            self.scoring_dead.refresh_board_pygame()
+            self.scoring_dead.dealing_with_dead_stones()
+        elif platform.system() == "Windows":
+            self.close_window()
+            ui.setup_board_window_pygame(self.scoring_dead)
+            self.scoring_dead.refresh_board_pygame()
+
         self.scoring_dead.dealing_with_dead_stones()

@@ -124,7 +124,7 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     screen = pygame.display.set_mode((700, 700))
     game_board.screen = screen
     game_board.window = window
-    if platform.system() == "Linux":  # This might not be needed
+    if platform.system() == "Linux":
         while True:  # For some reason this is required
             event, values = window.read(timeout=100)
             pygame.display.update()
@@ -180,7 +180,7 @@ def end_game_popup_two(self):
     if difference > 0:
         info = info + f"Player Black won by {difference} points"
     else:
-        info = info + f"Player White won by {difference*-1} points"
+        info = info + f"Player White won by {difference * -1} points"
     sg.popup(info, title="Game has Concluded", line_width=200, auto_close=True, auto_close_duration=20)
 
 
@@ -233,7 +233,7 @@ def hex_ui_setup():
     return window
 
 
-def draw_gameboard(game_board, screen):  # hardcoded values. Suboptimal
+def draw_gameboard(game_board, screen):
     workable_area: int = 620
     distance: float = workable_area / (game_board.board_size - 1)
     circle_radius: float = distance / 3
