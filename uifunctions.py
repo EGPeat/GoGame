@@ -83,7 +83,8 @@ def setup_menu():
             sg.Button("New Game From Default", font=('Arial Bold', 12)),
             sg.Button("New Hex Game", font=("Arial Bold", 12)),
             sg.Cancel("Exit Game", font=('Arial Bold', 12))],
-        [sg.Button("Play Multiplayer", font=('Arial Bold', 12)),
+        [sg.Button("Play Multiplayer as host", font=('Arial Bold', 12)),
+         sg.Button("Play Multiplayer not as host", font=('Arial Bold', 12)),
          sg.Button("Play Against AI", font=('Arial Bold', 12))]]  # need to add options for mp for different board sizes lol
     window = sg.Window('Game Screen', layout, size=(700, 700), finalize=True)
     return window
@@ -276,3 +277,12 @@ def stars_pygame(self, window, circle_radius: float, setup: bool = False):
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
             elif setup:
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
+
+
+def server_info_button(text1, text2):
+    text = f" Server IP is: {text2} \n Password is: {text1}"
+    layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 20), size=20, expand_x=True, expand_y=True,
+                      key='Scoring', justification='center')]]
+    full_layout = [[layout_sidebar]]
+
+    window = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)

@@ -1,9 +1,12 @@
 import socket
-import _thread as thr
-import sys
+import threading
+import time
+import select
+import config as cf
 
 
 def threaded_client(conn):
+
     conn.send(str.encode("Connected2"))
     reply = ""
     while True:
@@ -17,21 +20,32 @@ def threaded_client(conn):
             else:
                 print(f"Recieved: {reply}")
                 print(f"Sending reply: {reply}")
+            if reply == "Close Down":
+                break
             conn.sendall(str.encode(reply))
-        except:
+        except Exception as e:
+            print(f"Error: {e}")
             break
     print("Lost connection")
     conn.close()
+    print(f"quit thread count: {threading.active_count()}")
+    for thread in threading.enumerate():
+        print(thread.name)
 
 
-def start_home_server():
+def start_home_server(result_queue):
     server = "10.32.64.164"
     # server = "192.168.122.1"
     # will be localhost
+    # from random import randint
+    # password = randint(1, 2**32-1)
+    password = 5
+    print(f"The server IP is {server}, and the password is {password}")
     port = 5555
-
+    result_queue.put(password)
+    result_queue.put(server)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         s.bind((server, port))
 
@@ -40,12 +54,26 @@ def start_home_server():
 
     s.listen(2)
     print("Server started, waiting for person")
+    time.sleep(0.5)
+    while not cf.server_exit_flag:
+        readable, _, _ = select.select([s], [], [], 1.0)
+        if s in readable:
+            try:
+                conn, addr = s.accept()
+                print(f"Connected to {addr}")
+                data = conn.recv(2048)
+                reply = data.decode("utf-8")
+                print(f"reply is {reply}")
 
-
-
-
-
-    while True:
-        conn, addr = s.accept()
-        print(f"Connected to {addr}")
-        thr.start_new_thread(threaded_client, (conn,))
+                if int(reply) != password:
+                    print("Invalid password Issue")
+                    conn.sendall(str.encode("Invalid Password Issue"))
+                    conn.close()
+                else:
+                    print("Valid password")
+                    client_thread = threading.Thread(target=threaded_client, args=(conn,))
+                    client_thread.start()
+            except Exception as e:
+                print(f"Error: {e}")
+    print("Server is exiting.")
+    s.close()

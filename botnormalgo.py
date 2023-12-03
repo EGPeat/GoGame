@@ -1,13 +1,9 @@
 import uifunctions as ui
-import PySimpleGUI as sg
-from time import sleep
 import pygame
-import copy
-from player import Player
 from handicap import Handicap
-from goclasses import GoBoard, BoardNode, BoardString
+from goclasses import GoBoard, BoardNode
 import config as cf
-from typing import Tuple, List, Set, Union, Literal, Type, Optional
+from typing import Tuple, List, Optional
 from random import randrange
 
 
@@ -52,7 +48,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.resuming_scoring_buffer("Scoring")
         ui.end_game_popup()
         self.scoring_block()
-        
+
     def play_turn(self, bot: Optional[bool] = False) -> None:
         ui.update_scoring(self)
         truth_value: bool = False
@@ -60,10 +56,10 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             if not bot:
                 event, values = self.window.read()
             else:
-                event = "-GRAPH-" #! Black Box Func for now
-                
+                event = "-GRAPH-"  # ! Black Box Func for now
+
             if event != "-GRAPH-":
-                #self.combined_network.send(f"{event} ")
+                # self.combined_network.send(f"{event} ")
                 self.turn_options(event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
@@ -71,12 +67,12 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                 if not bot:
                     row, col = values['-GRAPH-']
                     found_piece, piece = self.find_piece_click([row, col])
-                else: #! Black Box Func for now
+                else:  # ! Black Box Func for now
                     row = randrange(0, 9)
                     col = randrange(0, 9)
                     piece = self.board[row][col]
                     found_piece = True
-                #self.combined_network.send(f"{piece.row, piece.col} ")
+                # self.combined_network.send(f"{piece.row, piece.col} ")
                 if found_piece:
                     if not bot:
                         truth_value = self.play_piece(piece.row, piece.col)
@@ -93,7 +89,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.killed_log.append(temp_list)
         self.switch_player()
         return
-    
+
     def remove_dead(self) -> None:
         self.killed_last_turn.clear()
         ui.update_scoring(self)
@@ -117,6 +113,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                 break
         self.switch_player()
         return
+
     def play_piece_bot(self, row: int, col: int) -> bool:
         piece: BoardNode = self.board[row][col]
         if (piece.stone_here_color != cf.unicode_none):

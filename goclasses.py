@@ -5,7 +5,6 @@ import pygame
 import sys
 from player import Player
 from handicap import Handicap
-from network import Network
 
 import config as cf
 from typing import Tuple, Optional, List, Set, Union
@@ -15,13 +14,18 @@ sys.setrecursionlimit(10000)
 
 
 def choose_board_type(vs_bot: Optional[bool] = False,
-                      vs_other_person: Optional[bool] = False, *args):
+                      vs_other_person: Optional[bool] = False,
+                      password: Optional[int] = 13,
+                      ip_address: Optional[str] = None, *args):
     from botnormalgo import BotBoard
     from multiplayer import MultiplayerBoard
     if vs_bot:
         GameBoard = BotBoard(*args)
     elif vs_other_person:
-        GameBoard = MultiplayerBoard(*args)
+        if ip_address:
+            GameBoard = MultiplayerBoard(password, ip_address, *args)
+        else:
+            GameBoard = MultiplayerBoard(password, None, *args)
     else:
         GameBoard = GoBoard(*args)
     return GameBoard
@@ -29,18 +33,19 @@ def choose_board_type(vs_bot: Optional[bool] = False,
 
 def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
                       fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
-                      vs_other_person: Optional[bool] = False) -> None:
+                      vs_other_person: Optional[bool] = False,
+                      password: Optional[int] = 13, ip_address: Optional[str] = None) -> None:
 
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if only_modify_name == "No":
-            GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, True)
+            GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, True)
         else:
-            GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, defaults)
+            GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
 
     else:
-        GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, defaults)
+        GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
 
     window.close()
     ui.setup_board_window_pygame(GameBoard)
@@ -116,7 +121,6 @@ class GoBoard():
         self.screen: pygame.Surface = None
         self.backup_board: pygame.Surface = None
         self.pygame_board_vals: Tuple[int, float, float] = None  # (workable_area, distance, circle_radius)
-        # self.combined_network = Network()
 
     def setup_board(self) -> List[List[BoardNode]]:
         board: List[List[BoardNode]] = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
