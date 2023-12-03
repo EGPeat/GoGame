@@ -5,9 +5,9 @@ import select
 import config as cf
 
 
-def threaded_client(conn):
+def threaded_client(conn, other_conn):
 
-    conn.send(str.encode("Connected2"))
+    conn.send(str.encode("Connected"))
     reply = ""
     while True:
         try:
@@ -22,7 +22,7 @@ def threaded_client(conn):
                 print(f"Sending reply: {reply}")
             if reply == "Close Down":
                 break
-            conn.sendall(str.encode(reply))
+            other_conn.sendall(str.encode(data))
         except Exception as e:
             print(f"Error: {e}")
             break
@@ -55,6 +55,7 @@ def start_home_server(result_queue):
     s.listen(2)
     print("Server started, waiting for person")
     time.sleep(0.5)
+    clients = []
     while not cf.server_exit_flag:
         readable, _, _ = select.select([s], [], [], 1.0)
         if s in readable:
@@ -71,8 +72,13 @@ def start_home_server(result_queue):
                     conn.close()
                 else:
                     print("Valid password")
-                    client_thread = threading.Thread(target=threaded_client, args=(conn,))
-                    client_thread.start()
+                    clients.append(conn)
+                    
+                    if len(clients) == 2:
+                        client_thread1 = threading.Thread(target=threaded_client, args=(clients[0], clients[1]))
+                        client_thread2 = threading.Thread(target=threaded_client, args=(clients[1], clients[0]))
+                        client_thread1.start()
+                        client_thread2.start()
             except Exception as e:
                 print(f"Error: {e}")
     print("Server is exiting.")

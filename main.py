@@ -9,6 +9,7 @@ import threading
 # Add MP to game
 # MCTS for scoring
 # server thing doesnt handle me quitting rn
+# server thing for multiplayer for removing dead stones/etc
 
 
 def play_game_main():
