@@ -2,20 +2,18 @@ import goclasses as go
 import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
+# from server import start_home_server
+# import _thread as thr
 # To do:
 # Add AI to game
 # Add MP to game
 # MCTS for scoring
-# add in type hinting
-# Especially for custom classes
-# revamp classes
-# a class for the turn actions (playing pieces, checking ko rule, etc)
-# a class for the logic of the game (turn choice, etc, etc)
-# a class for the end game calculations
+# server thing doesnt handle me quitting rn
 
 
 def play_game_main():
     window = ui.setup_menu()
+    # thr.start_new_thread(start_home_server, ())
 
     while True:
         event, values = window.read()
@@ -40,6 +38,10 @@ def play_game_main():
 
         elif event == "New Game From Default":
             go.initializing_game(window, 9, True)
+        elif event == "Play Against AI":
+            go.initializing_game(window, 9, True, vs_bot=True)
+        #elif event == "Play Multiplayer":
+        #    go.initializing_game(window, 9, True)
         elif event == "New Hex Game":
             window.close()
             pygt.main()

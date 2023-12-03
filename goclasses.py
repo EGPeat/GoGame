@@ -5,6 +5,8 @@ import pygame
 import sys
 from player import Player
 from handicap import Handicap
+from network import Network
+
 import config as cf
 from typing import Tuple, Optional, List, Set, Union
 
@@ -12,17 +14,34 @@ from typing import Tuple, Optional, List, Set, Union
 sys.setrecursionlimit(10000)
 
 
+def choose_board_type(vs_bot: Optional[bool] = False,
+                      vs_other_person: Optional[bool] = False, *args):
+    from botnormalgo import BotBoard
+    from multiplayer import MultiplayerBoard
+    if vs_bot:
+        GameBoard = BotBoard(*args)
+    elif vs_other_person:
+        GameBoard = MultiplayerBoard(*args)
+    else:
+        GameBoard = GoBoard(*args)
+    return GameBoard
+
+
 def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
-                      fixes_handicap: Optional[bool] = False) -> None:
+                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
+                      vs_other_person: Optional[bool] = False) -> None:
+
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if only_modify_name == "No":
-            GameBoard = GoBoard(board_size, True)
+            GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, True)
         else:
-            GameBoard = GoBoard(board_size, defaults)
+            GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, defaults)
+
     else:
-        GameBoard = GoBoard(board_size, defaults)
+        GameBoard = choose_board_type(vs_bot, vs_other_person, board_size, defaults)
+
     window.close()
     ui.setup_board_window_pygame(GameBoard)
     info: str = "Click yes if you want to modify the handicap"
@@ -84,7 +103,7 @@ class GoBoard():
         self.not_whose_turn: Player = self.player_white
         self.times_passed: int = 0
         self.turn_num: int = 0
-        PPL_Type = List[Union[str, Tuple[str, int, int], Tuple[str, int, int], str, Tuple[str, int, int]]]
+        PPL_Type = List[Union[str, Tuple[str, int, int]]]
         self.position_played_log: PPL_Type = list()
         self.visit_kill: Set[BoardNode] = set()
         self.killed_last_turn: Set[BoardNode] = set()
@@ -97,6 +116,7 @@ class GoBoard():
         self.screen: pygame.Surface = None
         self.backup_board: pygame.Surface = None
         self.pygame_board_vals: Tuple[int, float, float] = None  # (workable_area, distance, circle_radius)
+        # self.combined_network = Network()
 
     def setup_board(self) -> List[List[BoardNode]]:
         board: List[List[BoardNode]] = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
@@ -189,9 +209,9 @@ class GoBoard():
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
         self.making_score_board_object()
-        #self.dealing_with_dead_stones()
-        #self.counting_territory()
-        #self.end_of_game()
+        # self.dealing_with_dead_stones()
+        # self.counting_territory()
+        # self.end_of_game()
 
     def resuming_scoring_buffer(self, text) -> None:
         self.turn_num += 1
@@ -289,12 +309,14 @@ class GoBoard():
         while not truth_value:
             event, values = self.window.read()
             if event != "-GRAPH-":
+                #self.combined_network.send(f"{event} ")
                 self.turn_options(event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
                 row, col = values['-GRAPH-']
                 found_piece, piece = self.find_piece_click([row, col])
+                #self.combined_network.send(f"{piece.row, piece.col} ")
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
 
@@ -310,7 +332,7 @@ class GoBoard():
         self.switch_player()
         return
 
-    def turn_options(self, event, text: Optional[str] = None) -> None:  # Typehint event
+    def turn_options(self, event, text: Optional[str] = None) -> None:
         if event in (sg.WIN_CLOSED, "Res"):
             quit()
         if event == "Pass Turn":
@@ -336,7 +358,7 @@ class GoBoard():
         else:
             raise ValueError
 
-    def remove_dead_event_handling(self, event) -> None:  # Typehint event
+    def remove_dead_event_handling(self, event) -> None:
         if event == "Pass Turn":
             self.turn_options(event, text="Scoring Passed")
             return
@@ -400,7 +422,7 @@ class GoBoard():
         else:
             self.position_played_log.pop()
         # This part reverts the board back to its state 1 turn ago
-        revive = self.killed_log.pop()  # Typehint?
+        revive = self.killed_log.pop()
         capture_update_val: int = len(revive)
 
         if len(revive) > 0:
@@ -451,7 +473,7 @@ class GoBoard():
     def move_back(self) -> None:
         if len(self.killed_log) > 0:
             self.killed_last_turn.clear()
-            temp_list = self.killed_log.pop()  # Typehint?
+            temp_list = self.killed_log.pop()
             for item in temp_list:
                 temp_node = BoardNode(row_value=item[1], col_value=item[2])
                 self.killed_last_turn.add(temp_node)
@@ -554,7 +576,7 @@ class GoBoard():
         import pickle
         filename: str = ''
         while len(filename) < 1:
-            text: str = "Please write the name of the file you want to save to. Do not include the file extension in what you write"
+            text: str = "Please write the name of the file you want to save to. Do not include the file extension."
             filename: str = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
             if filename is None:
                 return

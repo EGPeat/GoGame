@@ -20,7 +20,7 @@ class ScoringBoard(GoBoard):
         self.not_whose_turn: Player = copy.deepcopy(self.parent.not_whose_turn)
         self.times_passed: int = copy.deepcopy(self.parent.times_passed)
         self.turn_num: int = copy.deepcopy(self.parent.turn_num)
-        PPL_Type = List[Union[str, Tuple[str, int, int], Tuple[str, int, int], str, Tuple[str, int, int]]]
+        PPL_Type = List[Union[str, Tuple[str, int, int]]]
         self.position_played_log: PPL_Type = copy.deepcopy(self.parent.position_played_log)
         self.visit_kill: Set[BoardNode] = copy.deepcopy(self.parent.visit_kill)
         self.killed_last_turn: Set[BoardNode] = copy.deepcopy(self.parent.killed_last_turn)

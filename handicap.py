@@ -5,7 +5,6 @@ import config as cf
 from typing import Tuple, List
 
 
-# I want to typehint this, but am unsure how to do so without a circular import
 class Handicap():
     def __init__(self, parent) -> None:
         self.go_board = parent
@@ -37,7 +36,7 @@ class Handicap():
         ui.def_popup(f"Please place {handicap_info} number of pieces where you wish,\
                     as a handicap.Then the opponent will play.", 3)
         for _ in range(handicap_info):
-            piece = self.validate_handicap_placement()  # Typehint to GoBoard/BoardPiece
+            piece = self.validate_handicap_placement()
             self.go_board.times_passed = 0
             truth_value: bool = self.go_board.play_piece(piece.row, piece.col)
             if truth_value:
@@ -78,7 +77,7 @@ class Handicap():
         self.go_board.refresh_board_pygame()
         self.go_board.switch_player()
 
-    def validate_handicap_placement(self):  # Typehint
+    def validate_handicap_placement(self):
         valid_piece: bool = False
         while not valid_piece:
             event, values = self.go_board.window.read()
