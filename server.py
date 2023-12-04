@@ -3,40 +3,40 @@ import threading
 import time
 import select
 import config as cf
+from multiprocessing import Value
 
 
-def threaded_client(conn, other_conn):
-
-    conn.send(str.encode("Connected"))
+def threaded_client(conn: socket, other_conn: socket, last_send_time):
+    conn.send(str.encode(str(conn)))
     reply = ""
     while True:
         try:
             data = conn.recv(2048)
-            reply = data.decode("utf-8")
-
             if not data:
                 print("Disconnected")
                 break
-            else:
-                print(f"Recieved: {reply}")
-                print(f"Sending reply: {reply}")
+            reply = data.decode("utf-8")
             if reply == "Close Down":
                 break
-            other_conn.sendall(str.encode(data))
+
+            current_time = time.time()
+            if current_time - last_send_time.value >= 1.2:
+                other_conn.sendall(data)
+                last_send_time.value = current_time
+            else:
+                time.sleep(1.2)
+                other_conn.sendall(data)
+                last_send_time.value = current_time
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"error: {e}")
             break
     print("Lost connection")
     conn.close()
-    print(f"quit thread count: {threading.active_count()}")
-    for thread in threading.enumerate():
-        print(thread.name)
 
 
 def start_home_server(result_queue):
-    server = "10.32.64.164"
-    # server = "192.168.122.1"
-    # will be localhost
+    server = '0.0.0.0'
+    # server =  socket.gethostbyname(socket.gethostname())
     # from random import randint
     # password = randint(1, 2**32-1)
     password = 5
@@ -48,6 +48,7 @@ def start_home_server(result_queue):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         s.bind((server, port))
+        # s.connect((server, port))
 
     except socket.error as e:
         print(e)
@@ -56,15 +57,16 @@ def start_home_server(result_queue):
     print("Server started, waiting for person")
     time.sleep(0.5)
     clients = []
+    last_send_time = Value('d', time.time())  # Shared variable to store last send time
     while not cf.server_exit_flag:
         readable, _, _ = select.select([s], [], [], 1.0)
         if s in readable:
             try:
                 conn, addr = s.accept()
-                print(f"Connected to {addr}")
+                # print(f"Connected to {addr}")
                 data = conn.recv(2048)
                 reply = data.decode("utf-8")
-                print(f"reply is {reply}")
+                # print(f"reply is {reply}")
 
                 if int(reply) != password:
                     print("Invalid password Issue")
@@ -73,10 +75,9 @@ def start_home_server(result_queue):
                 else:
                     print("Valid password")
                     clients.append(conn)
-                    
                     if len(clients) == 2:
-                        client_thread1 = threading.Thread(target=threaded_client, args=(clients[0], clients[1]))
-                        client_thread2 = threading.Thread(target=threaded_client, args=(clients[1], clients[0]))
+                        client_thread1 = threading.Thread(target=threaded_client, args=(clients[0], clients[1], last_send_time))
+                        client_thread2 = threading.Thread(target=threaded_client, args=(clients[1], clients[0], last_send_time))
                         client_thread1.start()
                         client_thread2.start()
             except Exception as e:

@@ -265,7 +265,8 @@ class GoBoard():
         self.turn_num += 1
 
     def remove_dead_found_piece(self, piece: BoardNode) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
-        series: Tuple[Set[BoardNode], Set[BoardNode]] = self.flood_fill(piece)
+        from scoringboard import ScoringBoard
+        series: Tuple[Set[BoardNode], Set[BoardNode]] = ScoringBoard.flood_fill(piece)  # !
         piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
         for item in series[0]:
             if item.stone_here_color == self.player_black.unicode:
@@ -313,14 +314,12 @@ class GoBoard():
         while not truth_value:
             event, values = self.window.read()
             if event != "-GRAPH-":
-                #self.combined_network.send(f"{event} ")
                 self.turn_options(event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
                 row, col = values['-GRAPH-']
                 found_piece, piece = self.find_piece_click([row, col])
-                #self.combined_network.send(f"{piece.row, piece.col} ")
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
 

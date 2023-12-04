@@ -41,7 +41,6 @@ def play_game_main():
         elif event == "Play Against AI":
             go.initializing_game(window, 9, True, vs_bot=True)
         elif event == "Play Multiplayer as host":
-            from time import sleep
             import queue
             result_queue = queue.Queue()
             client_thread = threading.Thread(target=start_home_server, args=(result_queue,))
@@ -49,7 +48,6 @@ def play_game_main():
             item1 = str(result_queue.get())
             item2 = str(result_queue.get())
             ui.server_info_button(item1, item2)
-            sleep(1)
             go.initializing_game(window, board_size=9, defaults=True, vs_other_person=True, password=item1)
 
         elif event == "Play Multiplayer not as host":

@@ -5,14 +5,14 @@ from time import sleep
 class Network:
     def __init__(self, password=13, ip_address=None) -> None:
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "10.32.64.164"
+        self.server = "172.22.16.1"
         if ip_address:
             self.server = ip_address
         self.port = 5555
         self.addr = (self.server, self.port)
         self.password = str(password)
         self.pos = self.connect()
-        print(f"self.pos is {self.pos}")
+        self.message_in = ''
 
     def get_pos(self):
         return self.pos
@@ -22,7 +22,6 @@ class Network:
         for _ in range(retries):
             try:
                 self.client.connect(self.addr)
-                print(f"Trying, here is password {self.password}\n")
                 self.client.send(str(self.password).encode())
                 return self.client.recv(2048).decode()
             except Exception as e:
@@ -33,9 +32,37 @@ class Network:
 
     def send(self, data):
         try:
-            self.client.send(str.encode(data))
-            print("success")
-            # return ""
+            self.client.sendall(str.encode(data))
             return self.client.recv(2048).decode()
-        except socket.error as e:
+        except Exception as e:
+            print(f"error is {e}")
+
+    def send_and_recieve(self, data):
+        try:
+            self.client.sendall(str.encode(data))
+            reply = self.client.recv(2048).decode("utf-8")
+            self.message_in = reply
+            return True
+        except Exception as e:
+            print(f"error is {e}")
+            return False
+
+    def first_round_op(self):
+        try:
+            if self.message_in == '':
+                reply = self.client.recv(2048).decode("utf-8")
+                self.message_in = reply
+                print("worked22")
+                return True
+            else:
+                return True
+        except Exception as e:
+            print(f"error is {e}")
+            return False
+
+    def recv(self, size):
+        try:
+            info = self.client.recv(size).decode("utf-8")
+            return info
+        except Exception as e:
             print(f"error is {e}")

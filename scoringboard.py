@@ -307,7 +307,8 @@ class ScoringBoard(GoBoard):
             self.player_white.territory += len(pieces_string) * 0.5
         return
 
-    def flood_fill(self, piece: BoardNode,
+    @staticmethod
+    def flood_fill(piece: BoardNode,
                    connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
             None, Tuple[Set[BoardNode], Set[BoardNode]]]:
 
@@ -317,7 +318,7 @@ class ScoringBoard(GoBoard):
         neighboring_pieces = piece.connections
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
-                self.flood_fill(neighbor, connected_pieces)
+                ScoringBoard.flood_fill(neighbor, connected_pieces)  # Might be issue
             elif neighbor not in connected_pieces[1]:
                 connected_pieces[1].add(neighbor)
         return connected_pieces

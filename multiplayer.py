@@ -1,15 +1,13 @@
 import uifunctions as ui
 import PySimpleGUI as sg
-from time import sleep
 import pygame
 from handicap import Handicap
 from network import Network
 from goclasses import GoBoard
 import config as cf
 from typing import Tuple, List, Optional
-from random import randrange
 import threading
-import select
+
 
 class MultiplayerBoard(GoBoard):
     def __init__(self, password_id, ip_address=None, board_size=19, defaults=True):
@@ -17,6 +15,7 @@ class MultiplayerBoard(GoBoard):
         if ip_address:
             self.combined_network = Network(password_id, ip_address)
             self.you = self.player_white
+            self.first_round = True
         else:
             self.combined_network = Network(password_id)
             self.you = self.player_black
@@ -49,11 +48,19 @@ class MultiplayerBoard(GoBoard):
             self.handicap = hc.custom_handicap(False)
         while (self.times_passed <= 1):
             if self.whose_turn == self.you:
-                self.play_turn(True)  # !
+                piece = self.play_turn(False)
+                self.combined_network.send_and_recieve(piece)
+                self.refresh_board_pygame()
             else:
-                self.play_turn(True)  # !
-                # self.play_turn(mp_other=True) #!
-            sleep(0.3)
+                if self.you == self.player_white:
+                    if self.first_round is True:
+                        self.combined_network.first_round_op()
+                        self.first_round = False
+                event = self.combined_network.message_in
+                self.play_turn(True, info=event)
+                self.refresh_board_pygame()
+        if self.you == self.player_white:
+            self.first_round = True
         self.mode = "Scoring"
         self.times_passed = 0
         self.resuming_scoring_buffer("Scoring")
@@ -66,9 +73,19 @@ class MultiplayerBoard(GoBoard):
                 self.switch_button_mode()
             while self.mode == "Scoring":
                 if self.whose_turn == self.you:
-                    self.remove_dead()
+                    piece = self.remove_dead(False)
+                    self.combined_network.send_and_recieve(piece)
+                    self.refresh_board_pygame()
                 else:
-                    self.remove_dead(True)
+                    if self.you == self.player_white:
+                        if self.first_round is True:
+                            self.combined_network.first_round_op()
+                            self.first_round = False
+                    event = self.combined_network.message_in
+                    temp: str = self.remove_dead(True, info=event)
+                    self.refresh_board_pygame()
+                    if temp.count("TrueTrue") == 1:
+                        self.combined_network.send_and_recieve(temp)
                 if self.times_passed == 2:
                     self.mode = "Finished"
             if self.mode_change:
@@ -82,12 +99,7 @@ class MultiplayerBoard(GoBoard):
                 self.times_passed = 0
         self.making_score_board_object()
 
-    def play_turn(self, bot: Optional[bool] = False, mp_other: Optional[bool] = False) -> None:
-
-        print(f"uh oh {threading.active_count()}")
-        for thread in threading.enumerate():
-            print(thread.name)
-
+    def play_turn(self, mp_other: Optional[bool] = False, info=None) -> None:
         if self.combined_network.pos == "Invalid Password Issue" and threading.active_count() == 1:
             self.turn_options("Exit Game")  # It should do something else to tell it it's bad
         elif self.combined_network.pos is False:
@@ -99,31 +111,24 @@ class MultiplayerBoard(GoBoard):
             if not mp_other:
                 event, values = self.window.read()
             else:
-                event: str = self.combined_network.recv(2048).decode()
-                event_copy = event.replace(" ", "").replace("\t", "").replace("\n", "").replace("\r", "")
+                event = info
+                event_copy = info.replace(" ", "").replace("\t", "").replace("\n", "").replace("\r", "")
                 event_alpha = event_copy.isalpha()
 
-            if event != "-GRAPH-" and not mp_other:
-                self.combined_network.send(f"{event} ")
+            if (event != "-GRAPH-" and not mp_other) or (mp_other and event_alpha):
                 self.turn_options(event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
-                    return
-            elif mp_other and event_alpha:
-                self.turn_options(event, text="Passed")
-                if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
-                    return
+                    return event
             else:
                 if not mp_other:
                     row, col = values['-GRAPH-']
                     found_piece, piece = self.find_piece_click([row, col])
-                    self.combined_network.send(f"{piece.row}  {piece.col} ")
-                else:  # ! Black Box Func for now
+                else:
                     event_split = event.split()
                     row = int(event_split[0])
                     col = int(event_split[1])
                     piece = self.board[row][col]
                     found_piece = True
-                sleep(0.4)
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
                     if truth_value:  # This should never fail from the other player....
@@ -136,21 +141,21 @@ class MultiplayerBoard(GoBoard):
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
         self.switch_player()
-        return
+        return f"{piece.row}  {piece.col} "
 
-    def remove_dead(self, mp_other=False) -> None:
+    def remove_dead(self, mp_other=False, info=None) -> None:
         self.killed_last_turn.clear()
         ui.update_scoring(self)
         truth_value: bool = False
         while not truth_value:
-            ready_to_read, _, _ = select.select([self.combined_network], [], [], 0.1)  # Check for socket data every 0.1 seconds
-
-            if self.combined_network in ready_to_read:
-                event: str = self.combined_network.recv(2048).decode()
-                event = event.split(',')
+            if info is not None:
+                event = info.split(',')
                 truthness = event[0]  # see if this area is an issue
                 event = event[1]
                 event_copy = event.replace(" ", "").replace("\t", "").replace("\n", "").replace("\r", "")
+                if truthness == "False" and event == " Pass Turn ":
+                    self.switch_player()
+                    return "Skipped"
                 if truthness == "True":
                     event_split = event.split()
                     row = int(event_split[0])
@@ -158,25 +163,27 @@ class MultiplayerBoard(GoBoard):
                     piece = self.board[row][col]
                     piece_string = self.remove_dead_found_piece(piece)
                     send_value = self.get_agreement()
-                    self.combined_network.send(f"False, {send_value} ")
+                    if send_value == "Yes":
+                        self.remove_stones_and_update_score(piece_string)
                     self.switch_player()
-                    return
-            
-            
-            if mp_other:
-                event: str = self.combined_network.recv(2048).decode()
-                event = event.split(',')
-                truthness = event[0]
-                event = event[1]
-                event_copy = event.replace(" ", "").replace("\t", "").replace("\n", "").replace("\r", "")
-            else:
-                event, values = self.window.read()
-                
+                    info = None
+                    return f"TrueTrue,{send_value},{row},{col}"
+                elif truthness == "TrueTrue":
+                    event_split = info.split(',')
+                    event = event_split[1]
+                    row = int(event_split[2])
+                    col = int(event_split[3])
+                    piece = self.board[row][col]
+                    found_piece = True
+                    info = None
+                info = None
 
-            else_choice: bool = self.remove_dead_event_handling(event)
+            if not mp_other:
+                event, values = self.window.read()
+
+            else_choice = self.remove_dead_event_handling(event)
             if not else_choice and not mp_other:  # ^^^unsure if this works right or not in general
-                self.combined_network.send(f"False, {event} ")
-                return
+                return f"False, {event} "
 
             if not mp_other:
                 row, col = values['-GRAPH-']
@@ -195,23 +202,23 @@ class MultiplayerBoard(GoBoard):
                 ui.def_popup("You can't remove empty areas", 1)
             elif found_piece:
                 if event == "Yes":
-                    piece_string = self.remove_dead_found_piece(piece)
+                    piece_string = self.remove_dead_found_piece_helper(piece)  # Might be an issue
                     self.remove_stones_and_update_score(piece_string)
                     self.switch_player()
-                    return
+                    return "Removed"
                 if event == "No":
+                    piece_string = self.remove_dead_found_piece_helper(piece)  # Might be an issue
                     self.remove_dead_undo_list(piece_string)
                     self.switch_player()
-                    return
+                    return "Undone"
                 if not mp_other:
-                    self.combined_network.send(f"True, {piece.row}  {piece.col} ")
-                    piece_string = self.remove_dead_found_piece(piece)  #modify this
+                    piece_string = self.remove_dead_found_piece(piece)
                     self.switch_player()
-                    return
+                    return f"True, {piece.row}  {piece.col} "
 
                 self.remove_stones_and_update_score(piece_string)
                 break
-        self.switch_player()
+            self.switch_player()
         return
 
     def turn_options(self, event, text: Optional[str] = None) -> None:
@@ -241,12 +248,10 @@ class MultiplayerBoard(GoBoard):
             self.close_window()
             play_game_main()
             quit()
-        # else:
-        #    raise ValueError
-
 
     def remove_dead_found_piece(self, piece) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
-        series = self.flood_fill(piece)
+        from scoringboard import ScoringBoard
+        series = ScoringBoard.flood_fill(piece)  # Might be an issue
         piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
         for item in series[0]:
             if item.stone_here_color == self.player_black.unicode:
@@ -256,6 +261,19 @@ class MultiplayerBoard(GoBoard):
             else:
                 piece_string.append(((item.row, item.col), item.stone_here_color))
                 item.stone_here_color = cf.unicode_diamond_white
+        self.refresh_board_pygame()
+        return piece_string
+
+    def remove_dead_found_piece_helper(self, piece) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
+        from scoringboard import ScoringBoard
+        series = ScoringBoard.flood_fill(piece)  # Might be an issue
+        piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
+        for item in series[0]:
+            if item.stone_here_color == cf.unicode_diamond_black:
+                piece_string.append(((item.row, item.col), self.player_black.unicode))
+
+            elif item.stone_here_color == cf.unicode_diamond_white:
+                piece_string.append(((item.row, item.col), self.player_white.unicode))
         self.refresh_board_pygame()
         return piece_string
 
