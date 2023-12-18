@@ -420,7 +420,7 @@ class GoBoard():
         if self.undo_special_cases():
             return
         if not scoring:
-            color, row, col = self.position_played_log.pop()
+            _, row, col = self.position_played_log.pop()
             self.board[row][col].stone_here_color = cf.unicode_none
         else:
             self.position_played_log.pop()
@@ -639,5 +639,4 @@ class GoBoard():
             self.close_window()
             ui.setup_board_window_pygame(self.scoring_dead)
             self.scoring_dead.refresh_board_pygame()
-
-        self.scoring_dead.dealing_with_dead_stones()
+            self.scoring_dead.dealing_with_dead_stones()

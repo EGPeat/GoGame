@@ -16,7 +16,7 @@ def play_game_main():
     window = ui.setup_menu()
 
     while True:
-        event, values = window.read()
+        event, _ = window.read()
 
         if event == "Choose File":
             file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))

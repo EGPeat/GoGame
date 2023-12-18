@@ -5,7 +5,8 @@ from player import Player
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
-
+import sys
+sys.setrecursionlimit(10000)
 
 class ScoringBoard(GoBoard):
     def __init__(self, parent_obj: Type[GoBoard]) -> None:
@@ -55,16 +56,16 @@ class ScoringBoard(GoBoard):
             obj: BoardString = self.empty_strings.pop()
             obj_obj: BoardNode = obj.member_set.pop()
             success, original_string = self.find_neighbor_get_string(obj_obj, unicode)
-            if not success:
-                raise RecursionError
-            tmp = self.finding_correct_mixed_string(obj_obj, player.unicode, original_string, player_strings)
-            if tmp[0]:
-                mixed_str, outer_str = tmp[1], tmp[2]
-                mixed_str_color.append(mixed_str)
-                outer_str_color.append(outer_str)
-                m_str: BoardString = mixed_str
-                o_str: BoardString = outer_str
-                self.draw_dead_stones(m_str, o_str)
+            if success:
+                tmp = self.finding_correct_mixed_string(obj_obj, player.unicode, original_string, player_strings)
+                if tmp[0]:
+                    mixed_str, outer_str = tmp[1], tmp[2]  # You need to modify the above function to get the mixed_str
+                    # to return the correct area inside of the outer_str. Just modify a floodfill.
+                    mixed_str_color.append(mixed_str)
+                    outer_str_color.append(outer_str)
+                    m_str: BoardString = mixed_str
+                    o_str: BoardString = outer_str
+                    #self.draw_dead_stones(m_str, o_str)
 
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
         for item in m_str.member_set:
@@ -76,6 +77,7 @@ class ScoringBoard(GoBoard):
                                self.pygame_board_vals[2])
         pygame.display.update()
         sleep(1.5)
+        #sleep(0.2)
         self.refresh_board_pygame()
 
     def dealing_with_dead_stones(self) -> None:
@@ -95,9 +97,54 @@ class ScoringBoard(GoBoard):
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
+        
         self.find_dead_stones(self.mixed_string_for_white, self.outer_string_white,
                               self.player_white, self.white_strings, cf.unicode_white)
+        
+        from mcst import CollectionOfMCST
 
+        self.remove_safe_strings()
+
+        self.MCST_collection = CollectionOfMCST(copy.deepcopy(self.board), self.outer_string_black, self.mixed_string_for_black,
+                                                self.outer_string_white, self.mixed_string_for_white, 1000, 20)
+        #100k
+
+
+
+        for idx in range(len(self.mixed_string_for_black)):
+            self.draw_dead_stones(self.mixed_string_for_black[idx],self.outer_string_black[idx])
+        for idx in range(len(self.mixed_string_for_white)):
+            self.draw_dead_stones(self.mixed_string_for_white[idx],self.outer_string_white[idx])
+
+        
+
+        print("done")
+
+        print("double done")
+
+    def remove_safe_strings(self):
+
+        for idx in reversed(range(len(self.outer_string_black))):
+            
+
+            removeable = True
+            for item in self.mixed_string_for_black[idx].member_set:
+                if item.stone_here_color != cf.unicode_none:
+                    removeable = False
+            if removeable:
+                self.mixed_string_for_black.pop(idx)
+                self.outer_string_black.pop(idx)
+
+        for idx in reversed(range(len(self.outer_string_white))):
+
+            removeable = True
+            for item in self.mixed_string_for_white[idx].member_set:
+                if item.stone_here_color != cf.unicode_none:
+                    removeable = False
+            if removeable:
+                self.mixed_string_for_white.pop(idx)
+                self.outer_string_white.pop(idx)
+        
     def find_neighbor_get_string(self, piece: BoardNode, color: Tuple[int, int, int],
                                  visited: Union[None, Set[BoardNode]] = None) -> Union[
                                      Tuple[Literal[True], BoardString], Tuple[Literal[False], Literal[-1]]]:
@@ -129,7 +176,8 @@ class ScoringBoard(GoBoard):
             Tuple[Literal[True], BoardString], Tuple[Literal[False], Literal[-1]]]:
         if piece.stone_here_color == second_color and second_color == cf.unicode_white:
             second_color = cf.unicode_none
-        piece_flood = self.flood_fill_two_colors(piece, second_color)
+        piece_flood = self.flood_fill_two_colors(piece, second_color)  
+        # Why is it two color floodfill? Might cause the issue found in the 9x9 board.
         piece_string = BoardString("Empty", piece_flood[0])
         for item in string_choice:
             if (
@@ -140,7 +188,7 @@ class ScoringBoard(GoBoard):
                     or item.xmin < piece_string.xmin
                     or item.ymax > piece_string.ymax
                     or item.ymin < piece_string.ymin
-                )
+                )  # Unsure if it should be >= or just >. same for <= and <
             ):
                 return True, item
         return (False, -1)
@@ -177,8 +225,12 @@ class ScoringBoard(GoBoard):
         elif con_str.ymin < discon_str.ymin or con_str.ymax > discon_str.ymax:
             return (False, -1)
         else:
-            self.mixed_string_set_removal(copy.deepcopy(connections), color)
-            return (True, con_str, discon_str)
+            base_piece = con_str.member_set.pop()
+            con_str_temp = self.flood_fill_with_outer(base_piece, discon_str)
+            con_str_full = BoardString("Internal Area", con_str_temp[0])
+            self.mixed_string_set_removal(copy.deepcopy(con_str_temp[0]), color)
+            # return (True, con_str, discon_str)
+            return (True, con_str_full, discon_str)
 
     def making_mixed_strings(self, piece: BoardNode, color: Tuple[int, int, int],
                              original_string: BoardString, list_strings: List[BoardString]) -> \
@@ -336,6 +388,22 @@ class ScoringBoard(GoBoard):
                 self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
             elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
                 self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
+            else:
+                connected_pieces[1].add(neighbor)
+                pass
+        return connected_pieces
+
+
+    def flood_fill_with_outer(self, piece: BoardNode, outer_pieces: BoardString,
+                              connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
+                                  None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+        if connected_pieces is None:
+            connected_pieces = (set(), set())
+        connected_pieces[0].add(piece)
+        neighboring_pieces = piece.connections
+        for neighbor in neighboring_pieces:
+            if (neighbor.col, neighbor.row) not in outer_pieces.list_idx and neighbor not in connected_pieces[0]:
+                self.flood_fill_with_outer(neighbor, outer_pieces, connected_pieces)
             else:
                 connected_pieces[1].add(neighbor)
                 pass
