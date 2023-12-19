@@ -6,7 +6,7 @@ from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
 import sys
-sys.setrecursionlimit(10000)
+#sys.setrecursionlimit(10000)
 
 
 class ScoringBoard(GoBoard):
@@ -54,9 +54,11 @@ class ScoringBoard(GoBoard):
                          outer_str_color: Union[List[None], List[BoardString]],
                          player: Player, player_strings: List[BoardString], unicode: Tuple[int, int, int]) -> None:
         while self.empty_strings:
+            print(len(self.empty_strings))
             obj: BoardString = self.empty_strings.pop()
             obj_obj: BoardNode = obj.member_set.pop()
             success, original_string = self.find_neighbor_get_string(obj_obj, unicode)
+            print(f"success is {success}")
             if success:
                 tmp = self.finding_correct_mixed_string(obj_obj, player.unicode, original_string, player_strings)
                 if tmp[0]:
@@ -93,22 +95,27 @@ class ScoringBoard(GoBoard):
         self.mixed_string_for_white: Union[List[None], List[BoardString]] = list()
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
         self.outer_string_white: Union[List[None], List[BoardString]] = list()
+        print("a")
         self.find_dead_stones(self.mixed_string_for_black, self.outer_string_black,
                               self.player_black, self.black_strings, cf.unicode_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
-
+        print("b")
         self.find_dead_stones(self.mixed_string_for_white, self.outer_string_white,
                               self.player_white, self.white_strings, cf.unicode_white)
 
         from mcst import CollectionOfMCST
-
+        print("c")
         self.remove_safe_strings()
-
+        for idx in range(len(self.mixed_string_for_black)):
+            self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
+        for idx in range(len(self.mixed_string_for_white)):
+            self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])
+        print("d")
         self.MCST_collection = CollectionOfMCST(copy.deepcopy(self.board), self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
-                                                1000, 20, (self.whose_turn, self.not_whose_turn))
+                                                10, 20, (self.whose_turn, self.not_whose_turn))
         # 100k
 
         for idx in range(len(self.mixed_string_for_black)):

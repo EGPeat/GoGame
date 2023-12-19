@@ -12,7 +12,7 @@ import threading
 # server thing for multiplayer for removing dead stones/etc
 # Typechecking setting in VSCode...
 
-
+#something in find_neighbor_get_string isn't working on simplest8.pkl...
 def play_game_main():
     window = ui.setup_menu()
 
