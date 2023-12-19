@@ -10,6 +10,7 @@ import threading
 # MCTS for scoring
 # server thing doesnt handle me quitting rn
 # server thing for multiplayer for removing dead stones/etc
+# Typechecking setting in VSCode...
 
 
 def play_game_main():
