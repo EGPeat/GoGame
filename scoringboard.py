@@ -85,9 +85,9 @@ class ScoringBoard(GoBoard):
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
         self.making_go_board_strings(self.black_set, cf.unicode_black, False)
         self.making_go_board_strings(self.white_set, cf.unicode_white, False)
-        self.empty_strings_backup: List[BoardString] = copy.deepcopy(self.empty_strings)
-        self.black_strings_backup: List[BoardString] = copy.deepcopy(self.black_strings)
-        self.white_strings_backup: List[BoardString] = copy.deepcopy(self.white_strings)
+        self.empty_strings_backup: List[BoardString] = copy.deepcopy(self.empty_strings)  # Change
+        self.black_strings_backup: List[BoardString] = copy.deepcopy(self.black_strings)  # Change
+        self.white_strings_backup: List[BoardString] = copy.deepcopy(self.white_strings)  # Change
         self.mixed_string_for_black: Union[List[None], List[BoardString]] = list()
         self.mixed_string_for_white: Union[List[None], List[BoardString]] = list()
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
@@ -104,7 +104,7 @@ class ScoringBoard(GoBoard):
 
         from mcst import CollectionOfMCST
         self.remove_safe_strings()
-        print(f"the amount is {len(self.mixed_string_for_black)} (mixed for black) and {len(self.mixed_string_for_white)} (white)")
+        print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
         import cProfile
         import pstats
         with cProfile.Profile() as pr:
@@ -121,7 +121,7 @@ class ScoringBoard(GoBoard):
         stats = pstats.Stats(pr)
         stats.sort_stats(pstats.SortKey.TIME)
         stats.print_stats()
-        stats.dump_stats(filename="5000x30testing.prof")
+        stats.dump_stats(filename="5000x30testingv3.prof")
         for idx in range(len(self.mixed_string_for_black)):
             self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
         for idx in range(len(self.mixed_string_for_white)):

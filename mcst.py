@@ -4,7 +4,6 @@ from typing import Tuple, List, Set, Union, Optional, Type, Literal
 from scoringboard import BoardNode, BoardString
 import config as cf
 from player import Player
-# The deep copying might be a problem, so i should optimize it later on.
 
 
 class MCSTNode:
@@ -20,7 +19,8 @@ class MCSTNode:
         self.move_choices = dict()
         self.visits: int = 0
         self.wins: int = 0
-        self.killed_last_turn = killed_last
+        self.killed_last_turn = killed_last  # Potential issue here wrt contamination
+        self.child_killed_last = set()  # Potential issue here wrt contamination
         self.visit_kill: Set[BoardNode] = set()
         self.whose_turn = turn_person[0]
         self.not_whose_turn = turn_person[1]
@@ -30,6 +30,7 @@ class MCSTNode:
         else:
             self.player_black = self.not_whose_turn
             self.player_white = self.whose_turn
+        self.cache_hash = self.generate_cache()
 
     def switch_player(self) -> None:
         if self.whose_turn == self.player_black:
@@ -38,6 +39,23 @@ class MCSTNode:
         else:
             self.whose_turn = self.player_black
             self.not_whose_turn = self.player_white
+
+    def generate_cache(self):
+        cache_hash = ""
+        if self.whose_turn.color == cf.unicode_black:
+            cache_hash += "1"
+        elif self.whose_turn.color == cf.unicode_white:
+            cache_hash += "2"
+        cache_hash.join(self.board_list)
+        tuple_list = list()
+        for item in self.killed_last_turn:  # Unsure if it should be item.row or item.col first
+            tpl = (item.row, item.col)
+            tuple_list.append(tpl)
+        sorted_tuple_list = sorted(tuple_list, key=lambda x: (x[0], x[1]))
+        for item in sorted_tuple_list:
+            cache_hash += str(item[0])
+            cache_hash += str(item[1])
+        return cache_hash
 
 
 class CollectionOfMCST:  # Unsure how to typehint init line
@@ -80,6 +98,8 @@ class MCST:
         self.board = board
         self.inner = inner_pieces
         self.outer = outer_pieces
+        self.cache = {}
+        self.cache_hash = None
         temp_set = set()
         for pairing in inner_pieces.list_values:
             temp_set.add(self.board[pairing[1]][pairing[0]])
@@ -122,7 +142,11 @@ class MCST:
             board_string_list.append(tempstr)
         return board_string_list
 
-    def load_board_string(self, board_list):
+    def load_board_string(self, node: MCSTNode):
+        self.reload_board_string(node.board_list)
+        self.cache_hash = node.cache_hash
+
+    def reload_board_string(self, board_list):
         for xidx in range(len(board_list)):
             for yidx in range(len(board_list)):
                 if board_list[xidx][yidx] == "0":
@@ -155,7 +179,7 @@ class MCST:
     def select(self, node: MCSTNode, idx):
         # Select a child node based on the UCT (Upper Confidence Bound for Trees) formula
         if not node.children:
-            self.load_board_string(node.board_list)
+            self.load_board_string(node)
             legal_moves = self.generate_moves(node)
             for move in legal_moves:
                 self.choose_move(move, node, idx)
@@ -164,7 +188,7 @@ class MCST:
         root_child = self.best_child_finder(node)
         while root_child.children:
             root_child = self.best_child_finder(root_child)
-        self.load_board_string(root_child.board_list)
+        self.load_board_string(root_child)
         legal_moves = self.generate_moves(root_child)
         for move in legal_moves:
             self.choose_move(move, root_child, idx)
@@ -193,7 +217,7 @@ class MCST:
         # return ((child.wins/child.visits) + exploration_weight * (math.sqrt(math.log(top_node.visits)/child.visits)))
         return (child.wins / max(1, child.visits)) + explor_weight * (math.sqrt(math.log(t_node.visits) / max(1, child.visits)))
 
-    def test_piece_placement(self, piece: BoardNode, node: MCSTNode) -> bool:
+    def test_piece_placement(self, piece: BoardNode, node: MCSTNode) -> Tuple[bool, BoardNode]:
         if (piece.stone_here_color != cf.unicode_none):
             return (False, piece)
         elif (self.ko_rule_break(piece, node) is True):
@@ -205,10 +229,12 @@ class MCST:
         else:
             return (True, piece)
 
-    def ko_rule_break(self, piece: BoardNode, node: MCSTNode) -> bool:
+    def ko_rule_break(self, piece: BoardNode, node: MCSTNode, simulate=False) -> bool:
         if self.self_death_rule(piece, node, node.whose_turn) > 0:
             return False
-        if piece in node.killed_last_turn:
+        if piece in node.killed_last_turn and not simulate:
+            return True
+        if piece in node.child_killed_last and simulate:
             return True
         return False
 
@@ -230,9 +256,9 @@ class MCST:
         return liberties
 
     def remove_stones(self, node: MCSTNode) -> None:
-        node.killed_last_turn.clear()
+        node.child_killed_last.clear()
         for position in node.visit_kill:
-            node.killed_last_turn.add(position)
+            node.child_killed_last.add(position)
             node.whose_turn.captured += 1  # is it necessary in this case?
             position.stone_here_color = cf.unicode_none
 
@@ -251,18 +277,25 @@ class MCST:
         return truth_value
 
     def expand(self, node: MCSTNode, idx):
-        self.load_board_string(node.board_list)
+        self.load_board_string(node)
         legal_moves = self.generate_moves(node)
         selected_move = random.choice(legal_moves)
         self.choose_move(selected_move, node, idx)
 
     def generate_moves(self, node: MCSTNode):
+        if self.cache_hash in self.cache:
+            legal_moves = list(self.cache[self.cache_hash])
+            legal_moves += ["Pass"]
+            return legal_moves
         legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]  # potential issue
-
+        legal_moves_set: Union[Set[None], Set[BoardNode]] = set()
         for board_node in self.inner.member_set:
             output = self.test_piece_placement(board_node, node)
             if output[0]:
                 legal_moves.append(output[1])
+                legal_moves_set.add(output[1])
+        cache_value = frozenset(legal_moves_set)
+        self.cache[self.cache_hash] = cache_value
 
         return legal_moves
 
@@ -272,7 +305,7 @@ class MCST:
             if "Pass" not in node.move_choices.keys():
                 node.switch_player()
                 child_node = MCSTNode((node.whose_turn, node.not_whose_turn),
-                                      original_board, node.killed_last_turn,
+                                      original_board, node.child_killed_last,
                                       ("Pass", idx, node.not_whose_turn.color), parent=node)
                 node.children.append(child_node)
                 node.move_choices["Pass"] = child_node
@@ -284,26 +317,28 @@ class MCST:
             self.expand_play_move(location_tuple, node)
             board_list = self.make_board_string()
             child_node = MCSTNode((node.whose_turn, node.not_whose_turn),
-                                  board_list, node.killed_last_turn,
+                                  board_list, node.child_killed_last,  # Why does location tuple do [1] and then [0]?
                                   ((location_tuple[1], location_tuple[0]), idx, node.not_whose_turn.color), parent=node)
-            self.load_board_string(original_board)
+            self.reload_board_string(original_board)
             node.children.append(child_node)
             node.move_choices[f"{location_tuple}"] = child_node
         return
 
     def expand_play_move(self, move, node: MCSTNode):
         new_board_piece: BoardNode = self.board[move[0]][move[1]]
-        node.killed_last_turn.clear()
+        node.child_killed_last.clear()
         self.kill_stones(new_board_piece, node, testing=False)
         new_board_piece.stone_here_color = node.whose_turn.unicode
         node.switch_player()
 
     def simulate_play_move(self, piece: Union[BoardNode, Literal['Pass']], node: MCSTNode):
+        node.child_killed_last.clear()
         if piece != "Pass":
-            node.killed_last_turn.clear()
             self.kill_stones(piece, node, testing=False)
             piece.stone_here_color = node.whose_turn.unicode
-            node.switch_player()
+        node.switch_player()
+        node.generate_cache()
+        self.cache_hash = node.cache_hash
 
     def is_game_over(self, node: MCSTNode):
         p1_legal_moves = self.generate_moves(node)
@@ -321,14 +356,15 @@ class MCST:
     def backup_info(self, node: MCSTNode):
         backup_board = self.make_board_string()
         backup_whose = node.whose_turn.color
-        if node.killed_last_turn:
+        if node.killed_last_turn:  # Unsure if necessary now, test
             backup_killed_last = BoardString("Temp holding", node.killed_last_turn)
         else:
             backup_killed_last = set()
         return (backup_board, backup_whose, backup_killed_last)
 
     def load_backup(self, backup, node: MCSTNode) -> None:
-        self.load_board_string(backup[0])
+        self.reload_board_string(backup[0])
+        #Potential issue, check if this inherently relies/calls on load_board_string b4
 
         if backup[1] == cf.unicode_black:
             node.whose_turn = node.player_black
