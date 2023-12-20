@@ -9,15 +9,18 @@ from player import Player
 
 
 class MCSTNode:
-    def __init__(self, board: List[List[BoardNode]], board_list=None, turn_person: Tuple[Player, Player],
-                 inner: BoardString, outer: BoardString, killed_last: Union[Set[None], Set[BoardNode]] = set(),
+    def __init__(self, board: List[List[BoardNode]], turn_person: Tuple[Player, Player],
+                 inner: BoardString, outer: BoardString,  board_list=None, killed_last: Union[Set[None], Set[BoardNode]] = set(),
                  placement_location=((-1, -1), -1, -1), parent: Union[None, Type['MCSTNode']] = None) -> None:
         from scoringboard import BoardNode
         self.placement_choice = placement_location[0]
         self.choice_info = placement_location
         self.board: List[List[BoardNode]] = board   # change this to be a different representation
         if board_list:
+            self.board_list = board_list
             self.load_board_string(board_list)
+        else:
+            self.board_list = self.make_board_string()
         self.parent: Union[None, Type['MCSTNode']] = parent
         self.children: List[MCSTNode] = []
         self.move_choices = dict()
@@ -48,9 +51,9 @@ class MCSTNode:
         for xidx in range(len(self.board)):
             tempstr = ''
             for yidx in range(len(self.board)):
-                if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
+                if self.board[xidx][yidx].stone_here_color == cf.unicode_none:
                     tempstr += "0"
-                elif self.board[yidx][xidx].stone_here_color == cf.unicode_black:
+                elif self.board[xidx][yidx].stone_here_color == cf.unicode_black:
                     tempstr += '1'
                 else:
                     tempstr += '2'
@@ -72,8 +75,8 @@ class MCSTNode:
         return board_string_list
 
     def load_board_string(self, board_list):
-        for xidx in len(board_list):
-            for yidx in len(board_list):
+        for xidx in range(len(board_list)):
+            for yidx in range(len(board_list)):
                 if board_list[yidx][xidx] == "0":
                     self.board[yidx][xidx].stone_here_color = cf.unicode_none
                 elif board_list[yidx][xidx] == "1":
@@ -243,6 +246,26 @@ class MCST:
             piece.stone_here_color = cf.unicode_none
         return truth_value
 
+    def expand(self, node: MCSTNode, idx):
+        print('a')
+
+        print("b")
+        node.load_board_string(node.board_list)
+        node.print_board()
+        legal_moves = self.generate_moves(node, True)
+        print(len(legal_moves))
+        for item in legal_moves:
+            print(item)
+        selected_move = random.choice(legal_moves)
+        print(node.whose_turn.color)
+        print(selected_move)
+        print("\n\n\n")
+        node.print_board()
+        self.choose_move(selected_move, node, idx)
+        print("\n\n\n")
+        node.print_board()
+
+
     def generate_moves(self, node: MCSTNode, debug=False):
         legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]  # potential issue
         if debug:
@@ -263,8 +286,8 @@ class MCST:
             #print("Pass")
             if "Pass" not in node.move_choices.keys():
                 node.switch_player()
-                child_node = MCSTNode(node.board, original_board, (node.whose_turn, node.not_whose_turn),
-                                      node.inner, node.outer, node.killed_last_turn,
+                child_node = MCSTNode(node.board, (node.whose_turn, node.not_whose_turn),
+                                      node.inner, node.outer, original_board, node.killed_last_turn,
                                       ("Pass", idx, node.not_whose_turn.color), parent=node)
                 node.children.append(child_node)
                 node.move_choices["Pass"] = child_node
@@ -294,11 +317,14 @@ class MCST:
             board_list = node.make_board_string()
             #for board_node in node.inner.member_set:
             #    print(board_node.stone_here_color, board_node.col, board_node.row)
-            child_node = MCSTNode(node.board, board_list, (node.whose_turn, node.not_whose_turn),
-                                   node.inner, node.outer, node.killed_last_turn, 
+            child_node = MCSTNode(node.board, (node.whose_turn, node.not_whose_turn),
+                                   node.inner, node.outer, board_list, node.killed_last_turn,
                                     ((location_tuple[1], location_tuple[0]), idx, node.not_whose_turn.color), parent=node)
-            
+            node.print_board()
+
+            print("PLEASE WORK\nPLEASE WORK")
             node.load_board_string(original_board)
+            node.print_board()
             """for xidx in range(len(child_node.board)):
                 tempstr = ''
                 for yidx in range(len(child_node.board)):
@@ -335,16 +361,6 @@ class MCST:
             piece.stone_here_color = node.whose_turn.unicode
             node.switch_player()
 
-    def expand(self, node: MCSTNode, idx):
-        legal_moves = self.generate_moves(node, True)
-        print(len(legal_moves))
-        for item in legal_moves:
-            print(item)
-        selected_move = random.choice(legal_moves)
-        print(node.whose_turn.color)
-        print(selected_move)
-        print("\n\n\n")
-        self.choose_move(selected_move, node, idx)
 
 
     def is_game_over(self, node: MCSTNode):
@@ -362,21 +378,20 @@ class MCST:
         return False
 
     def backup_info(self, node: MCSTNode):
-        current_inner = copy.deepcopy(node.inner)
-        current_board = copy.deepcopy(node.board)
+        backup_board = node.make_board_string()
         backup_whose = copy.deepcopy(node.whose_turn)
-        backup_not_whose = copy.deepcopy(node.not_whose_turn)
+        backup_not_whose = copy.deepcopy(node.not_whose_turn) 
+        #TODO ^change it to something that just checks the cf.unicode and then updates
         backup_killed_last = copy.deepcopy(node.killed_last_turn)
-        return (current_inner, current_board, backup_whose, backup_not_whose, backup_killed_last)
+        return (backup_board, backup_whose, backup_not_whose, backup_killed_last)
 
     def load_backup(self,
                     backup, #Tuple[BoardString, List[List[BoardNode], Player, Player, Union[Set[None], Set[BoardNode]]]]
                     node: MCSTNode) -> None:
-        node.inner = backup[0]
-        node.board = backup[1]
-        node.whose_turn = backup[2]
-        node.not_whose_turn = backup[3]
-        node.killed_last_turn = backup[4]
+        node.load_board_string(backup[0])
+        node.whose_turn = backup[1]
+        node.not_whose_turn = backup[2]
+        node.killed_last_turn = backup[3]
 
     def simulate(self, node: MCSTNode):
         # There has to be a check here regarding passing, as otherwise this will just infinitely pass...
