@@ -5,33 +5,32 @@ from player import Player
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
-import sys
-#sys.setrecursionlimit(10000)
+# Go and fix copy.deepcopy/remove it where i can or make my own version of things...
 
 
 class ScoringBoard(GoBoard):
     def __init__(self, parent_obj: Type[GoBoard]) -> None:
         # Not a optimal way of doing this but whatever...
         self.parent = parent_obj
-        self.board_size: int = copy.deepcopy(self.parent.board_size)
-        self.defaults: bool = copy.deepcopy(self.parent.defaults)
+        self.board_size: int = self.parent.board_size
+        self.defaults: bool = self.parent.defaults
         self.board: List[List[BoardNode]] = copy.deepcopy(self.parent.board)
         self.player_black: Player = copy.deepcopy(self.parent.player_black)
         self.player_white: Player = copy.deepcopy(self.parent.player_white)
         self.whose_turn: Player = copy.deepcopy(self.parent.whose_turn)
         self.not_whose_turn: Player = copy.deepcopy(self.parent.not_whose_turn)
-        self.times_passed: int = copy.deepcopy(self.parent.times_passed)
-        self.turn_num: int = copy.deepcopy(self.parent.turn_num)
+        self.times_passed: int = self.parent.times_passed
+        self.turn_num: int = self.parent.turn_num
         PPL_Type = List[Union[str, Tuple[str, int, int]]]
         self.position_played_log: PPL_Type = copy.deepcopy(self.parent.position_played_log)
         self.visit_kill: Set[BoardNode] = copy.deepcopy(self.parent.visit_kill)
         self.killed_last_turn: Set[BoardNode] = copy.deepcopy(self.parent.killed_last_turn)
         KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
         self.killed_log: KL_Type = copy.deepcopy(self.parent.killed_log)
-        self.mode: str = copy.deepcopy(self.parent.mode)
-        self.mode_change: bool = copy.deepcopy(self.parent.mode_change)
-        self.handicap: Tuple[bool, str, int] = copy.deepcopy(self.parent.handicap)
-        self.pygame_board_vals: Tuple[int, float, float] = copy.deepcopy(self.parent.pygame_board_vals)
+        self.mode: str = self.parent.mode
+        self.mode_change: bool = self.parent.mode_change
+        self.handicap: Tuple[bool, str, int] = self.parent.handicap
+        self.pygame_board_vals: Tuple[int, float, float] = self.parent.pygame_board_vals
         self.empty_strings: List[BoardString] = list()
         self.black_strings: List[BoardString] = list()
         self.white_strings: List[BoardString] = list()
@@ -64,9 +63,9 @@ class ScoringBoard(GoBoard):
                     # to return the correct area inside of the outer_str. Just modify a floodfill.
                     mixed_str_color.append(mixed_str)
                     outer_str_color.append(outer_str)
-                    #m_str: BoardString = mixed_str
-                    #o_str: BoardString = outer_str
-                    #self.draw_dead_stones(m_str, o_str)
+                    # m_str: BoardString = mixed_str
+                    # o_str: BoardString = outer_str
+                    # self.draw_dead_stones(m_str, o_str)
 
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
         for item in m_str.member_set:
@@ -105,8 +104,7 @@ class ScoringBoard(GoBoard):
 
         from mcst import CollectionOfMCST
         self.remove_safe_strings()
-        
-
+        print(f"the amount is {len(self.mixed_string_for_black)} (mixed for black) and {len(self.mixed_string_for_white)} (white)")
         import cProfile
         import pstats
         with cProfile.Profile() as pr:
@@ -115,23 +113,19 @@ class ScoringBoard(GoBoard):
                 self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
             for idx in range(len(self.mixed_string_for_white)):
                 self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])"""
-            self.MCST_collection = CollectionOfMCST(copy.deepcopy(self.board), self.outer_string_black, self.mixed_string_for_black,
+            self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                     self.outer_string_white, self.mixed_string_for_white,
-                                                    2, 20, (self.whose_turn, self.not_whose_turn))
+                                                    5000, 30, (self.whose_turn, self.not_whose_turn))
             # 100k
 
         stats = pstats.Stats(pr)
         stats.sort_stats(pstats.SortKey.TIME)
         stats.print_stats()
-
+        stats.dump_stats(filename="5000x30testing.prof")
         for idx in range(len(self.mixed_string_for_black)):
             self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
         for idx in range(len(self.mixed_string_for_white)):
             self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])
-
-        print("done")
-
-        print("double done")
 
     def remove_safe_strings(self):
         for idx in reversed(range(len(self.outer_string_black))):

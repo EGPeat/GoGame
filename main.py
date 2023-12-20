@@ -11,8 +11,9 @@ import threading
 # server thing doesnt handle me quitting rn
 # server thing for multiplayer for removing dead stones/etc
 # Typechecking setting in VSCode...
+# Go back and fix the x and y mixup
 
-#something in find_neighbor_get_string isn't working on simplest8.pkl...
+
 def play_game_main():
     window = ui.setup_menu()
 

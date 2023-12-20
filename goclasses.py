@@ -79,6 +79,7 @@ class BoardString():
         self.color: str = color
         self.member_set: Set[BoardNode] = member_set
         self.list_idx: List[Tuple[int, int]] = self.make_list_idx(member_set)
+        self.list_values: List[Tuple[int, int, Tuple[int, int, int]]] = self.make_list_values(member_set)
 
     def __str__(self) -> str:
         return (f"this is a board string of color {self.color} and with len of {len(self.list_idx)} and values {self.list_idx}\
@@ -94,6 +95,13 @@ class BoardString():
         self.xmin: int = sorting_list[0][0]
         self.ymax: int = max(sorting_list, key=itemgetter(1))[1]
         self.ymin: int = min(sorting_list, key=itemgetter(1))[1]
+        return sorting_list
+
+    def make_list_values(self, set_objects: Set[BoardNode]) -> List[Tuple[int, int, Tuple[int, int, int]]]:
+        sorting_list: List[Tuple[int, int]] = []
+        for item in set_objects:
+            sorting_list.append((item.col, item.row, (item.stone_here_color)))
+        sorting_list.sort(key=lambda item: (item[0], item[1]))
         return sorting_list
 
 
