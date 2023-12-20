@@ -54,11 +54,9 @@ class ScoringBoard(GoBoard):
                          outer_str_color: Union[List[None], List[BoardString]],
                          player: Player, player_strings: List[BoardString], unicode: Tuple[int, int, int]) -> None:
         while self.empty_strings:
-            print(len(self.empty_strings))
             obj: BoardString = self.empty_strings.pop()
             obj_obj: BoardNode = obj.member_set.pop()
             success, original_string = self.find_neighbor_get_string(obj_obj, unicode)
-            print(f"success is {success}")
             if success:
                 tmp = self.finding_correct_mixed_string(obj_obj, player.unicode, original_string, player_strings)
                 if tmp[0]:
@@ -66,9 +64,9 @@ class ScoringBoard(GoBoard):
                     # to return the correct area inside of the outer_str. Just modify a floodfill.
                     mixed_str_color.append(mixed_str)
                     outer_str_color.append(outer_str)
-                    # m_str: BoardString = mixed_str
-                    # o_str: BoardString = outer_str
-                    # self.draw_dead_stones(m_str, o_str)
+                    #m_str: BoardString = mixed_str
+                    #o_str: BoardString = outer_str
+                    #self.draw_dead_stones(m_str, o_str)
 
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
         for item in m_str.member_set:
@@ -95,28 +93,36 @@ class ScoringBoard(GoBoard):
         self.mixed_string_for_white: Union[List[None], List[BoardString]] = list()
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
         self.outer_string_white: Union[List[None], List[BoardString]] = list()
-        print("a")
+
         self.find_dead_stones(self.mixed_string_for_black, self.outer_string_black,
                               self.player_black, self.black_strings, cf.unicode_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
-        print("b")
+
         self.find_dead_stones(self.mixed_string_for_white, self.outer_string_white,
                               self.player_white, self.white_strings, cf.unicode_white)
 
         from mcst import CollectionOfMCST
-        print("c")
         self.remove_safe_strings()
-        for idx in range(len(self.mixed_string_for_black)):
-            self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
-        for idx in range(len(self.mixed_string_for_white)):
-            self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])
-        print("d")
-        self.MCST_collection = CollectionOfMCST(copy.deepcopy(self.board), self.outer_string_black, self.mixed_string_for_black,
-                                                self.outer_string_white, self.mixed_string_for_white,
-                                                10, 20, (self.whose_turn, self.not_whose_turn))
-        # 100k
+        
+
+        import cProfile
+        import pstats
+        with cProfile.Profile() as pr:
+
+            """for idx in range(len(self.mixed_string_for_black)):
+                self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
+            for idx in range(len(self.mixed_string_for_white)):
+                self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])"""
+            self.MCST_collection = CollectionOfMCST(copy.deepcopy(self.board), self.outer_string_black, self.mixed_string_for_black,
+                                                    self.outer_string_white, self.mixed_string_for_white,
+                                                    2, 20, (self.whose_turn, self.not_whose_turn))
+            # 100k
+
+        stats = pstats.Stats(pr)
+        stats.sort_stats(pstats.SortKey.TIME)
+        stats.print_stats()
 
         for idx in range(len(self.mixed_string_for_black)):
             self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
@@ -131,7 +137,7 @@ class ScoringBoard(GoBoard):
         for idx in reversed(range(len(self.outer_string_black))):
             removeable = True
             for item in self.mixed_string_for_black[idx].member_set:
-                if item.stone_here_color != cf.unicode_none:
+                if item.stone_here_color == cf.unicode_white:
                     removeable = False
             if removeable:
                 self.mixed_string_for_black.pop(idx)
@@ -140,7 +146,7 @@ class ScoringBoard(GoBoard):
         for idx in reversed(range(len(self.outer_string_white))):
             removeable = True
             for item in self.mixed_string_for_white[idx].member_set:
-                if item.stone_here_color != cf.unicode_none:
+                if item.stone_here_color == cf.unicode_black:
                     removeable = False
             if removeable:
                 self.mixed_string_for_white.pop(idx)
@@ -167,7 +173,8 @@ class ScoringBoard(GoBoard):
                 if recursive_result[0]:
                     break
             elif neighbor not in visited:
-                recursive_result = self.find_neighbor_get_string(neighbor, color, visited.copy())
+                recursive_result = self.find_neighbor_get_string(neighbor, color, visited)  # visited used to be visited.copy()
+                # But that caused awful performance. but might have been necessary
                 if recursive_result[0]:
                     break
         return recursive_result
