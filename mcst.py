@@ -77,16 +77,14 @@ class CollectionOfMCST:  # Unsure how to typehint init line
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
 
-        #for idx in range(len(self.black_MCSTS)):
-        #    print("black_MCSTS time")
-        #    print(self.black_MCSTS_tuple_list[idx][1])
-        #    output = self.black_MCSTS[idx].run_mcst()
-        #    self.black_MCSTS_tuple_list[idx].append(output)
-        #    print("NOT black_MCSTS time")
+        for idx in range(len(self.black_MCSTS)):
+            print("black_MCSTS time")
+            output = self.black_MCSTS[idx].run_mcst()
+            self.black_MCSTS_tuple_list[idx].append(output)
+            print("NOT black_MCSTS time")
 
         for idx in range(len(self.white_MCSTS)):
             print("white_MCSTS time")
-            print(self.white_MCSTS_tuple_list[idx][1])
             output = self.white_MCSTS[idx].run_mcst()
             self.white_MCSTS_tuple_list[idx].append(output)
             print("NOT white_MCSTS time")
@@ -99,6 +97,7 @@ class MCST:
         self.inner = inner_pieces
         self.outer = outer_pieces
         self.cache = {}
+        self.win_cache = {}
         self.cache_hash = None
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set = set()
@@ -220,19 +219,33 @@ class MCST:
         # return ((child.wins/child.visits) + exploration_weight * (math.sqrt(math.log(top_node.visits)/child.visits)))
         return (child.wins / max(1, child.visits)) + explor_weight * (math.sqrt(math.log(t_node.visits) / max(1, child.visits)))
 
-    def test_piece_placement(self, piece: BoardNode, node: MCSTNode, simulate=False) -> Tuple[bool, BoardNode]:
+    def test_piece_placement(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> Tuple[bool, BoardNode]:
         if (piece.stone_here_color != cf.unicode_none):
             return (False, piece)
-        elif (self.ko_rule_break(piece, node, simulate) is True):
+        elif (self.ko_rule_break(piece, node, simulate, final_test) is True):
             return (False, piece)
         elif (self.kill_stones(piece, node, testing=True) is True):
             return (True, piece)
         elif (self.self_death_rule(piece, node, node.whose_turn) == 0):
             return (False, piece)
+        elif self.fills_eye(piece, node) is True:
+            return (False, piece)
         else:
             return (True, piece)
 
-    def ko_rule_break(self, piece: BoardNode, node: MCSTNode, simulate=False) -> bool:
+    def fills_eye(self, piece: BoardNode, node: MCSTNode):
+        for neighbor in piece.connections:
+            if neighbor.stone_here_color != node.whose_turn.unicode:
+                return False
+        piece_diagonals = self.diagonals_setup(piece)
+        for item in piece_diagonals:
+            if item.stone_here_color != node.whose_turn.unicode:
+                return False
+        return True
+
+    def ko_rule_break(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> bool:
+        if final_test:
+            return False
         if self.self_death_rule(piece, node, node.whose_turn) > 0:
             return False
         if piece in node.killed_last_turn and not simulate:
@@ -262,7 +275,6 @@ class MCST:
         node.child_killed_last.clear()
         for position in node.visit_kill:
             node.child_killed_last.add(position)
-            node.whose_turn.captured += 1  # is it necessary in this case?
             position.stone_here_color = cf.unicode_none
 
     def kill_stones(self, piece: BoardNode, node: MCSTNode, testing: bool) -> bool:
@@ -282,7 +294,6 @@ class MCST:
     def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
@@ -303,15 +314,15 @@ class MCST:
         selected_move = random.choice(legal_moves)
         self.choose_move(selected_move, node, idx)
 
-    def generate_moves(self, node: MCSTNode, simulate=False):
+    def generate_moves(self, node: MCSTNode, simulate=False, final_test=False):
         if self.cache_hash in self.cache:
             legal_moves = list(self.cache[self.cache_hash])
             legal_moves += ["Pass"]
             return legal_moves
-        legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]  # potential issue
+        legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]
         legal_moves_set: Union[Set[None], Set[BoardNode]] = set()
         for board_node in self.inner.member_set:
-            output = self.test_piece_placement(board_node, node, simulate)
+            output = self.test_piece_placement(board_node, node, simulate, final_test)
             if output[0]:
                 legal_moves.append(output[1])
                 legal_moves_set.add(output[1])
@@ -357,22 +368,25 @@ class MCST:
         if piece != "Pass":
             self.kill_stones(piece, node, testing=False)
             piece.stone_here_color = node.whose_turn.unicode
+        self.switch_player_setup(node)
+
+    def switch_player_setup(self, node: MCSTNode):
         node.switch_player()
         node.board_list = self.make_board_string()
         node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
     def is_game_over(self, node: MCSTNode):
-        p1_legal_moves = self.generate_moves(node, True)
-        node.switch_player()
-        p2_legal_moves = self.generate_moves(node, True)
-        node.switch_player()
+        self.switch_player_setup(node)
+        p1_legal_moves = self.generate_moves(node, True, True)
+        self.switch_player_setup(node)
+        p2_legal_moves = self.generate_moves(node, True, True)
         if len(p1_legal_moves) == 1 and len(p2_legal_moves) == 1:
             # No legal moves for both players (aside from passing), so the game is over
             return True
         return False
 
-    def check_inner_kill(self):  # These functions suffer from 
+    def check_inner_kill(self):
         color = next(iter(self.outer.member_set)).stone_here_color
         for item in self.inner.member_set:
             if item.stone_here_color != color and item.stone_here_color != cf.unicode_none:
@@ -386,12 +400,8 @@ class MCST:
         if len(eye_list) == 1:
             return False
         for eye_area in eye_list:
-            print(type(eye_area))
-            print(type(eye_list))
-            print("check_inner_life")
             living_eyes += self.check_eye_life(eye_area, color)
         if living_eyes > 1:
-            print("The internal area is definitely alive (and further actions are only harmful)")
             return True
         else:
             return False
@@ -409,42 +419,17 @@ class MCST:
     def check_eye_life(self, eye_area: Set[BoardNode], color):
         color = self.color_switch(color)
         open_diagonals = 0
-        print(f"the type of eye_area in check_eye_life is {type(eye_area)}")
         for spot in eye_area:
-            print(f'the type of spot in check_eye_life is {type(spot)}')
             spot_diagonals = self.diagonals_setup(spot)
             for item in spot_diagonals:
                 if open_diagonals > 1:
                     return 0
                 if item not in eye_area and item.stone_here_color != color:
-                    # maybe ask if it's inside of the self.memberset.inner and then check_eye_life_helper?
-                    # and then some check for if it's in the edge
-                    if item.stone_here_color == spot.stone_here_color: # unsure if this is bad or not
-                        open_diagonals += 1
-                    elif item.stone_here_color == cf.unicode_none:
-                        open_diagonals += self.check_eye_life_helper(item, spot.stone_here_color, spot)
-        if open_diagonals < 2:
+                    open_diagonals += 1
+        if open_diagonals == 0:
             return 1
         else:
             return 0
-
-    def check_eye_life_helper(self, item: BoardNode, enemy_color, original_spot):
-        empty_and_enemy = self.flood_fill_two_colors(item, enemy_color)
-        color = self.color_switch(enemy_color)
-        open_diagonals = 0
-        for spot in empty_and_enemy[0]:
-            spot_diagonals = self.diagonals_setup(spot)
-            for item in spot_diagonals:
-                if open_diagonals > 1:
-                    return 0
-                if item not in empty_and_enemy and item.stone_here_color != color:
-                    if item.stone_here_color == spot.stone_here_color:
-                        open_diagonals += 1
-                    elif item.stone_here_color == cf.unicode_none:
-                        if item != original_spot:
-                            open_diagonals += self.check_eye_life_helper(item, spot.stone_here_color, spot)
-        if open_diagonals < 2:
-            return 1
 
     def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
         board_size = len(self.board)
@@ -480,60 +465,29 @@ class MCST:
         node.child_killed_last.clear()
 
     def simulate(self, node: MCSTNode):
-        # TODO: decide if it should stop two passes in a row, and how
         backup = self.backup_info(node)
         simulation_depth = 0
         while not self.is_game_over(node) and simulation_depth < self.max_simulation_depth:
             life_check = self.check_inner_life()
-            # Add in a new cache wrt game being finished, have this add to cache
-            print(f"hi this is inner_life {life_check}")
-            if life_check:
-                self.load_backup(backup, node)
-                return 0  # Internal area has alive enemy, therefore this is a loss.
             only_outside_color = self.check_inner_kill()
-            print(f"hi this is only_outside_color {only_outside_color}")
-            if only_outside_color:
+            if life_check or only_outside_color:
                 self.load_backup(backup, node)
+                if life_check:
+                    return 0  # Internal area has alive enemy, therefore this is a loss.
                 return 1
-
-            # This doesn't fully manage figuring out what is or isn't alive, as a player can place inside
-            # on the last move even if it would be dead
-            # But this would say that the whole thing should be counted alive in that case, which is wrong. Ask for advice.
-            #print("Round in simulation")
             legal_moves = self.generate_moves(node, True)
             if legal_moves:
                 selected_move = random.choice(legal_moves)
-                print(f"player {node.whose_turn.color} played {selected_move}")
-                self.print_board()
-                print("ok")
-
-                print("oh no")
                 self.simulate_play_move(selected_move, node)
                 simulation_depth += 1
             else:
                 self.load_backup(backup, node)
                 break
-
         unique_colors = {spot.stone_here_color for spot in self.inner.member_set}
         outer_item = next(iter(self.outer.member_set))
         if len(unique_colors) <= 2 and outer_item.stone_here_color in unique_colors:
-            print("answer is 1\n\n\n")
-            # Add in a new cache wrt game being finished, have this add to cache
             self.load_backup(backup, node)
             return 1
         else:
-            print("answer is 0\n\n\n")
-            # Add in a new cache wrt game being finished, have this add to cache
             self.load_backup(backup, node)
             return 0
-
-# add in some way for the game to check if all the area is of the right color and then end early
-# Should try checking somehow for if there is ez to see life
-'''
-Segment internal empty nodes or nodes with the outer color (but not the inner color, as this checks the inner colors life)
-Make sure to segment all nodes.
-if there is only 1 string, it doesn't have life.
-if there are two strings, you need to check that 3 of the diagonals of the string(area) are the internal color (black)
-But there is a case where 1 diagonal can be a empty space, if it's an eye
-'''
-# make the pkl loading load from another folder lol

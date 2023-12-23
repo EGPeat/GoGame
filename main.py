@@ -6,19 +6,13 @@ from server import start_home_server
 import threading
 # To do:
 # Add AI to game
-# Add MP to game
-# MCTS for scoring
 # server thing doesnt handle me quitting rn
 # server thing for multiplayer for removing dead stones/etc
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
-# look into flood_fill_two_colors. It might confuse itself with the colors?
-# the neighbor.stone_here_color == piece.stone_here_color vs neighbor.stone_here_color == second_color
-# Fix up the issue regarding the MCST and edge cases regarding eyes
+# Fix up the issue regarding the MCST and edge cases regarding eyes (talk to professor)
+# look into why white isn't winning as often as they should
 
-# Make rule to not have it close preexisting eyes
-# Make a check to have it end game if there are 2 perfect eyes already made
-# And let the randomness manage the other cases for now (but speak to professor eventually)
 
 def play_game_main():
     window = ui.setup_menu()
@@ -27,6 +21,11 @@ def play_game_main():
         event, _ = window.read()
 
         if event == "Choose File":
+            from os import chdir, getcwd, path
+            wd = getcwd()
+            full_path = path.join(wd, 'pklfiles')
+            if not wd.endswith('pklfiles'):
+                chdir(full_path)
             file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
             if file is None or file == "":
                 continue

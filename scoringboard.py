@@ -63,9 +63,6 @@ class ScoringBoard(GoBoard):
                     # to return the correct area inside of the outer_str. Just modify a floodfill.
                     mixed_str_color.append(mixed_str)
                     outer_str_color.append(outer_str)
-                    # m_str: BoardString = mixed_str
-                    # o_str: BoardString = outer_str
-                    # self.draw_dead_stones(m_str, o_str)
 
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
         for item in m_str.member_set:
@@ -115,8 +112,7 @@ class ScoringBoard(GoBoard):
                 self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])"""
             self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                     self.outer_string_white, self.mixed_string_for_white,
-                                                    10, 30, (self.whose_turn, self.not_whose_turn))
-            # 100k
+                                                    5000, 30, (self.whose_turn, self.not_whose_turn))
 
         stats = pstats.Stats(pr)
         stats.sort_stats(pstats.SortKey.TIME)
@@ -385,8 +381,8 @@ class ScoringBoard(GoBoard):
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
         neighboring_pieces = piece.connections
-        for neighbor in neighboring_pieces:
-            if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
+        for neighbor in neighboring_pieces:  # piece.stone_here_color might be for below
+            if neighbor.stone_here_color == cf.unicode_none and neighbor not in connected_pieces[0]:
                 self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
             elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
                 self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
