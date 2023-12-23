@@ -115,7 +115,7 @@ class ScoringBoard(GoBoard):
                 self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])"""
             self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                     self.outer_string_white, self.mixed_string_for_white,
-                                                    5000, 30, (self.whose_turn, self.not_whose_turn))
+                                                    10, 30, (self.whose_turn, self.not_whose_turn))
             # 100k
 
         stats = pstats.Stats(pr)
@@ -395,6 +395,7 @@ class ScoringBoard(GoBoard):
                 pass
         return connected_pieces
 
+    # Set 1 is the set of objects of the same color, Set two is the outside objects
     def flood_fill_with_outer(self, piece: BoardNode, outer_pieces: BoardString,
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:

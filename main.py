@@ -12,7 +12,13 @@ import threading
 # server thing for multiplayer for removing dead stones/etc
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
+# look into flood_fill_two_colors. It might confuse itself with the colors?
+# the neighbor.stone_here_color == piece.stone_here_color vs neighbor.stone_here_color == second_color
+# Fix up the issue regarding the MCST and edge cases regarding eyes
 
+# Make rule to not have it close preexisting eyes
+# Make a check to have it end game if there are 2 perfect eyes already made
+# And let the randomness manage the other cases for now (but speak to professor eventually)
 
 def play_game_main():
     window = ui.setup_menu()

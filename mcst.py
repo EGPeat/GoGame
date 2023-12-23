@@ -19,8 +19,8 @@ class MCSTNode:
         self.move_choices = dict()
         self.visits: int = 0
         self.wins: int = 0
-        self.killed_last_turn = killed_last  # Potential issue here wrt contamination
-        self.child_killed_last = set()  # Potential issue here wrt contamination
+        self.killed_last_turn = killed_last
+        self.child_killed_last = set()
         self.visit_kill: Set[BoardNode] = set()
         self.whose_turn = turn_person[0]
         self.not_whose_turn = turn_person[1]
@@ -42,13 +42,13 @@ class MCSTNode:
 
     def generate_cache(self):
         cache_hash = ""
-        if self.whose_turn.color == cf.unicode_black:
+        if self.whose_turn.color == "Black":
             cache_hash += "1"
-        elif self.whose_turn.color == cf.unicode_white:
+        elif self.whose_turn.color == "White":
             cache_hash += "2"
-        cache_hash.join(self.board_list)
+        cache_hash += ''.join(self.board_list)
         tuple_list = list()
-        for item in self.killed_last_turn:  # Unsure if it should be item.row or item.col first
+        for item in self.killed_last_turn:
             tpl = (item.row, item.col)
             tuple_list.append(tpl)
         sorted_tuple_list = sorted(tuple_list, key=lambda x: (x[0], x[1]))
@@ -77,12 +77,12 @@ class CollectionOfMCST:  # Unsure how to typehint init line
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
 
-        for idx in range(len(self.black_MCSTS)):
-            print("black_MCSTS time")
-            print(self.black_MCSTS_tuple_list[idx][1])
-            output = self.black_MCSTS[idx].run_mcst()
-            self.black_MCSTS_tuple_list[idx].append(output)
-            print("NOT black_MCSTS time")
+        #for idx in range(len(self.black_MCSTS)):
+        #    print("black_MCSTS time")
+        #    print(self.black_MCSTS_tuple_list[idx][1])
+        #    output = self.black_MCSTS[idx].run_mcst()
+        #    self.black_MCSTS_tuple_list[idx].append(output)
+        #    print("NOT black_MCSTS time")
 
         for idx in range(len(self.white_MCSTS)):
             print("white_MCSTS time")
@@ -100,10 +100,12 @@ class MCST:
         self.outer = outer_pieces
         self.cache = {}
         self.cache_hash = None
+        # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set = set()
         for pairing in inner_pieces.list_values:
             temp_set.add(self.board[pairing[1]][pairing[0]])
         self.inner = BoardString(inner_pieces.color, temp_set)
+        # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set = set()
         for pairing in outer_pieces.list_values:
             temp_set.add(self.board[pairing[1]][pairing[0]])
@@ -144,6 +146,7 @@ class MCST:
 
     def load_board_string(self, node: MCSTNode):
         self.reload_board_string(node.board_list)
+        node.cache_hash = node.generate_cache()  # Should be fine, but might be error
         self.cache_hash = node.cache_hash
 
     def reload_board_string(self, board_list):
@@ -217,10 +220,10 @@ class MCST:
         # return ((child.wins/child.visits) + exploration_weight * (math.sqrt(math.log(top_node.visits)/child.visits)))
         return (child.wins / max(1, child.visits)) + explor_weight * (math.sqrt(math.log(t_node.visits) / max(1, child.visits)))
 
-    def test_piece_placement(self, piece: BoardNode, node: MCSTNode) -> Tuple[bool, BoardNode]:
+    def test_piece_placement(self, piece: BoardNode, node: MCSTNode, simulate=False) -> Tuple[bool, BoardNode]:
         if (piece.stone_here_color != cf.unicode_none):
             return (False, piece)
-        elif (self.ko_rule_break(piece, node) is True):
+        elif (self.ko_rule_break(piece, node, simulate) is True):
             return (False, piece)
         elif (self.kill_stones(piece, node, testing=True) is True):
             return (True, piece)
@@ -276,13 +279,31 @@ class MCST:
             piece.stone_here_color = cf.unicode_none
         return truth_value
 
+    def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
+                              connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
+                                  None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+
+        if connected_pieces is None:
+            connected_pieces = (set(), set())
+        connected_pieces[0].add(piece)
+        neighboring_pieces = piece.connections
+        for neighbor in neighboring_pieces:
+            if neighbor.stone_here_color == cf.unicode_none and neighbor not in connected_pieces[0]:
+                self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
+            elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
+                self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
+            else:
+                connected_pieces[1].add(neighbor)
+                pass
+        return connected_pieces
+
     def expand(self, node: MCSTNode, idx):
         self.load_board_string(node)
         legal_moves = self.generate_moves(node)
         selected_move = random.choice(legal_moves)
         self.choose_move(selected_move, node, idx)
 
-    def generate_moves(self, node: MCSTNode):
+    def generate_moves(self, node: MCSTNode, simulate=False):
         if self.cache_hash in self.cache:
             legal_moves = list(self.cache[self.cache_hash])
             legal_moves += ["Pass"]
@@ -290,7 +311,7 @@ class MCST:
         legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]  # potential issue
         legal_moves_set: Union[Set[None], Set[BoardNode]] = set()
         for board_node in self.inner.member_set:
-            output = self.test_piece_placement(board_node, node)
+            output = self.test_piece_placement(board_node, node, simulate)
             if output[0]:
                 legal_moves.append(output[1])
                 legal_moves_set.add(output[1])
@@ -337,58 +358,156 @@ class MCST:
             self.kill_stones(piece, node, testing=False)
             piece.stone_here_color = node.whose_turn.unicode
         node.switch_player()
-        node.generate_cache()
+        node.board_list = self.make_board_string()
+        node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
     def is_game_over(self, node: MCSTNode):
-        p1_legal_moves = self.generate_moves(node)
+        p1_legal_moves = self.generate_moves(node, True)
         node.switch_player()
-        p2_legal_moves = self.generate_moves(node)
-        node.switch_player
-
+        p2_legal_moves = self.generate_moves(node, True)
+        node.switch_player()
         if len(p1_legal_moves) == 1 and len(p2_legal_moves) == 1:
             # No legal moves for both players (aside from passing), so the game is over
             return True
-
-        # Game is not over
         return False
+
+    def check_inner_kill(self):  # These functions suffer from 
+        color = next(iter(self.outer.member_set)).stone_here_color
+        for item in self.inner.member_set:
+            if item.stone_here_color != color and item.stone_here_color != cf.unicode_none:
+                return False
+        return True
+
+    def check_inner_life(self):
+        color = next(iter(self.outer.member_set)).stone_here_color
+        eye_list = self.making_eye_list(color)
+        living_eyes = 0
+        if len(eye_list) == 1:
+            return False
+        for eye_area in eye_list:
+            print(type(eye_area))
+            print(type(eye_list))
+            print("check_inner_life")
+            living_eyes += self.check_eye_life(eye_area, color)
+        if living_eyes > 1:
+            print("The internal area is definitely alive (and further actions are only harmful)")
+            return True
+        else:
+            return False
+
+    def making_eye_list(self, color):
+        full_eye_set = set()
+        eye_list = list()
+        for item in self.inner.member_set:
+            if item.stone_here_color == cf.unicode_none and item not in full_eye_set:
+                item_set = self.flood_fill_two_colors(item, color)
+                full_eye_set.update(item_set[0])
+                eye_list.append(item_set[0])
+        return eye_list
+
+    def check_eye_life(self, eye_area: Set[BoardNode], color):
+        color = self.color_switch(color)
+        open_diagonals = 0
+        print(f"the type of eye_area in check_eye_life is {type(eye_area)}")
+        for spot in eye_area:
+            print(f'the type of spot in check_eye_life is {type(spot)}')
+            spot_diagonals = self.diagonals_setup(spot)
+            for item in spot_diagonals:
+                if open_diagonals > 1:
+                    return 0
+                if item not in eye_area and item.stone_here_color != color:
+                    # maybe ask if it's inside of the self.memberset.inner and then check_eye_life_helper?
+                    # and then some check for if it's in the edge
+                    if item.stone_here_color == spot.stone_here_color: # unsure if this is bad or not
+                        open_diagonals += 1
+                    elif item.stone_here_color == cf.unicode_none:
+                        open_diagonals += self.check_eye_life_helper(item, spot.stone_here_color, spot)
+        if open_diagonals < 2:
+            return 1
+        else:
+            return 0
+
+    def check_eye_life_helper(self, item: BoardNode, enemy_color, original_spot):
+        empty_and_enemy = self.flood_fill_two_colors(item, enemy_color)
+        color = self.color_switch(enemy_color)
+        open_diagonals = 0
+        for spot in empty_and_enemy[0]:
+            spot_diagonals = self.diagonals_setup(spot)
+            for item in spot_diagonals:
+                if open_diagonals > 1:
+                    return 0
+                if item not in empty_and_enemy and item.stone_here_color != color:
+                    if item.stone_here_color == spot.stone_here_color:
+                        open_diagonals += 1
+                    elif item.stone_here_color == cf.unicode_none:
+                        if item != original_spot:
+                            open_diagonals += self.check_eye_life_helper(item, spot.stone_here_color, spot)
+        if open_diagonals < 2:
+            return 1
+
+    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+        board_size = len(self.board)
+        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+        diagonals = set()
+        for item in diagonal_change:
+            new_row, new_col = piece.row + item[0], piece.col + item[1]
+            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
+                diagonals.add(self.board[new_row][new_col])
+        return diagonals
+
+    def color_switch(self, original_color):
+        if original_color == cf.unicode_black:
+            return cf.unicode_white
+        elif original_color == cf.unicode_white:
+            return cf.unicode_black
 
     def backup_info(self, node: MCSTNode):
         backup_board = self.make_board_string()
         backup_whose = node.whose_turn.color
-        if node.killed_last_turn:  # Unsure if necessary now, test
-            backup_killed_last = BoardString("Temp holding", node.killed_last_turn)
-        else:
-            backup_killed_last = set()
-        return (backup_board, backup_whose, backup_killed_last)
+        backup_cache = node.cache_hash
+        return (backup_board, backup_whose, backup_cache)
 
     def load_backup(self, backup, node: MCSTNode) -> None:
         self.reload_board_string(backup[0])
-        #Potential issue, check if this inherently relies/calls on load_board_string b4
-
+        node.cache_hash = backup[2]
         if backup[1] == cf.unicode_black:
             node.whose_turn = node.player_black
             node.not_whose_turn = node.player_white
         else:
             node.whose_turn = node.player_white
             node.not_whose_turn = node.player_black
-
-        node.killed_last_turn = set()
-        if backup[2]:
-            for pairing in backup[2].list_values:
-                node.killed_last_turn.add(self.board[pairing[1]][pairing[0]])
+        node.child_killed_last.clear()
 
     def simulate(self, node: MCSTNode):
         # TODO: decide if it should stop two passes in a row, and how
         backup = self.backup_info(node)
         simulation_depth = 0
         while not self.is_game_over(node) and simulation_depth < self.max_simulation_depth:
+            life_check = self.check_inner_life()
+            # Add in a new cache wrt game being finished, have this add to cache
+            print(f"hi this is inner_life {life_check}")
+            if life_check:
+                self.load_backup(backup, node)
+                return 0  # Internal area has alive enemy, therefore this is a loss.
+            only_outside_color = self.check_inner_kill()
+            print(f"hi this is only_outside_color {only_outside_color}")
+            if only_outside_color:
+                self.load_backup(backup, node)
+                return 1
+
             # This doesn't fully manage figuring out what is or isn't alive, as a player can place inside
             # on the last move even if it would be dead
             # But this would say that the whole thing should be counted alive in that case, which is wrong. Ask for advice.
-            legal_moves = self.generate_moves(node)
+            #print("Round in simulation")
+            legal_moves = self.generate_moves(node, True)
             if legal_moves:
                 selected_move = random.choice(legal_moves)
+                print(f"player {node.whose_turn.color} played {selected_move}")
+                self.print_board()
+                print("ok")
+
+                print("oh no")
                 self.simulate_play_move(selected_move, node)
                 simulation_depth += 1
             else:
@@ -398,8 +517,23 @@ class MCST:
         unique_colors = {spot.stone_here_color for spot in self.inner.member_set}
         outer_item = next(iter(self.outer.member_set))
         if len(unique_colors) <= 2 and outer_item.stone_here_color in unique_colors:
+            print("answer is 1\n\n\n")
+            # Add in a new cache wrt game being finished, have this add to cache
             self.load_backup(backup, node)
             return 1
         else:
+            print("answer is 0\n\n\n")
+            # Add in a new cache wrt game being finished, have this add to cache
             self.load_backup(backup, node)
             return 0
+
+# add in some way for the game to check if all the area is of the right color and then end early
+# Should try checking somehow for if there is ez to see life
+'''
+Segment internal empty nodes or nodes with the outer color (but not the inner color, as this checks the inner colors life)
+Make sure to segment all nodes.
+if there is only 1 string, it doesn't have life.
+if there are two strings, you need to check that 3 of the diagonals of the string(area) are the internal color (black)
+But there is a case where 1 diagonal can be a empty space, if it's an eye
+'''
+# make the pkl loading load from another folder lol
