@@ -299,7 +299,8 @@ class GoBoard():
         self.refresh_board_pygame()
 
     def end_of_game(self) -> None:
-        self.pieces_into_sets()
+        from scoringboard import pieces_into_sets#!
+        self.pieces_into_sets()#!
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         self.save_pickle()

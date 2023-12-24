@@ -226,7 +226,7 @@ def hex_ui_setup():
         os.environ['SDL_VIDEODRIVER'] = "x11"
     elif platform.system() == "Windows":
         os.environ['SDL_VIDEODRIVER'] = 'windib'
-        screen = pygame.display.set_mode((700, 700))
+        _ = pygame.display.set_mode((700, 700))
         pygame.display.init()
         pygame.display.update()
         while True:
@@ -285,4 +285,4 @@ def server_info_button(text1, text2):
                       key='Scoring', justification='center')]]
     full_layout = [[layout_sidebar]]
 
-    window = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)
+    _ = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)

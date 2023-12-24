@@ -1,6 +1,6 @@
 import random
 import math
-from typing import Tuple, List, Set, Union, Optional, Type, Literal
+from typing import Tuple, List, Set, Union, Optional, Type, Literal, Dict, FrozenSet
 from scoringboard import BoardNode, BoardString
 import config as cf
 from player import Player
@@ -9,28 +9,32 @@ from player import Player
 class MCSTNode:
     def __init__(self, turn_person: Tuple[Player, Player],
                  board_list=None, killed_last: Union[Set[None], Set[BoardNode]] = set(),
-                 placement_location=((-1, -1), -1, -1), parent: Union[None, Type['MCSTNode']] = None) -> None:
+                 placement_location: Tuple[Union[str, Tuple[int, int]], int, Tuple[int, int, int]] = ((-1, -1), -1, -1),
+                 parent: Union[None, Type['MCSTNode']] = None) -> None:
         from scoringboard import BoardNode
         self.placement_choice = placement_location[0]
         self.choice_info = placement_location
-        self.board_list = board_list
+        self.board_list: List[str] = board_list
         self.parent: Union[None, Type['MCSTNode']] = parent
         self.children: List[MCSTNode] = []
-        self.move_choices = dict()
+        self.move_choices: Dict[str, BoardNode] = dict()
         self.visits: int = 0
         self.wins: int = 0
-        self.killed_last_turn = killed_last
-        self.child_killed_last = set()
+        self.killed_last_turn: Union[Set[None], Set[BoardNode]] = killed_last
+        self.child_killed_last: Union[Set[BoardNode], Set[None]] = set()
         self.visit_kill: Set[BoardNode] = set()
-        self.whose_turn = turn_person[0]
-        self.not_whose_turn = turn_person[1]
+        self.whose_turn: Player = turn_person[0]
+        self.not_whose_turn: Player = turn_person[1]
+        self.mcstnode_init()
+        self.cache_hash: str = self.generate_cache()
+
+    def mcstnode_init(self) -> None:
         if self.whose_turn.unicode == cf.unicode_black:
             self.player_black = self.whose_turn
             self.player_white = self.not_whose_turn
         else:
             self.player_black = self.not_whose_turn
             self.player_white = self.whose_turn
-        self.cache_hash = self.generate_cache()
 
     def switch_player(self) -> None:
         if self.whose_turn == self.player_black:
@@ -40,14 +44,14 @@ class MCSTNode:
             self.whose_turn = self.player_black
             self.not_whose_turn = self.player_white
 
-    def generate_cache(self):
-        cache_hash = ""
+    def generate_cache(self) -> str:
+        cache_hash: str = ""
         if self.whose_turn.color == "Black":
             cache_hash += "1"
         elif self.whose_turn.color == "White":
             cache_hash += "2"
         cache_hash += ''.join(self.board_list)
-        tuple_list = list()
+        tuple_list: List[Tuple[int, int]] = list()
         for item in self.killed_last_turn:
             tpl = (item.row, item.col)
             tuple_list.append(tpl)
@@ -58,14 +62,16 @@ class MCSTNode:
         return cache_hash
 
 
-class CollectionOfMCST:  # Unsure how to typehint init line
+class CollectionOfMCST:
     def __init__(self, board: List[List[BoardNode]], black_outer: List[BoardString], black_inner: List[BoardString],
                  white_outer: List[BoardString], white_inner: List[BoardString],
                  iterations: int, max_sim_depth: int, players: Tuple[Player, Player]) -> None:
-        self.black_MCSTS_tuple_list = list()
+        self.black_MCSTS_tuple_list: List[Tuple[BoardString, BoardString, MCST]] = list()
         self.black_MCSTS: List[MCST] = list()
-        self.white_MCSTS_tuple_list = list()
+        self.white_MCSTS_tuple_list: List[Tuple[BoardString, BoardString, MCST]] = list()
         self.white_MCSTS: List[MCST] = list()
+        self.black_MCSTS_final: List[Tuple[BoardString, BoardString, MCST, bool]] = list()
+        self.white_MCSTS_final: List[Tuple[BoardString, BoardString, MCST, bool]] = list()
 
         for idx in range(len(black_outer)):
             temp: MCST = MCST(board, black_outer[idx], black_inner[idx], iterations, max_sim_depth, players)
@@ -73,17 +79,23 @@ class CollectionOfMCST:  # Unsure how to typehint init line
             self.black_MCSTS_tuple_list.append([black_outer[idx], black_inner[idx], temp])
 
         for idx in range(len(white_outer)):
-            temp = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
+            temp: MCST = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
         for idx in range(len(self.black_MCSTS)):
-            print(self.black_MCSTS_tuple_list[idx][1])
-            output = self.black_MCSTS[idx].run_mcst()
-            self.black_MCSTS_tuple_list[idx].append(output)
+            item = self.black_MCSTS_tuple_list[idx]
+            # print(item[1])
+            output: bool = self.black_MCSTS[idx].run_mcst()
+            self.black_MCSTS_final.append((item[0], item[1], item[2], output))
+            # print(self.black_MCSTS_final[idx])
+            # print('\n\n')
         for idx in range(len(self.white_MCSTS)):
-            print(self.white_MCSTS_tuple_list[idx][1])
-            output = self.white_MCSTS[idx].run_mcst()
-            self.white_MCSTS_tuple_list[idx].append(output)
+            item = self.white_MCSTS_tuple_list[idx]
+            # print(item[1])
+            output: bool = self.white_MCSTS[idx].run_mcst()  # If output is true, it means you kill the internal pieces
+            self.white_MCSTS_final.append((item[0], item[1], item[2], output))
+            # print(self.white_MCSTS_final[idx])
+            # print('\n\n')
 
 
 class MCST:
@@ -92,29 +104,31 @@ class MCST:
         self.board = board
         self.inner = inner_pieces
         self.outer = outer_pieces
-        self.cache = {}
-        self.win_cache = {}
-        self.cache_hash = None
+        self.cache: Dict[str, FrozenSet[BoardNode]] = {}
+        self.win_cache: Dict[str, Tuple[int, int]] = {}
+        self.cache_hash: str = None
+        self.secondary_init(inner_pieces, outer_pieces, turn_person)
+        self.iteration_number: int = iterations
+        self.max_simulation_depth = max_sim_depth
+
+    # Potential improvement/cleaning up
+    def secondary_init(self, inner_pieces: BoardString, outer_pieces: BoardString, turn_person: Tuple[Player, Player]) -> None:
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
-        temp_set = set()
+        temp_set: Set[BoardNode] = set()
         for pairing in inner_pieces.list_values:
             temp_set.add(self.board[pairing[1]][pairing[0]])
         self.inner = BoardString(inner_pieces.color, temp_set)
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
-        temp_set = set()
+        temp_set: Set[BoardNode] = set()
         for pairing in outer_pieces.list_values:
             temp_set.add(self.board[pairing[1]][pairing[0]])
         self.outer = BoardString(outer_pieces.color, temp_set)
         board_list_for_root = self.make_board_string()
-
         self.root: MCSTNode = MCSTNode(turn_person, board_list_for_root, placement_location=("Root", -1, -1))
-        self.iteration_number: int = iterations
-        self.remove_these = None
-        self.max_simulation_depth = max_sim_depth
 
-    def print_board(self):
+    def print_board(self) -> None:
         for xidx in range(len(self.board)):
-            tempstr = ''
+            tempstr: str = ''
             for yidx in range(len(self.board)):
                 if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
                     tempstr += "\u26D4"
@@ -125,10 +139,10 @@ class MCST:
             print(f'{tempstr}')
         print('\n\n')
 
-    def make_board_string(self):
-        board_string_list = list()
+    def make_board_string(self) -> List[str]:   # Target of optimization
+        board_string_list: List[str] = list()
         for xidx in range(len(self.board)):
-            tempstr = ''
+            tempstr: str = ''
             for yidx in range(len(self.board)):
                 if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
                     tempstr += "0"
@@ -139,12 +153,12 @@ class MCST:
             board_string_list.append(tempstr)
         return board_string_list
 
-    def load_board_string(self, node: MCSTNode):
+    def load_board_string(self, node: MCSTNode) -> None:
         self.reload_board_string(node.board_list)
         node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
-    def reload_board_string(self, board_list):
+    def reload_board_string(self, board_list: List[str]):
         for xidx in range(len(board_list)):
             for yidx in range(len(board_list)):
                 if board_list[xidx][yidx] == "0":
@@ -154,11 +168,11 @@ class MCST:
                 elif board_list[xidx][yidx] == "2":
                     self.board[yidx][xidx].stone_here_color = cf.unicode_white
 
-    def run_mcst(self):
+    def run_mcst(self) -> bool:
         for idx in range(self.iteration_number):
             selected_node = self.select(self.root, idx)
             self.expand(selected_node, idx)
-            result = self.simulate(selected_node)
+            result: int = self.simulate(selected_node)
             self.backpropagate(selected_node, result)
         if self.root.wins >= self.iteration_number//2:
             print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
@@ -167,13 +181,13 @@ class MCST:
             print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return False
 
-    def backpropagate(self, node, result):
+    def backpropagate(self, node: MCSTNode, result: int) -> None:
         while node is not None:
             node.visits += 1
             node.wins += result
             node = node.parent
 
-    def select(self, node: MCSTNode, idx):
+    def select(self, node: MCSTNode, idx: int) -> MCSTNode:
         if self.is_winning_state(node):
             return node
         if not node.children:
@@ -194,7 +208,7 @@ class MCST:
             self.choose_move(move, root_child, idx)
         return root_child
 
-    def is_winning_state(self, node: MCSTNode):
+    def is_winning_state(self, node: MCSTNode) -> bool:
         if node.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[node.cache_hash[1:]]
             if cache_value[0] == 1:
@@ -202,9 +216,9 @@ class MCST:
             else:
                 return False
 
-    def best_child_finder(self, node: MCSTNode):
+    def best_child_finder(self, node: MCSTNode) -> MCSTNode:
         # current_best_val = float('-inf')
-        current_best_child = None
+        current_best_child: MCSTNode = None
 
         # for child in node.children:
         #    child_val = self.get_UCB_score(child)
@@ -215,7 +229,7 @@ class MCST:
         current_best_child = random.choice(node.children)
         return current_best_child
 
-    def get_UCB_score(self, child: MCSTNode):
+    def get_UCB_score(self, child: MCSTNode) -> float:
         explor_weight = 1.4
         # if child.visits == 0:
         #    return float('inf')
@@ -239,7 +253,7 @@ class MCST:
         else:
             return (True, piece)
 
-    def fills_eye(self, piece: BoardNode, node: MCSTNode):
+    def fills_eye(self, piece: BoardNode, node: MCSTNode) -> bool:
         for neighbor in piece.connections:
             if neighbor.stone_here_color != node.whose_turn.unicode:
                 return False
@@ -261,7 +275,7 @@ class MCST:
         return False
 
     def self_death_rule(self, piece: BoardNode, node: MCSTNode, which_player: Player,
-                        visited: Optional[Set[BoardNode]] = None) -> int:
+                        visited: Optional[Set[BoardNode]] = None) -> int:  # Target of optimization
         if visited is None:
             visited: Set[BoardNode] = set()
         visited.add(piece)
@@ -299,7 +313,7 @@ class MCST:
 
     def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
-                                  None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+                                  None, Tuple[Set[BoardNode], Set[BoardNode]]]:  # Target of optimization
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
@@ -314,7 +328,7 @@ class MCST:
                 pass
         return connected_pieces
 
-    def expand(self, node: MCSTNode, idx):
+    def expand(self, node: MCSTNode, idx) -> None:
         self.load_board_string(node)
         legal_moves = self.generate_moves(node)
         selected_move = random.choice(legal_moves)
@@ -322,7 +336,7 @@ class MCST:
             return
         self.choose_move(selected_move, node, idx)
 
-    def generate_moves(self, node: MCSTNode, simulate=False, final_test=False):
+    def generate_moves(self, node: MCSTNode, simulate=False, final_test=False) -> List[Union[BoardNode, Literal["Pass"]]]:
         if self.cache_hash in self.cache:
             legal_moves = list(self.cache[self.cache_hash])
             legal_moves += ["Pass"]
@@ -339,7 +353,7 @@ class MCST:
 
         return legal_moves
 
-    def choose_move(self, selected_move: Union[BoardNode, Literal["Pass"]], node: MCSTNode, idx):
+    def choose_move(self, selected_move: Union[BoardNode, Literal["Pass"]], node: MCSTNode, idx) -> None:
         original_board = self.make_board_string()
         if selected_move == "Pass":
             if "Pass" not in node.move_choices.keys():
@@ -366,14 +380,14 @@ class MCST:
             node.switch_player()
         return
 
-    def expand_play_move(self, move, node: MCSTNode):
+    def expand_play_move(self, move, node: MCSTNode) -> None:
         new_board_piece: BoardNode = self.board[move[0]][move[1]]
         node.child_killed_last.clear()
         self.kill_stones(new_board_piece, node, testing=False)
         new_board_piece.stone_here_color = node.whose_turn.unicode
         node.switch_player()
 
-    def simulate_play_move(self, piece: Union[BoardNode, Literal['Pass']], node: MCSTNode):
+    def simulate_play_move(self, piece: Union[BoardNode, Literal['Pass']], node: MCSTNode) -> None:
         node.child_killed_last.clear()
         if piece != "Pass":
             self.kill_stones(piece, node, testing=False)
@@ -386,7 +400,7 @@ class MCST:
         node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
-    def is_game_over(self, node: MCSTNode):
+    def is_game_over(self, node: MCSTNode) -> bool:
         if self.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[self.cache_hash[1:]]
             if cache_value[0] == 1:
@@ -412,14 +426,14 @@ class MCST:
             return True
         return False
 
-    def check_inner_kill(self):
+    def check_inner_kill(self) -> bool:
         color = next(iter(self.outer.member_set)).stone_here_color
         for item in self.inner.member_set:
             if item.stone_here_color != color and item.stone_here_color != cf.unicode_none:
                 return False
         return True
 
-    def check_inner_life(self):
+    def check_inner_life(self) -> bool:
         color = next(iter(self.outer.member_set)).stone_here_color
         eye_list = self.making_eye_list(color)
         living_eyes = 0
@@ -432,9 +446,9 @@ class MCST:
         else:
             return False
 
-    def making_eye_list(self, color):
-        full_eye_set = set()
-        eye_list = list()
+    def making_eye_list(self, color) -> List[Set[BoardNode]]:
+        full_eye_set: Set[BoardNode] = set()
+        eye_list: List[Set[BoardNode]] = list()
         for item in self.inner.member_set:
             if item.stone_here_color == cf.unicode_none and item not in full_eye_set:
                 item_set = self.flood_fill_two_colors(item, color)
@@ -442,9 +456,9 @@ class MCST:
                 eye_list.append(item_set[0])
         return eye_list
 
-    def check_eye_life(self, eye_area: Set[BoardNode], color):
+    def check_eye_life(self, eye_area: Set[BoardNode], color) -> Literal[1, 0]:
         color = self.color_switch(color)
-        open_diagonals = 0
+        open_diagonals: int = 0
         for spot in eye_area:
             spot_diagonals = self.diagonals_setup(spot)
             for item in spot_diagonals:
@@ -467,19 +481,19 @@ class MCST:
                 diagonals.add(self.board[new_row][new_col])
         return diagonals
 
-    def color_switch(self, original_color):
+    def color_switch(self, original_color) -> Tuple[int, int, int]:
         if original_color == cf.unicode_black:
             return cf.unicode_white
         elif original_color == cf.unicode_white:
             return cf.unicode_black
 
-    def backup_info(self, node: MCSTNode):
+    def backup_info(self, node: MCSTNode) -> Tuple[List[str], str, str]:
         backup_board = self.make_board_string()
         backup_whose = node.whose_turn.color
         backup_cache = node.cache_hash
         return (backup_board, backup_whose, backup_cache)
 
-    def load_backup(self, backup, node: MCSTNode) -> None:
+    def load_backup(self, backup: Tuple[List[str], str, str], node: MCSTNode) -> None:
         self.reload_board_string(backup[0])
         node.cache_hash = backup[2]
         if backup[1] == cf.unicode_black:
@@ -490,15 +504,14 @@ class MCST:
             node.not_whose_turn = node.player_black
         node.child_killed_last.clear()
 
-    def simulate(self, node: MCSTNode):
-
+    def simulate(self, node: MCSTNode) -> Literal[1, 0]:
         if self.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[self.cache_hash[1:]]
             if cache_value[0] == 1:
                 return cache_value[1]
 
         backup = self.backup_info(node)
-        simulation_depth = 0
+        simulation_depth: int = 0
         while not self.is_game_over(node) and simulation_depth < self.max_simulation_depth:
             legal_moves = self.generate_moves(node, True)
             if legal_moves:
@@ -530,5 +543,3 @@ class MCST:
 For training AI, have each turn a board_hash generated, as well as a text representation of the move played.
 Add this to a list or other data structure and then feed to AI.
 """
-# not correctly calculating the two eyes thing on the line.pkl?
-#and not properly checking for children when generating new kids?

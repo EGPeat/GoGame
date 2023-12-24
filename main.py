@@ -11,7 +11,6 @@ import threading
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
 # Fix up the issue regarding the MCST and edge cases regarding eyes (talk to professor)
-# look into why white isn't winning as often as they should
 
 
 def play_game_main():
