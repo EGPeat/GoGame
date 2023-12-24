@@ -76,18 +76,14 @@ class CollectionOfMCST:  # Unsure how to typehint init line
             temp = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
-
         for idx in range(len(self.black_MCSTS)):
-            print("black_MCSTS time")
+            print(self.black_MCSTS_tuple_list[idx][1])
             output = self.black_MCSTS[idx].run_mcst()
             self.black_MCSTS_tuple_list[idx].append(output)
-            print("NOT black_MCSTS time")
-
         for idx in range(len(self.white_MCSTS)):
-            print("white_MCSTS time")
+            print(self.white_MCSTS_tuple_list[idx][1])
             output = self.white_MCSTS[idx].run_mcst()
             self.white_MCSTS_tuple_list[idx].append(output)
-            print("NOT white_MCSTS time")
 
 
 class MCST:
@@ -145,7 +141,7 @@ class MCST:
 
     def load_board_string(self, node: MCSTNode):
         self.reload_board_string(node.board_list)
-        node.cache_hash = node.generate_cache()  # Should be fine, but might be error
+        node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
     def reload_board_string(self, board_list):
@@ -164,7 +160,6 @@ class MCST:
             self.expand(selected_node, idx)
             result = self.simulate(selected_node)
             self.backpropagate(selected_node, result)
-
         if self.root.wins >= self.iteration_number//2:
             print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return True  # This means the internal pieces should be counted as dead
@@ -179,7 +174,8 @@ class MCST:
             node = node.parent
 
     def select(self, node: MCSTNode, idx):
-        # Select a child node based on the UCT (Upper Confidence Bound for Trees) formula
+        if self.is_winning_state(node):
+            return node
         if not node.children:
             self.load_board_string(node)
             legal_moves = self.generate_moves(node)
@@ -191,10 +187,20 @@ class MCST:
         while root_child.children:
             root_child = self.best_child_finder(root_child)
         self.load_board_string(root_child)
+        if self.is_winning_state(root_child):
+            return root_child
         legal_moves = self.generate_moves(root_child)
         for move in legal_moves:
             self.choose_move(move, root_child, idx)
         return root_child
+
+    def is_winning_state(self, node: MCSTNode):
+        if node.cache_hash[1:] in self.win_cache:
+            cache_value = self.win_cache[node.cache_hash[1:]]
+            if cache_value[0] == 1:
+                return True
+            else:
+                return False
 
     def best_child_finder(self, node: MCSTNode):
         # current_best_val = float('-inf')
@@ -312,6 +318,8 @@ class MCST:
         self.load_board_string(node)
         legal_moves = self.generate_moves(node)
         selected_move = random.choice(legal_moves)
+        if self.is_winning_state(node):
+            return
         self.choose_move(selected_move, node, idx)
 
     def generate_moves(self, node: MCSTNode, simulate=False, final_test=False):
@@ -341,6 +349,7 @@ class MCST:
                                       ("Pass", idx, node.not_whose_turn.color), parent=node)
                 node.children.append(child_node)
                 node.move_choices["Pass"] = child_node
+                node.switch_player()
             return
 
         location_tuple = (selected_move.row, selected_move.col)
@@ -354,6 +363,7 @@ class MCST:
             self.reload_board_string(original_board)
             node.children.append(child_node)
             node.move_choices[f"{location_tuple}"] = child_node
+            node.switch_player()
         return
 
     def expand_play_move(self, move, node: MCSTNode):
@@ -377,6 +387,22 @@ class MCST:
         self.cache_hash = node.cache_hash
 
     def is_game_over(self, node: MCSTNode):
+        if self.cache_hash[1:] in self.win_cache:
+            cache_value = self.win_cache[self.cache_hash[1:]]
+            if cache_value[0] == 1:
+                return True
+            else:
+                return False
+
+        life_check = self.check_inner_life()
+        only_outside_color = self.check_inner_kill()
+        if life_check or only_outside_color:
+            if life_check:
+                self.win_cache[self.cache_hash[1:]] = (1, 0)
+            else:
+                self.win_cache[self.cache_hash[1:]] = (1, 1)
+            return True
+
         self.switch_player_setup(node)
         p1_legal_moves = self.generate_moves(node, True, True)
         self.switch_player_setup(node)
@@ -465,29 +491,44 @@ class MCST:
         node.child_killed_last.clear()
 
     def simulate(self, node: MCSTNode):
+
+        if self.cache_hash[1:] in self.win_cache:
+            cache_value = self.win_cache[self.cache_hash[1:]]
+            if cache_value[0] == 1:
+                return cache_value[1]
+
         backup = self.backup_info(node)
         simulation_depth = 0
         while not self.is_game_over(node) and simulation_depth < self.max_simulation_depth:
-            life_check = self.check_inner_life()
-            only_outside_color = self.check_inner_kill()
-            if life_check or only_outside_color:
-                self.load_backup(backup, node)
-                if life_check:
-                    return 0  # Internal area has alive enemy, therefore this is a loss.
-                return 1
             legal_moves = self.generate_moves(node, True)
             if legal_moves:
+                self.win_cache[self.cache_hash[1:]] = (0, 0)
                 selected_move = random.choice(legal_moves)
                 self.simulate_play_move(selected_move, node)
                 simulation_depth += 1
             else:
                 self.load_backup(backup, node)
                 break
+        if self.cache_hash[1:] in self.win_cache:
+            cache_value = self.win_cache[self.cache_hash[1:]]
+            if cache_value[0] == 1:
+                self.load_backup(backup, node)
+                return cache_value[1]
         unique_colors = {spot.stone_here_color for spot in self.inner.member_set}
         outer_item = next(iter(self.outer.member_set))
         if len(unique_colors) <= 2 and outer_item.stone_here_color in unique_colors:
+            self.win_cache[self.cache_hash[1:]] = (1, 1)
             self.load_backup(backup, node)
             return 1
         else:
+            self.win_cache[self.cache_hash[1:]] = (1, 0)
             self.load_backup(backup, node)
             return 0
+
+
+"""
+For training AI, have each turn a board_hash generated, as well as a text representation of the move played.
+Add this to a list or other data structure and then feed to AI.
+"""
+# not correctly calculating the two eyes thing on the line.pkl?
+#and not properly checking for children when generating new kids?

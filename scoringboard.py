@@ -102,26 +102,21 @@ class ScoringBoard(GoBoard):
         from mcst import CollectionOfMCST
         self.remove_safe_strings()
         print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
-        import cProfile
-        import pstats
-        with cProfile.Profile() as pr:
+        # import cProfile
+        # import pstats
+        # with cProfile.Profile() as pr:
+        self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
+                                                self.outer_string_white, self.mixed_string_for_white,
+                                                5000, 30, (self.whose_turn, self.not_whose_turn))
 
-            """for idx in range(len(self.mixed_string_for_black)):
-                self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
-            for idx in range(len(self.mixed_string_for_white)):
-                self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])"""
-            self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
-                                                    self.outer_string_white, self.mixed_string_for_white,
-                                                    5000, 30, (self.whose_turn, self.not_whose_turn))
-
-        stats = pstats.Stats(pr)
-        stats.sort_stats(pstats.SortKey.TIME)
-        stats.print_stats()
-        stats.dump_stats(filename="5000x30testingv3.prof")
-        for idx in range(len(self.mixed_string_for_black)):
-            self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
-        for idx in range(len(self.mixed_string_for_white)):
-            self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])
+        # stats = pstats.Stats(pr)
+        # stats.sort_stats(pstats.SortKey.TIME)
+        # stats.print_stats()
+        # stats.dump_stats(filename="5000x30testingv3.prof")
+        # for idx in range(len(self.mixed_string_for_black)):
+        #    self.draw_dead_stones(self.mixed_string_for_black[idx], self.outer_string_black[idx])
+        # for idx in range(len(self.mixed_string_for_white)):
+        #    self.draw_dead_stones(self.mixed_string_for_white[idx], self.outer_string_white[idx])
 
     def remove_safe_strings(self):
         for idx in reversed(range(len(self.outer_string_black))):

@@ -585,12 +585,18 @@ class GoBoard():
 
     def save_pickle(self) -> None:
         import pickle
+        from os import chdir, getcwd, path
+        wd = getcwd()
+        full_path = path.join(wd, 'pklfiles')
+        if not wd.endswith('pklfiles'):
+            chdir(full_path)
         filename: str = ''
         while len(filename) < 1:
             text: str = "Please write the name of the file you want to save to. Do not include the file extension."
             filename: str = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
             if filename is None:
                 return
+        filename = path.join(full_path, f"{filename}")
         with open(f"{filename}.pkl", "wb") as pkl_file:
             backup_window: sg.Window = self.window
             backup_screen: pygame.Surface = self.screen
