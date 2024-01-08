@@ -130,6 +130,23 @@ class GoBoard():
         self.backup_board: pygame.Surface = None
         self.pygame_board_vals: Tuple[int, float, float] = None  # (workable_area, distance, circle_radius)
 
+    def make_board_string(self) -> List[str]:   # Target of optimization
+        # It needs to add in the turn choice made somehow.
+        board_string: str = ''
+        if self.whose_turn == self.player_black:
+            board_string += '1'
+        else:
+            board_string += '2'
+        for xidx in range(len(self.board)):
+            for yidx in range(len(self.board)):
+                if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
+                    board_string += "0"
+                elif self.board[yidx][xidx].stone_here_color == cf.unicode_black:
+                    board_string += '1'
+                else:
+                    board_string += '2'
+        return board_string
+
     def setup_board(self) -> List[List[BoardNode]]:
         board: List[List[BoardNode]] = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         for node in board:
@@ -186,7 +203,7 @@ class GoBoard():
 
     def play_game_view_endgame(self) -> None:
         self.refresh_board_pygame()
-        event, values = self.window.read()
+        event, _ = self.window.read()
         if event == "Exit Game":
             from main import play_game_main
             self.close_window()
@@ -203,7 +220,7 @@ class GoBoard():
             self.window["Res"].update("Quit Program")
         self.mode_change = False
 
-    def scoring_block(self) -> None:
+    def scoring_block(self) -> bool:
         while self.mode != "Finished":
             if self.mode_change:
                 self.switch_button_mode()
@@ -220,10 +237,8 @@ class GoBoard():
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        self.making_score_board_object()
-        # self.dealing_with_dead_stones()
-        # self.counting_territory()
-        # self.end_of_game()
+        winner = self.making_score_board_object()
+        return winner
 
     def resuming_scoring_buffer(self, text) -> None:
         self.turn_num += 1
@@ -299,8 +314,6 @@ class GoBoard():
         self.refresh_board_pygame()
 
     def end_of_game(self) -> None:
-        from scoringboard import pieces_into_sets#!
-        self.pieces_into_sets()#!
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         self.save_pickle()
@@ -649,9 +662,11 @@ class GoBoard():
             self.window.close()
             ui.setup_board_window_pygame(self.scoring_dead)  # Makes a window, but nothing you click will do anything
             self.scoring_dead.refresh_board_pygame()
-            self.scoring_dead.dealing_with_dead_stones()
+            winner = self.scoring_dead.dealing_with_dead_stones()
+            return winner
         elif platform.system() == "Windows":
             self.close_window()
             ui.setup_board_window_pygame(self.scoring_dead)
             self.scoring_dead.refresh_board_pygame()
-            self.scoring_dead.dealing_with_dead_stones()
+            winner = self.scoring_dead.dealing_with_dead_stones()
+            return winner

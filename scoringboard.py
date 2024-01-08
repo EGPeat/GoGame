@@ -77,7 +77,7 @@ class ScoringBoard(GoBoard):
         # sleep(0.2)
         self.refresh_board_pygame()
 
-    def dealing_with_dead_stones(self) -> None:
+    def dealing_with_dead_stones(self) -> bool:
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
         self.making_go_board_strings(self.black_set, cf.unicode_black, False)
@@ -121,6 +121,8 @@ class ScoringBoard(GoBoard):
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
         self.refresh_board_pygame()
+        winner = self.counting_territory()
+        return winner
         # stats = pstats.Stats(pr)
         # stats.sort_stats(pstats.SortKey.TIME)
         # stats.print_stats()
@@ -194,9 +196,19 @@ class ScoringBoard(GoBoard):
                 return True, item
         return (False, -1)
 
-    def counting_territory(self) -> None:  # something somewhere makes row and col switch...
+    def counting_territory(self) -> Union[None, bool]:  # something somewhere makes row and col switch...
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
+        self.end_of_game()
+        pb = self.player_black
+        pw = self.player_white
+        player_black_score = pb.komi + pb.territory + len(self.black_set)
+        player_white_score = pw.komi + pw.territory + len(self.white_set)
+        difference = player_black_score - player_white_score
+        if difference > 0:
+            return 1  # Might be a more descriptive way to have it say who won, which could be better for training an AI...
+        else:
+            return -1
 
     def mixed_string_set_removal(self, connections_set: Set[BoardNode], color: Tuple[int, int, int]) -> None:
         while connections_set:

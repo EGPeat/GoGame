@@ -542,4 +542,5 @@ class MCST:
 """
 For training AI, have each turn a board_hash generated, as well as a text representation of the move played.
 Add this to a list or other data structure and then feed to AI.
+How to have the AI know when to consider the game done/close to done???
 """

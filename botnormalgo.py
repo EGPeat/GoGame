@@ -10,6 +10,9 @@ from random import randrange
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
     def __init__(self, board_size=19, defaults=True):
         super().__init__(board_size, defaults)
+        self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = None  # Might be Tuple of placement, or maybe a string
+        self.ai_info_full: Tuple[List[Tuple[str, Tuple[int, int]]], bool] = None
+        # Currently there isn't any way to figure out/have the game stop...
 
     def play_game(self, fromFile: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
         if self.mode == "Playing":
@@ -39,7 +42,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             self.handicap = hc.custom_handicap(False)
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
-                self.play_turn()
+                self.play_turn()  # Change this to true if you want it to be bot vs bot
             elif self.whose_turn == self.player_white:
                 self.play_turn(True)
 
@@ -47,11 +50,13 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.times_passed = 0
         self.resuming_scoring_buffer("Scoring")
         ui.end_game_popup()
-        self.scoring_block()
+        winner = self.scoring_block()
+        self.ai_info_full = (self.ai_training_info, winner) #!
 
     def play_turn(self, bot: Optional[bool] = False) -> None:
         ui.update_scoring(self)
         truth_value: bool = False
+        placement = None
         while not truth_value:
             if not bot:
                 event, values = self.window.read()
@@ -68,8 +73,9 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                     row, col = values['-GRAPH-']
                     found_piece, piece = self.find_piece_click([row, col])
                 else:  # ! Black Box Func for now
-                    row = randrange(0, 9)
-                    col = randrange(0, 9)
+                    row = randrange(0, self.board_size)
+                    col = randrange(0, self.board_size)
+                    placement: Tuple = (row, col)
                     piece = self.board[row][col]
                     found_piece = True
                 # self.combined_network.send(f"{piece.row, piece.col} ")
@@ -87,6 +93,8 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
+        turn_string = (self.make_board_string(), placement)
+        self.ai_training_info.append(turn_string)
         self.switch_player()
         return
 
