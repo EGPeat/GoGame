@@ -7,6 +7,14 @@ from multiprocessing import Value
 
 
 def threaded_client(conn: socket, other_conn: socket, last_send_time):
+    '''
+    Handles communication with a client in a separate thread.
+
+    Args:
+        conn (socket): The socket connection for the current client.
+        other_conn (socket): The socket connection for the other client.
+        last_send_time: Shared variable to store the last send time.
+    '''
     conn.send(str.encode(str(conn)))
     reply = ""
     while True:
@@ -35,6 +43,12 @@ def threaded_client(conn: socket, other_conn: socket, last_send_time):
 
 
 def start_home_server(result_queue):
+    '''
+    Starts the home server and handles client connections.
+
+    Args:
+        result_queue: A queue to store server information.
+    '''
     server = '0.0.0.0'
     # server =  socket.gethostbyname(socket.gethostname())
     # from random import randint

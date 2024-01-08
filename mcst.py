@@ -29,6 +29,7 @@ class MCSTNode:
         self.cache_hash: str = self.generate_cache()
 
     def mcstnode_init(self) -> None:
+        '''Initialize the MCST nodes player values'''
         if self.whose_turn.unicode == cf.unicode_black:
             self.player_black = self.whose_turn
             self.player_white = self.not_whose_turn
@@ -37,6 +38,7 @@ class MCSTNode:
             self.player_white = self.whose_turn
 
     def switch_player(self) -> None:
+        '''Switches which players turn it is.'''
         if self.whose_turn == self.player_black:
             self.whose_turn = self.player_white
             self.not_whose_turn = self.player_black
@@ -45,6 +47,13 @@ class MCSTNode:
             self.not_whose_turn = self.player_white
 
     def generate_cache(self) -> str:
+        '''
+        Generate a string representation of the current game board to use for hashing purposes.
+
+        Returns a string representing the board state, where each character represents the color of a stone.
+        '1' for black, '2' for white, and '0' for an empty intersection.
+        The first character represents the player's turn (1 for black, 2 for white).
+        '''
         cache_hash: str = ""
         if self.whose_turn.color == "Black":
             cache_hash += "1"
@@ -113,6 +122,7 @@ class MCST:
 
     # Potential improvement/cleaning up
     def secondary_init(self, inner_pieces: BoardString, outer_pieces: BoardString, turn_person: Tuple[Player, Player]) -> None:
+        '''Helper function for init.'''
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set: Set[BoardNode] = set()
         for pairing in inner_pieces.list_values:
@@ -127,6 +137,7 @@ class MCST:
         self.root: MCSTNode = MCSTNode(turn_person, board_list_for_root, placement_location=("Root", -1, -1))
 
     def print_board(self) -> None:
+        '''Prints the board to the terminal.'''
         for xidx in range(len(self.board)):
             tempstr: str = ''
             for yidx in range(len(self.board)):
@@ -140,6 +151,13 @@ class MCST:
         print('\n\n')
 
     def make_board_string(self) -> List[str]:   # Target of optimization
+        '''
+        Generate a string representation of the current game board.
+
+        Returns a string representing the board state, where each character represents the color of a stone.
+        '1' for black, '2' for white, and '0' for an empty intersection.
+        The first character represents the player's turn (1 for black, 2 for white).
+        '''
         board_string_list: List[str] = list()
         for xidx in range(len(self.board)):
             tempstr: str = ''
@@ -154,11 +172,13 @@ class MCST:
         return board_string_list
 
     def load_board_string(self, node: MCSTNode) -> None:
+        '''Changes the self.board to represent the hash provided by node.board_list. Also generates a hash'''
         self.reload_board_string(node.board_list)
         node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
     def reload_board_string(self, board_list: List[str]):
+        '''Changes the self.board to represent the hash provided by node.board_list.'''
         for xidx in range(len(board_list)):
             for yidx in range(len(board_list)):
                 if board_list[xidx][yidx] == "0":
@@ -169,6 +189,12 @@ class MCST:
                     self.board[yidx][xidx].stone_here_color = cf.unicode_white
 
     def run_mcst(self) -> bool:
+        """
+        Run the Monte Carlo Search Tree (MCST) algorithm.
+
+        Returns:
+            bool: True if the internal pieces should be counted as dead, False otherwise.
+        """
         for idx in range(self.iteration_number):
             selected_node = self.select(self.root, idx)
             self.expand(selected_node, idx)
@@ -182,12 +208,14 @@ class MCST:
             return False
 
     def backpropagate(self, node: MCSTNode, result: int) -> None:
+        '''Backpropagates the result of a simulation through the tree.'''
         while node is not None:
             node.visits += 1
             node.wins += result
             node = node.parent
 
     def select(self, node: MCSTNode, idx: int) -> MCSTNode:
+        '''Selects a node for expansion, as well as generates child nodes.'''
         if self.is_winning_state(node):
             return node
         if not node.children:
@@ -209,6 +237,7 @@ class MCST:
         return root_child
 
     def is_winning_state(self, node: MCSTNode) -> bool:
+        '''Checks if the current node represents a winning state.'''
         if node.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[node.cache_hash[1:]]
             if cache_value[0] == 1:
@@ -217,6 +246,7 @@ class MCST:
                 return False
 
     def best_child_finder(self, node: MCSTNode) -> MCSTNode:
+        '''Finds the best child of the given node.'''
         # current_best_val = float('-inf')
         current_best_child: MCSTNode = None
 
@@ -230,6 +260,7 @@ class MCST:
         return current_best_child
 
     def get_UCB_score(self, child: MCSTNode) -> float:
+        '''Calculate the Upper Confidence Bound (UCB) score for a given child node.'''
         explor_weight = 1.4
         # if child.visits == 0:
         #    return float('inf')
@@ -240,6 +271,7 @@ class MCST:
         return (child.wins / max(1, child.visits)) + explor_weight * (math.sqrt(math.log(t_node.visits) / max(1, child.visits)))
 
     def test_piece_placement(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> Tuple[bool, BoardNode]:
+        '''Tests if placing a piece in that location would break the rules of go.'''
         if (piece.stone_here_color != cf.unicode_none):
             return (False, piece)
         elif (self.ko_rule_break(piece, node, simulate, final_test) is True):
@@ -254,6 +286,7 @@ class MCST:
             return (True, piece)
 
     def fills_eye(self, piece: BoardNode, node: MCSTNode) -> bool:
+        '''Check if placing a stone in the given position would fill an eye.'''
         for neighbor in piece.connections:
             if neighbor.stone_here_color != node.whose_turn.unicode:
                 return False
@@ -264,6 +297,7 @@ class MCST:
         return True
 
     def ko_rule_break(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> bool:
+        '''Checks if placing a piece breaks the ko rule.'''
         if final_test:
             return False
         if self.self_death_rule(piece, node, node.whose_turn) > 0:
@@ -276,6 +310,7 @@ class MCST:
 
     def self_death_rule(self, piece: BoardNode, node: MCSTNode, which_player: Player,
                         visited: Optional[Set[BoardNode]] = None) -> int:  # Target of optimization
+        '''Uses recursive BFS to find liberties and connected pieces of the same type, returns the number of liberties'''
         if visited is None:
             visited: Set[BoardNode] = set()
         visited.add(piece)
@@ -292,12 +327,17 @@ class MCST:
         return liberties
 
     def remove_stones(self, node: MCSTNode) -> None:
+        '''Removes stones marked for removal and updates the player's captured count.'''
         node.child_killed_last.clear()
         for position in node.visit_kill:
             node.child_killed_last.add(position)
             position.stone_here_color = cf.unicode_none
 
     def kill_stones(self, piece: BoardNode, node: MCSTNode, testing: bool) -> bool:
+        '''
+        Determines if placing a piece kills opponent's stones and removes them if needed.
+        Returns True if placing the piece kills stones, False otherwise.
+        '''
         piece.stone_here_color: Tuple[int, int, int] = node.whose_turn.unicode
         neighboring_pieces: Set[BoardNode] = piece.connections
         truth_value: bool = False
@@ -314,6 +354,7 @@ class MCST:
     def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:  # Target of optimization
+        '''Perform flood fill to identify connected pieces for two colors.'''
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
@@ -329,6 +370,7 @@ class MCST:
         return connected_pieces
 
     def expand(self, node: MCSTNode, idx) -> None:
+        '''Expand the MCST by choosing a move and creating a child node.'''
         self.load_board_string(node)
         legal_moves = self.generate_moves(node)
         selected_move = random.choice(legal_moves)
@@ -337,6 +379,10 @@ class MCST:
         self.choose_move(selected_move, node, idx)
 
     def generate_moves(self, node: MCSTNode, simulate=False, final_test=False) -> List[Union[BoardNode, Literal["Pass"]]]:
+        '''
+        Generates a list of legal moves for the given node based on the current board state.
+        Caches the result for future use.
+        '''
         if self.cache_hash in self.cache:
             legal_moves = list(self.cache[self.cache_hash])
             legal_moves += ["Pass"]
@@ -354,6 +400,7 @@ class MCST:
         return legal_moves
 
     def choose_move(self, selected_move: Union[BoardNode, Literal["Pass"]], node: MCSTNode, idx) -> None:
+        '''Choose a move and expand the MCST with the selected move.'''
         original_board = self.make_board_string()
         if selected_move == "Pass":
             if "Pass" not in node.move_choices.keys():
@@ -381,6 +428,7 @@ class MCST:
         return
 
     def expand_play_move(self, move, node: MCSTNode) -> None:
+        '''Expands the MCST by playing the given move on the board.'''
         new_board_piece: BoardNode = self.board[move[0]][move[1]]
         node.child_killed_last.clear()
         self.kill_stones(new_board_piece, node, testing=False)
@@ -388,6 +436,7 @@ class MCST:
         node.switch_player()
 
     def simulate_play_move(self, piece: Union[BoardNode, Literal['Pass']], node: MCSTNode) -> None:
+        '''Simulates playing a move on the board and updates the MCST node accordingly.'''
         node.child_killed_last.clear()
         if piece != "Pass":
             self.kill_stones(piece, node, testing=False)
@@ -395,12 +444,14 @@ class MCST:
         self.switch_player_setup(node)
 
     def switch_player_setup(self, node: MCSTNode):
+        '''Switches the player turn in the MCST and updates the board state accordingly.'''
         node.switch_player()
         node.board_list = self.make_board_string()
         node.cache_hash = node.generate_cache()
         self.cache_hash = node.cache_hash
 
     def is_game_over(self, node: MCSTNode) -> bool:
+        '''Checks if the game is over by examining various game-ending conditions.'''
         if self.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[self.cache_hash[1:]]
             if cache_value[0] == 1:
@@ -427,6 +478,7 @@ class MCST:
         return False
 
     def check_inner_kill(self) -> bool:
+        '''Checks if all stones in the inner region have the same color.'''
         color = next(iter(self.outer.member_set)).stone_here_color
         for item in self.inner.member_set:
             if item.stone_here_color != color and item.stone_here_color != cf.unicode_none:
@@ -434,6 +486,7 @@ class MCST:
         return True
 
     def check_inner_life(self) -> bool:
+        '''Checks if there is more than one living eye in the inner region.'''
         color = next(iter(self.outer.member_set)).stone_here_color
         eye_list = self.making_eye_list(color)
         living_eyes = 0
@@ -447,6 +500,7 @@ class MCST:
             return False
 
     def making_eye_list(self, color) -> List[Set[BoardNode]]:
+        '''Generates a list of eye areas in the inner region for the specified color.'''
         full_eye_set: Set[BoardNode] = set()
         eye_list: List[Set[BoardNode]] = list()
         for item in self.inner.member_set:
@@ -457,6 +511,7 @@ class MCST:
         return eye_list
 
     def check_eye_life(self, eye_area: Set[BoardNode], color) -> Literal[1, 0]:
+        '''Checks if an eye area is alive for the specified color.'''
         color = self.color_switch(color)
         open_diagonals: int = 0
         for spot in eye_area:
@@ -472,6 +527,7 @@ class MCST:
             return 0
 
     def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
         board_size = len(self.board)
         diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
         diagonals = set()
@@ -482,18 +538,29 @@ class MCST:
         return diagonals
 
     def color_switch(self, original_color) -> Tuple[int, int, int]:
+        '''Switches the color from black to white and vice versa.'''
         if original_color == cf.unicode_black:
             return cf.unicode_white
         elif original_color == cf.unicode_white:
             return cf.unicode_black
 
     def backup_info(self, node: MCSTNode) -> Tuple[List[str], str, str]:
+        """
+        Backs up essential information from the current MCST node.
+
+        Args:
+            node (MCSTNode): The current node in the MCST.
+
+        Returns:
+            Tuple[List[str], str, str]: Backup information - board state, current player's color, and cache hash.
+        """
         backup_board = self.make_board_string()
         backup_whose = node.whose_turn.color
         backup_cache = node.cache_hash
         return (backup_board, backup_whose, backup_cache)
 
     def load_backup(self, backup: Tuple[List[str], str, str], node: MCSTNode) -> None:
+        '''Loads backup information into the current state of the MCST node.'''
         self.reload_board_string(backup[0])
         node.cache_hash = backup[2]
         if backup[1] == cf.unicode_black:
@@ -505,6 +572,15 @@ class MCST:
         node.child_killed_last.clear()
 
     def simulate(self, node: MCSTNode) -> Literal[1, 0]:
+        """
+        Simulates a game to determine the outcome for the current MCST node.
+
+        Args:
+            node: The current node in the MCST.
+
+        Returns:
+            Literal[1, 0]: 1 if the current player wins, 0 otherwise.
+        """
         if self.cache_hash[1:] in self.win_cache:
             cache_value = self.win_cache[self.cache_hash[1:]]
             if cache_value[0] == 1:

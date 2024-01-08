@@ -13,8 +13,8 @@ def pt(input):
     print(type(input))
 
 
-# Starts the game, asking for user input regarding the size of the board.
 def start_game() -> int:
+    '''Starts the game, asking for user input regarding the size of the board.'''
     info = "Please click the size you wish to have your Go Board as."
 
     layout = [[sg.Text(info)],
@@ -22,7 +22,7 @@ def start_game() -> int:
               sg.Button("13x13", font=('Arial Bold', 16)),
               sg.Button("19x19", font=('Arial Bold', 16))]]
     window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
-    option, option2 = window2.read()
+    option, _ = window2.read()
     window2.close()
     if option == "9x9":
         return 9
@@ -33,6 +33,7 @@ def start_game() -> int:
 
 
 def handicap_person_gui() -> str:
+    '''Asks for user input regarding which player will get a handicap'''
     info = "Please enter some information regarding a handicap. Which player will get a handicap?"
 
     layout = [[sg.Text(info)],
@@ -40,13 +41,14 @@ def handicap_person_gui() -> str:
               sg.Button("White", font=('Arial Bold', 16))],
               [sg.Button("I don't want a handicap", font=('Arial Bold', 16))]]
     window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
-    option, option2 = window2.read()
+    option, _ = window2.read()
     window2.close()
     return option
 
 
 def handicap_number_gui(board_size: int) -> int:
-    info = "Please enter some information regarding a handicap. Which player will get a handicap?"
+    '''Asks for user input regarding the handicap size'''
+    info = "Please enter some information regarding a handicap. How large is the handicap?"
     deflt = ('Arial Bold', 16)
     layout = [[sg.Text(info)],
               [sg.Button("1", font=deflt), sg.Button("2", font=deflt), sg.Button("3", font=deflt)],
@@ -59,13 +61,13 @@ def handicap_number_gui(board_size: int) -> int:
         window2 = sg.Window('Game Screen', layout2, size=(200, 200), finalize=True)
     else:
         window2 = sg.Window('Game Screen', layout, size=(200, 200), finalize=True)
-    option, option2 = window2.read()
+    option, _ = window2.read()
     window2.close()
     return int(option)
 
 
-# Sets up the main window using PySimpleGUI
 def setup_menu():
+    '''Sets up the main window using PySimpleGUI'''
     layout = [
         [sg.Text(text='Welcome to Evan\'s Go Game ',
                  font=('Arial Bold', 20),
@@ -90,9 +92,9 @@ def setup_menu():
     return window
 
 
-# Sets up the window for playing the game using PySimpleGUI
 def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
-    # Many thanks to the following github demo for PySimpleGUI
+    '''Sets up the window for playing the game using PySimpleGUI'''
+    # Many thanks to the following github demo from PySimpleGUI
     # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
     text = f"It is currently {game_board.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
@@ -129,12 +131,12 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     game_board.window = window
     if platform.system() == "Linux":
         while True:  # For some reason this is required
-            event, values = window.read(timeout=100)
+            _, _ = window.read(timeout=100)
             pygame.display.update()
             break
     pygame.display.init()
     while True:  # For some reason this is required
-        event, values = window.read(timeout=100)
+        _, _ = window.read(timeout=100)
         pygame.display.update()
         break
     screen.fill(pygame.Color(200, 162, 200))
@@ -146,6 +148,7 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
 
 
 def validation_gui(info1, var_type):
+    '''Makes sure the player enters a valid type of information.'''
     output = None
     while output is None:
         sg.popup(info1, line_width=42, auto_close=True, auto_close_duration=15)
@@ -155,6 +158,7 @@ def validation_gui(info1, var_type):
 
 
 def update_scoring(self):
+    '''Updates the scoring in the PySimpleGui window.'''
     text = f"It is currently {self.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {self.turn_num}\n\n\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
     Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\n\n\
@@ -188,16 +192,19 @@ def end_game_popup_two(self):
 
 
 def default_popup_no_button(info, time):
+    '''Popup with some pre-defined default values'''
     sg.popup_no_buttons(info, non_blocking=True, font=('Arial Bold', 15),
                         auto_close=True, auto_close_duration=time)
 
 
 def def_popup(info, time):
+    '''Popup with some pre-defined default values'''
     sg.popup(info, line_width=42, auto_close=True, auto_close_duration=time)
 
 
 def hex_ui_setup():
-    # Many thanks to the following github demo for PySimpleGUI
+    '''Sets up the Hex UI using PySimpleGUI and Pygame integration.'''
+    # Many thanks to the following github demo from PySimpleGUI
     # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
     text = "It is currently PLACEHOLDER turn. \n"
     layout_buttons = [
@@ -237,6 +244,7 @@ def hex_ui_setup():
 
 
 def draw_gameboard(game_board, screen):
+    '''Draws the gameboard using pygame'''
     workable_area: int = 620
     distance: float = workable_area / (game_board.board_size - 1)
     circle_radius: float = distance / 3
@@ -260,6 +268,7 @@ def draw_gameboard(game_board, screen):
 
 
 def stars_pygame(self, window, circle_radius: float, setup: bool = False):
+    '''Draws the stars on the gameboard using pygame'''
     size: int = self.board_size
     lst9: List[Tuple[int, int]] = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
     lst_not_9: List[Tuple[int, int]] = ((3, 3), (size - 4, 3), (size - 4, size - 4), (3, size - 4))
@@ -280,6 +289,7 @@ def stars_pygame(self, window, circle_radius: float, setup: bool = False):
 
 
 def server_info_button(text1, text2):
+    '''Displays server information in a PySimpleGUI window.'''
     text = f" Server IP is: {text2} \n Password is: {text1}"
     layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 20), size=20, expand_x=True, expand_y=True,
                       key='Scoring', justification='center')]]

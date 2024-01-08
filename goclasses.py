@@ -17,6 +17,15 @@ def choose_board_type(vs_bot: Optional[bool] = False,
                       vs_other_person: Optional[bool] = False,
                       password: Optional[int] = 13,
                       ip_address: Optional[str] = None, *args):
+    '''
+    This function is used in the initialization of the game...
+    It chooses the correct type of board (GoBoard, BotBoard, MultiplayerBoard) based on a set of inputs.
+    Parameters:
+        vs_bot: If True, play against an AI opponent.
+        vs_other_person: If True, play in multiplayer mode against another person.
+        password: variable representing a server password for human multiplayer game.
+        ip_address: ip address for the host of a human multiplayer game.
+    '''
     from botnormalgo import BotBoard
     from multiplayer import MultiplayerBoard
     if vs_bot:
@@ -35,30 +44,42 @@ def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
                       fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
                       vs_other_person: Optional[bool] = False,
                       password: Optional[int] = 13, ip_address: Optional[str] = None) -> None:
+    '''
+    Initialize a new game based on user preferences.
+    Parameters:
+        window: The pySimpleGui window for user interactions.
+        board_size: The size of the game board.
+        defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
+        fixes_handicap: If True, prompt the user to modify the handicap.
+        vs_bot: If True, play against an AI opponent.
+        vs_other_person: If True, play in multiplayer mode against another person.
+        password: variable representing a server password for human multiplayer game.
+        ip_address: ip address for the host of a human multiplayer game.
+    '''
 
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if only_modify_name == "No":
-            GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, True)
+            game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, True)
         else:
-            GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
+            game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
 
     else:
-        GameBoard = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
+        game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
 
     window.close()
-    ui.setup_board_window_pygame(GameBoard)
+    ui.setup_board_window_pygame(game_board)
     info: str = "Click yes if you want to modify the handicap"
     if fixes_handicap:
         modify_handicap: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if modify_handicap == "Yes":
-            GameBoard.play_game(fixes_handicap=True)
+            game_board.play_game(fixes_handicap=True)
         else:
-            GameBoard.play_game(fixes_handicap=False)
+            game_board.play_game(fixes_handicap=False)
 
     else:
-        GameBoard.play_game(fixes_handicap)
+        game_board.play_game(fixes_handicap)
 
 
 class BoardNode():
@@ -76,6 +97,20 @@ class BoardNode():
 
 class BoardString():
     def __init__(self, color: str, member_set: Set[BoardNode]) -> None:
+        '''
+        Initialize a BoardString object.
+
+        Parameters:
+            color (str): Color associated with the BoardString.
+            member_set (Set[BoardNode]): Set of BoardNode objects representing the board state.
+
+        Attributes:
+            color (str): Color associated with the BoardString.
+            member_set (Set[BoardNode]): Set of BoardNode objects representing the board state.
+            list_idx: List of sorted indices (col, row) of member_set.
+            list_values: List of sorted values (col, row, stone_color) of member_set.
+            xmax, xmin, ymax, ymin: maximum and minimum values for the rows and columns.
+        '''
         self.color: str = color
         self.member_set: Set[BoardNode] = member_set
         self.list_idx: List[Tuple[int, int]] = self.make_list_idx(member_set)
@@ -86,10 +121,20 @@ class BoardString():
              and a xmax and xmin of {self.xmax, self.xmin}, and a ymax and ymin of {self.ymax, self.ymin}")
 
     def make_list_idx(self, set_objects: Set[BoardNode]) -> List[Tuple[int, int]]:
+        '''
+        Generate a sorted list of indices (col, row) from the set of BoardNode objects.
+        Also defines some class variables and assigns values to them.
+
+        Parameters:
+            set_objects (Set[BoardNode]): Set of BoardNode objects.
+
+        Returns:
+            List[Tuple[int, int]]: Sorted list of indices (col, row).
+        '''
         from operator import itemgetter
         sorting_list: List[Tuple[int, int]] = []
         for item in set_objects:
-            sorting_list.append((item.col, item.row))
+            sorting_list.append((item.col, item.row))  # Eventually fix this
         sorting_list.sort(key=lambda item: (item[0], item[1]))
         self.xmax: int = sorting_list[-1][0]
         self.xmin: int = sorting_list[0][0]
@@ -98,6 +143,9 @@ class BoardString():
         return sorting_list
 
     def make_list_values(self, set_objects: Set[BoardNode]) -> List[Tuple[int, int, Tuple[int, int, int]]]:
+        '''
+        Generate a sorted list of values (col, row, stone_color) from the set of BoardNode objects.
+        '''
         sorting_list: List[Tuple[int, int]] = []
         for item in set_objects:
             sorting_list.append((item.col, item.row, (item.stone_here_color)))
@@ -107,36 +155,47 @@ class BoardString():
 
 class GoBoard():
     def __init__(self, board_size=19, defaults=True):
-        self.board_size: int = board_size
         self.defaults: bool = defaults
+        self.board_size: int = board_size
         self.board: List[List[BoardNode]] = self.setup_board()
-        self.player_black: Player = Player.setup_player(self.defaults, "Player One", "Black", cf.unicode_black)
-        self.player_white: Player = Player.setup_player(self.defaults, "Player Two", "White", cf.unicode_white)
-        self.whose_turn: Player = self.player_black
-        self.not_whose_turn: Player = self.player_white
-        self.times_passed: int = 0
-        self.turn_num: int = 0
+        self.init_helper_player()
+
+        # Turn and log attributes
+        self.times_passed, self.turn_num = 0, 0
         PPL_Type = List[Union[str, Tuple[str, int, int]]]
-        self.position_played_log: PPL_Type = list()
+        self.position_played_log: PPL_Type = []
         self.visit_kill: Set[BoardNode] = set()
         self.killed_last_turn: Set[BoardNode] = set()
         KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
         self.killed_log: KL_Type = list()
-        self.mode: str = "Playing"
-        self.mode_change: bool = True
+
+        # Mode and handicap attributes
+        self.mode, self.mode_change = "Playing", True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
+
+        # pygame and pySimpleGui attributes
         self.window: sg.Window = None
         self.screen: pygame.Surface = None
         self.backup_board: pygame.Surface = None
         self.pygame_board_vals: Tuple[int, float, float] = None  # (workable_area, distance, circle_radius)
 
-    def make_board_string(self) -> List[str]:   # Target of optimization
+    def init_helper_player(self) -> None:
+        '''Initializes class variables to do with the players'''
+        self.player_black: Player = Player.setup_player(self.defaults, "Player One", "Black", cf.unicode_black)
+        self.player_white: Player = Player.setup_player(self.defaults, "Player Two", "White", cf.unicode_white)
+        self.whose_turn: Player = self.player_black
+        self.not_whose_turn: Player = self.player_white
+
+    def make_board_string(self) -> str:   # Target of optimization
+        '''
+        Generate a string representation of the current game board.
+
+        Returns a string representing the board state, where each character represents the color of a stone.
+        '1' for black, '2' for white, and '0' for an empty intersection.
+        The first character represents the player's turn (1 for black, 2 for white).
+        '''
         # It needs to add in the turn choice made somehow.
-        board_string: str = ''
-        if self.whose_turn == self.player_black:
-            board_string += '1'
-        else:
-            board_string += '2'
+        board_string = '1' if self.whose_turn == self.player_black else '2'
         for xidx in range(len(self.board)):
             for yidx in range(len(self.board)):
                 if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
@@ -148,6 +207,10 @@ class GoBoard():
         return board_string
 
     def setup_board(self) -> List[List[BoardNode]]:
+        '''
+        Sets up and returns the initialized board.
+        Returns a 2D list representing the game board with initialized BoardNode objects.
+        '''
         board: List[List[BoardNode]] = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         for node in board:
             for item in node:
@@ -160,6 +223,7 @@ class GoBoard():
         return board
 
     def switch_player(self) -> None:
+        '''Switches the current player by updating whose_turn and not_whose_turn'''
         if self.whose_turn == self.player_black:
             self.whose_turn = self.player_white
             self.not_whose_turn = self.player_black
@@ -167,12 +231,17 @@ class GoBoard():
             self.whose_turn = self.player_black
             self.not_whose_turn = self.player_white
 
-    def play_game(self, fromFile: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+        '''
+        This function figures out the gamemode of the board (playing, finished, scoring) and then calls the appropriate function.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
         if self.mode == "Playing":
-            self.play_game_playing_mode(fromFile, fixes_handicap)
+            self.play_game_playing_mode(from_file, fixes_handicap)
         elif self.mode == "Finished":
             self.play_game_view_endgame()
-        elif fromFile is True and not self.mode_change:
+        elif from_file is True and not self.mode_change:
             self.refresh_board_pygame()
             self.scoring_block()
 
@@ -182,8 +251,15 @@ class GoBoard():
             self.times_passed = 0
             self.scoring_block()
 
-    def play_game_playing_mode(self, fromFile, fixes_handicap) -> None:
-        if not fromFile:
+    def play_game_playing_mode(self, from_file, fixes_handicap) -> None:
+        '''
+        This function handles the game logic during the "Playing" mode.
+        It sets up the board and does handicaps if necessary based on from_file and fixes_handicap variable.
+        It also executes turns for both players until the game enters the "Scoring" mode.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
+        if not from_file:
             self.board = self.setup_board()
         else:
             self.refresh_board_pygame()
@@ -201,7 +277,8 @@ class GoBoard():
         ui.end_game_popup()
         self.scoring_block()
 
-    def play_game_view_endgame(self) -> None:
+    def play_game_view_endgame(self) -> None:  # Might be wrong, requires testing.
+        '''Allows the user to view a completed game'''
         self.refresh_board_pygame()
         event, _ = self.window.read()
         if event == "Exit Game":
@@ -213,6 +290,7 @@ class GoBoard():
             quit()
 
     def switch_button_mode(self) -> None:
+        '''Updates the button text in the PySimpleGui window'''
         if self.mode == "Scoring":
             self.window["Res"].update("Resume Game")
             self.times_passed = 0
@@ -221,6 +299,11 @@ class GoBoard():
         self.mode_change = False
 
     def scoring_block(self) -> bool:
+        '''
+        Manages the scoring phase of the game.
+        This function iterates through the scoring phase, allowing players to remove dead stones.
+        When the scoring is finished, it calls 'making_score_board_object()' to determine the winner.
+        '''
         while self.mode != "Finished":
             if self.mode_change:
                 self.switch_button_mode()
@@ -241,11 +324,15 @@ class GoBoard():
         return winner
 
     def resuming_scoring_buffer(self, text) -> None:
+        '''Updates the some class variables when resuming a game (i.e. going from Scoring to Playing)'''
         self.turn_num += 1
         self.position_played_log.append(text)
         self.killed_log.append([])
 
     def remove_dead(self) -> None:
+        '''
+        This function waits for player input to select dead stones, and then processes the removal of those stones.
+        '''
         self.killed_last_turn.clear()
         ui.update_scoring(self)
         truth_value: bool = False
@@ -269,25 +356,12 @@ class GoBoard():
         self.switch_player()
         return
 
-    def remove_stones_and_update_score(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
-        for tpl in piece_string:
-            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
-            item.stone_here_color = cf.unicode_none
-
-        self.refresh_board_pygame()
-        captured_count: int = len(piece_string)
-        self.player_white.captured += captured_count if piece_string[0][1] == self.player_black.unicode else 0
-        self.player_black.captured += captured_count if piece_string[0][1] == self.player_white.unicode else 0
-
-        temp_list: List[Tuple[Tuple[int, int, int], int, int, str]] = list()
-        for item in piece_string:
-            temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
-
-        self.killed_log.append(temp_list)
-        self.position_played_log.append("Dead Removed")
-        self.turn_num += 1
-
     def remove_dead_found_piece(self, piece: BoardNode) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
+        '''
+        Helper function for remove_dead().
+        Uses floodfill to find all connected Nodes of the same color as the variable piece.
+        Gets the agreement (or disagreement) of the other player.
+        '''
         from scoringboard import ScoringBoard
         series: Tuple[Set[BoardNode], Set[BoardNode]] = ScoringBoard.flood_fill(piece)  # !
         piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
@@ -305,6 +379,7 @@ class GoBoard():
         return other_user_agrees, piece_string
 
     def remove_dead_undo_list(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
+        '''Undoes the removal of dead stones and revert the board to its previous state.'''
         for tpl in piece_string:
             item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
             if item.stone_here_color == cf.unicode_diamond_black:
@@ -313,7 +388,30 @@ class GoBoard():
                 item.stone_here_color = self.player_white.unicode
         self.refresh_board_pygame()
 
+    def remove_stones_and_update_score(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
+        '''
+        Helper function for remove_dead().
+        Removes stones marked as dead during scoring and update player scores.
+        '''
+        for tpl in piece_string:
+            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
+            item.stone_here_color = cf.unicode_none
+
+        self.refresh_board_pygame()
+        captured_count: int = len(piece_string)
+        self.player_white.captured += captured_count if piece_string[0][1] == self.player_black.unicode else 0
+        self.player_black.captured += captured_count if piece_string[0][1] == self.player_white.unicode else 0
+
+        temp_list: List[Tuple[Tuple[int, int, int], int, int, str]] = list()
+        for item in piece_string:
+            temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
+
+        self.killed_log.append(temp_list)
+        self.position_played_log.append("Dead Removed")
+        self.turn_num += 1
+
     def end_of_game(self) -> None:
+        '''Handles the end of the game, i.e. displaying the winner, saving the game state, and returning to the main menu.'''
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         self.save_pickle()
@@ -323,6 +421,7 @@ class GoBoard():
         quit()
 
     def find_piece_click(self, input_location: Tuple[float, float]) -> Tuple[bool, Union[List[int], BoardNode]]:
+        '''Finds the BoardNode corresponding to a clicked location on the game board.'''
         for item_row in self.board:
             for item in item_row:
                 item_location = [item.screen_row, item.screen_col]
@@ -331,6 +430,7 @@ class GoBoard():
         return False, [-1, -1]
 
     def play_turn(self) -> None:
+        '''This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.'''
         ui.update_scoring(self)
         truth_value: bool = False
         while not truth_value:
@@ -358,6 +458,7 @@ class GoBoard():
         return
 
     def turn_options(self, event, text: Optional[str] = None) -> None:
+        '''Handles various game options based on the given event.'''
         if event in (sg.WIN_CLOSED, "Res"):
             quit()
         if event == "Pass Turn":
@@ -384,6 +485,7 @@ class GoBoard():
             raise ValueError
 
     def remove_dead_event_handling(self, event) -> None:
+        '''Handles events related to removing dead stones during scoring.'''
         if event == "Pass Turn":
             self.turn_options(event, text="Scoring Passed")
             return
@@ -408,6 +510,7 @@ class GoBoard():
             return True
 
     def play_piece(self, row: int, col: int) -> bool:
+        '''Attempts to play a piece on the board and handles rule violations.'''
         piece: BoardNode = self.board[row][col]
         if (piece.stone_here_color != cf.unicode_none):
             ui.def_popup("You tried to place where there is already a piece. Please try your turn again.", 2)
@@ -427,18 +530,22 @@ class GoBoard():
             return True
 
     def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
+        '''Places a piece on the board and updates game state.'''
         piece.stone_here_color = self.whose_turn.unicode
         self.turn_num += 1
         self.position_played_log.append((self.whose_turn.color, row, col))
         self.refresh_board_pygame()
 
+#Potential for splitting the undo functionality to it's own file
     def undo_checker(self) -> None:
+        '''Calls the undo_turn function with appropriate parameters'''
         if self.mode == "Scoring":
             self.undo_turn(scoring=True)
         else:
             self.undo_turn()
 
     def undo_turn(self, scoring: Optional[bool] = False) -> None:
+        '''Undo the most recent turn, reverting the board to its state one turn ago.'''
         if self.undo_special_cases():
             return
         if not scoring:
@@ -467,6 +574,7 @@ class GoBoard():
         self.switch_player()
 
     def undo_special_cases(self) -> bool:
+        '''Handle special cases during undo, such as resuming scoring or handling consecutive passes.'''
         last_entry: str = self.position_played_log[-1]
 
         if last_entry == "Resumed" or last_entry == "Scoring":
@@ -496,6 +604,7 @@ class GoBoard():
         return False
 
     def move_back(self) -> None:
+        '''Move back to the previous killed state, updating self.killed_last_turn.'''
         if len(self.killed_log) > 0:
             self.killed_last_turn.clear()
             temp_list = self.killed_log.pop()
@@ -504,14 +613,15 @@ class GoBoard():
                 self.killed_last_turn.add(temp_node)
 
     def ko_rule_break(self, piece: BoardNode) -> bool:  # no superko, but if it becomes a problem...
+        '''Checks if placing a piece breaks the ko rule.'''
         if self.self_death_rule(piece, self.whose_turn) > 0:
             return False
         if piece in self.killed_last_turn:
             return True
         return False
 
-    # Takes in a boardNode, returns a list of tuples of coordinates
     def check_neighbors(self, piece) -> List[Tuple[int, int]]:
+        '''Takes in a boardNode, returns a list of tuples of coordinates'''
         neighbors = [(piece.row - 1, piece.col), (piece.row + 1, piece.col),
                      (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
         valid_neighbors: List[Tuple[int, int]] = []
@@ -520,8 +630,8 @@ class GoBoard():
                 valid_neighbors.append(coordinate)
         return valid_neighbors
 
-    # Uses BFS to figure out liberties and connected pieces of the same type
     def self_death_rule(self, piece: BoardNode, which_player: Player, visited: Optional[Set[BoardNode]] = None) -> int:
+        '''Uses recursive BFS to find liberties and connected pieces of the same type, returns the number of liberties'''
         if visited is None:
             visited: Set[BoardNode] = set()
         visited.add(piece)
@@ -538,6 +648,7 @@ class GoBoard():
         return liberties
 
     def remove_stones(self) -> None:
+        '''Removes stones marked for removal and updates the player's captured count.'''
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
@@ -545,6 +656,10 @@ class GoBoard():
             position.stone_here_color = cf.unicode_none
 
     def kill_stones(self, piece: BoardNode) -> bool:  # needs to return true if it does kill stones
+        '''
+        Determines if placing a piece kills opponent's stones and removes them if needed.
+        Returns True if placing the piece kills stones, False otherwise.
+        '''
         piece.stone_here_color: Tuple[int, int, int] = self.whose_turn.unicode
         neighboring_pieces: Set[BoardNode] = piece.connections
         truth_value: bool = False
@@ -558,6 +673,7 @@ class GoBoard():
         return truth_value
 
     def save_to_SGF(self, filename2: str) -> None:
+        '''Saves the current game to a SGF file.'''
         with open(f"{filename2}.sgf", 'w', encoding='utf-8') as file:
             from datetime import date
             seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed",
@@ -598,6 +714,7 @@ class GoBoard():
             file.write(movement_string)
 
     def save_pickle(self) -> None:
+        '''Saves the game to a pkl in the correct pklfiles folder'''
         import pickle
         from os import chdir, getcwd, path
         wd = getcwd()
@@ -624,15 +741,18 @@ class GoBoard():
             self.backup_board: pygame.Surface = backup_backup_board
 
     def load_pkl(self, inputPath):
+        '''Loads the current state of the game from a pkl file.'''
         import pickle
         with open(inputPath, 'rb') as file:
             friend = pickle.load(file)
         return friend
 
     def refresh_board_pygame(self) -> None:
+        '''Refreshes the pygame screen to show the updated board'''
         self.screen.blit(self.backup_board, (0, 0))
         for board_row in self.board:
             for item in board_row:
+                #Can do it better using if... in?
                 if item.stone_here_color == cf.unicode_black or item.stone_here_color == cf.unicode_white:  # this is bad, fix
                     pygame.draw.circle(self.screen, item.stone_here_color,
                                        (item.screen_row, item.screen_col), self.pygame_board_vals[2])
@@ -645,6 +765,7 @@ class GoBoard():
         pygame.display.update()
 
     def close_window(self):
+        '''Closes the pygame display and PySimpleGui window'''
         import platform
         if platform.system() == "Linux":
             self.window.close()
@@ -655,6 +776,7 @@ class GoBoard():
             pygame.display.quit()
 
     def making_score_board_object(self):
+        '''Creates a ScoringBoard object to handle scoring and dead stones.'''
         from scoringboard import ScoringBoard
         import platform  # Required as for some reason the code/window behaves differently between linux and windows
         self.scoring_dead = ScoringBoard(self)

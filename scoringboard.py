@@ -12,13 +12,13 @@ class ScoringBoard(GoBoard):
     def __init__(self, parent_obj: Type[GoBoard]) -> None:
         # Not a optimal way of doing this but whatever...
         self.parent = parent_obj
-        self.board_size: int = self.parent.board_size
         self.defaults: bool = self.parent.defaults
+        self.board_size: int = self.parent.board_size
         self.board: List[List[BoardNode]] = copy.deepcopy(self.parent.board)
-        self.player_black: Player = copy.deepcopy(self.parent.player_black)
-        self.player_white: Player = copy.deepcopy(self.parent.player_white)
-        self.whose_turn: Player = copy.deepcopy(self.parent.whose_turn)
-        self.not_whose_turn: Player = copy.deepcopy(self.parent.not_whose_turn)
+
+        self.init_helper_player_deep()
+
+        # Turn and log attributes
         self.times_passed: int = self.parent.times_passed
         self.turn_num: int = self.parent.turn_num
         PPL_Type = List[Union[str, Tuple[str, int, int]]]
@@ -27,13 +27,23 @@ class ScoringBoard(GoBoard):
         self.killed_last_turn: Set[BoardNode] = copy.deepcopy(self.parent.killed_last_turn)
         KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
         self.killed_log: KL_Type = copy.deepcopy(self.parent.killed_log)
+
+        # Mode and handicap attributes
         self.mode: str = self.parent.mode
         self.mode_change: bool = self.parent.mode_change
         self.handicap: Tuple[bool, str, int] = self.parent.handicap
+
         self.pygame_board_vals: Tuple[int, float, float] = self.parent.pygame_board_vals
         self.empty_strings: List[BoardString] = list()
         self.black_strings: List[BoardString] = list()
         self.white_strings: List[BoardString] = list()
+
+    def init_helper_player_deep(self) -> None:
+        '''Makes a deepcopy of the variables to do with Players'''
+        self.player_black: Player = copy.deepcopy(self.parent.player_black)
+        self.player_white: Player = copy.deepcopy(self.parent.player_white)
+        self.whose_turn: Player = copy.deepcopy(self.parent.whose_turn)
+        self.not_whose_turn: Player = copy.deepcopy(self.parent.not_whose_turn)
 
     def pieces_into_sets(self) -> None:
         self.empty_space_set: Set[BoardNode] = set()
@@ -49,9 +59,10 @@ class ScoringBoard(GoBoard):
                 else:
                     self.empty_space_set.add(temp_node)
 
-    def find_dead_stones(self, mixed_str_color: Union[List[None], List[BoardString]],
-                         outer_str_color: Union[List[None], List[BoardString]],
-                         player: Player, player_strings: List[BoardString], unicode: Tuple[int, int, int]) -> None:
+    def make_mixed_and_outer(self, mixed_str_color: Union[List[None], List[BoardString]],
+                             outer_str_color: Union[List[None], List[BoardString]],
+                             player: Player, player_strings: List[BoardString], unicode: Tuple[int, int, int]) -> None:
+        '''This function makes a list of mixed and outer strings to then be used by the MCST.'''
         while self.empty_strings:
             obj: BoardString = self.empty_strings.pop()
             obj_obj: BoardNode = obj.member_set.pop()
@@ -65,6 +76,7 @@ class ScoringBoard(GoBoard):
                     outer_str_color.append(outer_str)
 
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
+        '''Draws dead stones on the Pygame board and updates the display.'''
         for item in m_str.member_set:
             pygame.draw.circle(self.screen, cf.unicode_green, (item.screen_row, item.screen_col),
                                self.pygame_board_vals[2])
@@ -78,6 +90,11 @@ class ScoringBoard(GoBoard):
         self.refresh_board_pygame()
 
     def dealing_with_dead_stones(self) -> bool:
+        '''
+        Manages the process of dealing with dead stones, including finding and removing them.
+        Initializes and uses the MCST collection for scoring.
+        Returns the winner after counting territory.
+        '''
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
         self.making_go_board_strings(self.black_set, cf.unicode_black, False)
@@ -90,14 +107,14 @@ class ScoringBoard(GoBoard):
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
         self.outer_string_white: Union[List[None], List[BoardString]] = list()
 
-        self.find_dead_stones(self.mixed_string_for_black, self.outer_string_black,
-                              self.player_black, self.black_strings, cf.unicode_black)
+        self.make_mixed_and_outer(self.mixed_string_for_black, self.outer_string_black,
+                                  self.player_black, self.black_strings, cf.unicode_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
 
-        self.find_dead_stones(self.mixed_string_for_white, self.outer_string_white,
-                              self.player_white, self.white_strings, cf.unicode_white)
+        self.make_mixed_and_outer(self.mixed_string_for_white, self.outer_string_white,
+                                  self.player_white, self.white_strings, cf.unicode_white)
 
         from mcst import CollectionOfMCST
         self.remove_safe_strings()
@@ -129,6 +146,10 @@ class ScoringBoard(GoBoard):
         # stats.dump_stats(filename="5000x30testingv3.prof")
 
     def remove_safe_strings(self):
+        '''
+        Removes safe strings (mixed and outer strings) from both black and white players.
+        Safe strings are a pair of inner and outer strings, where the inner/mixed string does not contain any pieces.
+        '''
         for idx in reversed(range(len(self.outer_string_black))):
             removeable = True
             for item in self.mixed_string_for_black[idx].member_set:
@@ -150,6 +171,7 @@ class ScoringBoard(GoBoard):
     def find_neighbor_get_string(self, piece: BoardNode, color: Tuple[int, int, int],
                                  visited: Union[None, Set[BoardNode]] = None) -> Union[
                                      Tuple[Literal[True], BoardString], Tuple[Literal[False], Literal[-1]]]:
+        '''Finds and returns the board string of the neighboring piece with the specified color.'''
         if visited is None:
             visited = set()
         visited.add(piece)
@@ -177,6 +199,10 @@ class ScoringBoard(GoBoard):
     def find_neighbor_get_string_helper(self, piece: BoardNode, neighbor: BoardNode,
                                         second_color: Tuple[int, int, int], string_choice: List[BoardString]) -> Union[
             Tuple[Literal[True], BoardString], Tuple[Literal[False], Literal[-1]]]:
+        '''
+        Helper function for find_neighbor_get_string.
+        Determines if the neighbor's string should be included in the result.
+        '''
         if piece.stone_here_color == second_color and second_color == cf.unicode_white:
             second_color = cf.unicode_none
         piece_flood = self.flood_fill_two_colors(piece, second_color)
@@ -197,6 +223,7 @@ class ScoringBoard(GoBoard):
         return (False, -1)
 
     def counting_territory(self) -> Union[None, bool]:  # something somewhere makes row and col switch...
+        '''Counts the territory for both players and determines the winner.'''
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
         self.end_of_game()
@@ -211,6 +238,14 @@ class ScoringBoard(GoBoard):
             return -1
 
     def mixed_string_set_removal(self, connections_set: Set[BoardNode], color: Tuple[int, int, int]) -> None:
+        """
+        Removes pieces from the specified set of connections and updates the corresponding board strings.
+
+        Args:
+            connections_set: The set of connected board pieces to be removed.
+            color: The color of the stones to update.
+
+        """
         while connections_set:
             piece = connections_set.pop()
             piece_color = piece.stone_here_color
@@ -222,6 +257,15 @@ class ScoringBoard(GoBoard):
 
     def mixed_string_set_removal_loop_remove(self, p_string: BoardString, p_color: Tuple[int, int, int],
                                              comp_color: Tuple[int, int, int], enemy_strings: List[BoardString]) -> None:
+        """
+        Removes a board string from the specified list of enemy strings if its color matches the comparison color.
+
+        Args:
+            p_string: The board string to be checked and removed.
+            p_color: The color of the stones in the given board string.
+            comp_color: The comparison color for removal.
+            enemy_strings: The list of enemy board strings.
+        """
         if p_color == comp_color:
             for obj in enemy_strings:
                 if obj.list_idx == p_string.list_idx:
@@ -230,7 +274,20 @@ class ScoringBoard(GoBoard):
     def finding_correct_mixed_string(self, piece: BoardNode, color: Tuple[int, int, int],
                                      original_string: BoardString, list_strings: List[BoardString]) -> \
             Union[Tuple[Literal[False], Literal[-1]], Tuple[Literal[True], BoardString, BoardString]]:
+        """
+        Finds the correct mixed strings for a given board piece and color, ensuring proper connectivity.
 
+        Args:
+            piece: The board piece for which mixed strings are to be found.
+            color: The color of the stones for which mixed strings are considered.
+            original_string: The original string to which the board piece belongs.
+            list_strings: List of existing board strings.
+
+        Returns:
+            Union[Tuple[Literal[False], Literal[-1]], Tuple[Literal[True], BoardString, BoardString]]:
+                - (False, -1) if the mixed strings are not correct or connected.
+                - (True, con_str_full, discon_str) if the mixed strings are correct and connected.
+        """
         connections, con_str, discon_str = self.making_mixed_strings(piece, color, original_string, list_strings)
         # If you change the or in the following two checks, it will generate larger areas to test
         if con_str.xmin < discon_str.xmin or con_str.xmax > discon_str.xmax:
@@ -248,6 +305,16 @@ class ScoringBoard(GoBoard):
     def making_mixed_strings(self, piece: BoardNode, color: Tuple[int, int, int],
                              original_string: BoardString, list_strings: List[BoardString]) -> \
             Tuple[Set[BoardNode], BoardString, BoardString]:
+        """
+        Generate mixed strings by connecting empty spaces and opponent stones.
+
+        Parameters:
+            piece The starting piece for generating mixed strings.
+            original_string: The original string to which the piece belongs.
+            list_strings: List of existing strings on the board.
+
+        Returns a tuple containing connected nodes, connected string, and disconnected outer string.
+        """
         connections, disconnected_temp, outer_temp = self.generating_mixed_strings(piece, color, original_string, list_strings)
         if len(outer_temp) > 1:
             ot_str = BoardString("Testing", outer_temp)
@@ -260,14 +327,26 @@ class ScoringBoard(GoBoard):
                 connections.update(outer_temp)
         con_str = BoardString("Empty and Enemy", connections)
         discon_str = BoardString("Disconnected Outer String", disconnected_temp)
-        return connections, con_str, discon_str
+        return connections, con_str, discon_str  #Why is connections returned/used?
 
     def generating_mixed_strings(self, piece: BoardNode, color: Tuple[int, int, int], og_str: BoardString,
                                  str_list: List[BoardString], conn_piece: Union[None, Set[BoardNode]] = None,
                                  outer_pieces: Union[None, Set[BoardNode]] = None,
                                  temp_outer: Union[None, Set[BoardNode]] = None) -> Tuple[
             Set[BoardNode], Set[BoardNode], Set[BoardNode]]:
+        """
+        Recursive function to generate mixed strings.
 
+        Parameters:
+            piece: The current piece being processed.
+            og_str: The original string to which the piece belongs.
+            str_list: List of existing strings on the board.
+            conn_piece: Set of connected pieces (optional).
+            outer_pieces: Set of outer pieces (optional).
+            temp_outer: Temporary set for outer pieces (optional).
+
+        Returns a tuple containing connected nodes, outer pieces, and temporary outer pieces.
+        """
         if conn_piece is None:
             conn_piece: Union[Set[None], Set[BoardNode]] = set()
         if outer_pieces is None:
@@ -288,7 +367,7 @@ class ScoringBoard(GoBoard):
     def mixed_string_logic(self, piece: BoardNode, color: Tuple[int, int, int], conn_piece: Set[BoardNode],
                            str_list: List[BoardString], neighbor: BoardNode) -> \
             Union[Tuple[Literal[False], Set[None]], Tuple[Literal[True], Set[BoardNode]]]:
-
+        '''Extremely complicated logic for calculating if a piece should be in the mixed string'''
         diagonals = self.diagonals_setup(piece)
         for diagonal in diagonals:
             if diagonal.stone_here_color == color and diagonal not in conn_piece:
@@ -301,7 +380,7 @@ class ScoringBoard(GoBoard):
 
     def making_go_board_strings(self, piece_set: Set[BoardNode],
                                 piece_type: Tuple[int, int, int], final: bool) -> None:
-
+        '''Generate Go board strings based on a set of pieces.'''
         list_of_piece_sets: Union[List[None], List[Set[BoardNode]]] = list()
         while piece_set:
             piece = piece_set.pop()
@@ -323,6 +402,7 @@ class ScoringBoard(GoBoard):
                 self.assigns_territory(sets)
 
     def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+        '''Set up diagonal pieces around a given piece. Returns a set of BoardNodes'''
         diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
         diagonals = set()
         for item in diagonal_change:
@@ -333,6 +413,7 @@ class ScoringBoard(GoBoard):
 
     def making_go_board_strings_helper(self, piece: BoardNode,
                                        connected_pieces: Union[None, Set[BoardNode]] = None) -> Set[BoardNode]:
+        """Helper function to recursively identify connected pieces in a Go board string."""
         if connected_pieces is None:
             connected_pieces = set()
         connected_pieces.add(piece)
@@ -353,6 +434,7 @@ class ScoringBoard(GoBoard):
         return connected_pieces
 
     def assigns_territory(self, sets: Tuple[Set[BoardNode], Set[BoardNode]]) -> None:
+        '''Assign territory based on neighboring pieces. Uses chinese rules.'''
         neighboring = sets[1] - sets[0]
         pieces_string = sets[0]
         black_pieces, white_pieces = 0, 0
@@ -376,7 +458,7 @@ class ScoringBoard(GoBoard):
     def flood_fill(piece: BoardNode,
                    connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
             None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-
+        '''Perform flood fill to identify connected pieces.'''
         if connected_pieces is None:
             connected_pieces = (set(), set())  # (Same color nodes, seen already nodes)
         connected_pieces[0].add(piece)
@@ -391,7 +473,7 @@ class ScoringBoard(GoBoard):
     def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-
+        '''Perform flood fill to identify connected pieces for two colors.'''
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)
@@ -406,10 +488,12 @@ class ScoringBoard(GoBoard):
                 pass
         return connected_pieces
 
-    # Set 1 is the set of objects of the same color, Set two is the outside objects
     def flood_fill_with_outer(self, piece: BoardNode, outer_pieces: BoardString,
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+        '''Perform flood fill to identify connected pieces considering outer pieces.
+        Set 1 is the set of objects of the same color, Set 2 is the outside objects
+        '''
         if connected_pieces is None:
             connected_pieces = (set(), set())
         connected_pieces[0].add(piece)

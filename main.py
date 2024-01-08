@@ -14,6 +14,12 @@ import threading
 
 
 def play_game_main():
+    '''
+    This function initiates a pySimpleGui window, allowing the user to choose from various game options.
+    The user can load from file, start a custom new game, start a custom default game, play a game against AI,...
+    Host a multiplayer game, connect to a multiplayer game, or play a hex version of go.
+    It then calls the appropriate functions.
+    '''
     window = ui.setup_menu()
 
     while True:

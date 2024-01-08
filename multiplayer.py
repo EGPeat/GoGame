@@ -11,6 +11,7 @@ import threading
 
 class MultiplayerBoard(GoBoard):
     def __init__(self, password_id, ip_address=None, board_size=19, defaults=True):
+        #Many of these functions need to be updated based on goclasses.py
         super().__init__(board_size, defaults)
         if ip_address:
             self.combined_network = Network(password_id, ip_address)
@@ -20,12 +21,17 @@ class MultiplayerBoard(GoBoard):
             self.combined_network = Network(password_id)
             self.you = self.player_black
 
-    def play_game(self, fromFile: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+        '''
+        This function figures out the gamemode of the board (playing, finished, scoring) and then calls the appropriate function.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
         if self.mode == "Playing":
-            self.play_game_playing_mode(fromFile, fixes_handicap)
+            self.play_game_playing_mode(from_file, fixes_handicap)
         elif self.mode == "Finished":
             self.play_game_view_endgame()
-        elif fromFile is True and not self.mode_change:
+        elif from_file is True and not self.mode_change:
             self.refresh_board_pygame()
             self.scoring_block()
 
@@ -35,8 +41,15 @@ class MultiplayerBoard(GoBoard):
             self.times_passed = 0
             self.scoring_block()
 
-    def play_game_playing_mode(self, fromFile, fixes_handicap) -> None:
-        if not fromFile:
+    def play_game_playing_mode(self, from_file, fixes_handicap) -> None:
+        '''
+        This function handles the game logic during the "Playing" mode.
+        It sets up the board and does handicaps if necessary based on from_file and fixes_handicap variable.
+        It also executes turns for both players until the game enters the "Scoring" mode.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
+        if not from_file:
             self.board = self.setup_board()
         else:
             self.refresh_board_pygame()
@@ -68,6 +81,11 @@ class MultiplayerBoard(GoBoard):
         self.scoring_block()
 
     def scoring_block(self) -> None:
+        '''
+        Manages the scoring phase of the game.
+        This function iterates through the scoring phase, allowing players to remove dead stones.
+        When the scoring is finished, it calls 'making_score_board_object()' to determine the winner.
+        '''
         while self.mode != "Finished":
             if self.mode_change:
                 self.switch_button_mode()
@@ -100,6 +118,7 @@ class MultiplayerBoard(GoBoard):
         self.making_score_board_object()
 
     def play_turn(self, mp_other: Optional[bool] = False, info=None) -> None:
+        '''This function plays a turn by capturing info from a mouse click or the other players move and then plays the turn.'''
         if self.combined_network.pos == "Invalid Password Issue" and threading.active_count() == 1:
             self.turn_options("Exit Game")  # It should do something else to tell it it's bad
         elif self.combined_network.pos is False:
@@ -144,6 +163,9 @@ class MultiplayerBoard(GoBoard):
         return f"{piece.row}  {piece.col} "
 
     def remove_dead(self, mp_other=False, info=None) -> None:
+        '''
+        This function waits for player input to select dead stones, and then processes the removal of those stones.
+        '''
         self.killed_last_turn.clear()
         ui.update_scoring(self)
         truth_value: bool = False
@@ -222,6 +244,7 @@ class MultiplayerBoard(GoBoard):
         return
 
     def turn_options(self, event, text: Optional[str] = None) -> None:
+        '''Handles various game options based on the given event.'''
         if event in (sg.WIN_CLOSED, "Res"):
             self.combined_network.send("Close Down")
             cf.server_exit_flag = True
@@ -250,6 +273,10 @@ class MultiplayerBoard(GoBoard):
             quit()
 
     def remove_dead_found_piece(self, piece) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
+        '''
+        Helper function for remove_dead().
+        Uses floodfill to find all connected Nodes of the same color as the variable piece.
+        '''
         from scoringboard import ScoringBoard
         series = ScoringBoard.flood_fill(piece)  # Might be an issue
         piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
@@ -265,6 +292,10 @@ class MultiplayerBoard(GoBoard):
         return piece_string
 
     def remove_dead_found_piece_helper(self, piece) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
+        '''
+        Helper function for remove_dead().
+        Uses floodfill to find all connected Nodes of the same color as the variable piece.
+        '''
         from scoringboard import ScoringBoard
         series = ScoringBoard.flood_fill(piece)  # Might be an issue
         piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
@@ -277,7 +308,11 @@ class MultiplayerBoard(GoBoard):
         self.refresh_board_pygame()
         return piece_string
 
-    def get_agreement(self):
+    def get_agreement(self) -> str:
+        '''
+        Asks the player for agreement with the changes made during scoring.
+        Returns the player's choice.
+        '''
         info: str = "Player, please click yes if you are ok with these changes"
         other_user_agrees: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         return other_user_agrees

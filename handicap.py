@@ -15,6 +15,7 @@ class Handicap():
         return (False, "None", 0)
 
     def custom_handicap(self, defaults: bool) -> Tuple[bool, str, int]:
+        '''Allows the players to choose a custom or manual handicap. Players can choose who gets the handicap, and how much.'''
         if defaults:
             return (False, "None", 0)
         info: str = "Please Click Yes if you want choose where you play your handicap."
@@ -33,6 +34,7 @@ class Handicap():
         return (True, self.go_board.not_whose_turn.color, handicap_value)
 
     def manual_handicap_placement(self, handicap_info: int) -> None:
+        '''Allows the player to choose where to place their handicap pieces.'''
         ui.def_popup(f"Please place {handicap_info} number of pieces where you wish,\
                     as a handicap.Then the opponent will play.", 3)
         for _ in range(handicap_info):
@@ -46,6 +48,7 @@ class Handicap():
         self.go_board.switch_player()
 
     def choose_handicap_list(self) -> List:
+        '''Convenience function that returns the correct list of locations for a automatic handicap.'''
         handicap_points9: List[Tuple[int, int]] = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         handicap_points13: List[Tuple[int, int]] = [(3, 9), (9, 3), (9, 9), (3, 3), (6, 6), (6, 3), (6, 9), (3, 6), (9, 6)]
         handicap_points19: List[Tuple[int, int]] = [(3, 13), (13, 3), (13, 13), (3, 3), (8, 8), (8, 3), (8, 13), (3, 8), (13, 8)]
@@ -57,6 +60,7 @@ class Handicap():
         return choosen_list
 
     def handicap_person(self) -> bool:
+        '''Allows players to choose who gets the handicap'''
         player_choice: str = ui.handicap_person_gui()
         if player_choice == "Black":
             self.go_board.whose_turn = self.go_board.player_black
@@ -68,6 +72,7 @@ class Handicap():
             return False
 
     def play_automatic_handicap(self, handicap_value: int, choosen_list: List[Tuple[int, int]]) -> None:
+        '''Plays the handicap in customary handicap locations.'''
         for idx in range(handicap_value):
             row, col = choosen_list[idx]
             place = self.go_board.board[row][col]
@@ -78,6 +83,7 @@ class Handicap():
         self.go_board.switch_player()
 
     def validate_handicap_placement(self):
+        '''Makes sure the player chooses a valid location to place a handicap stone.'''
         valid_piece: bool = False
         while not valid_piece:
             event, values = self.go_board.window.read()

@@ -14,12 +14,17 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.ai_info_full: Tuple[List[Tuple[str, Tuple[int, int]]], bool] = None
         # Currently there isn't any way to figure out/have the game stop...
 
-    def play_game(self, fromFile: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+        '''
+        This function figures out the gamemode of the board (playing, finished, scoring) and then calls the appropriate function.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
         if self.mode == "Playing":
-            self.play_game_playing_mode(fromFile, fixes_handicap)
+            self.play_game_playing_mode(from_file, fixes_handicap)
         elif self.mode == "Finished":
             self.play_game_view_endgame()
-        elif fromFile is True and not self.mode_change:
+        elif from_file is True and not self.mode_change:
             self.refresh_board_pygame()
             self.scoring_block()
 
@@ -29,8 +34,15 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             self.times_passed = 0
             self.scoring_block()
 
-    def play_game_playing_mode(self, fromFile, fixes_handicap) -> None:
-        if not fromFile:
+    def play_game_playing_mode(self, from_file, fixes_handicap) -> None:
+        '''
+        This function handles the game logic during the "Playing" mode.
+        It sets up the board and does handicaps if necessary based on from_file and fixes_handicap variable.
+        It also executes turns for both players until the game enters the "Scoring" mode.
+        from_file: a bool representing if the board should be loaded from file
+        fixes_handicap: a bool representing if a player has a handicap or not
+        '''
+        if not from_file:
             self.board = self.setup_board()
         else:
             self.refresh_board_pygame()
@@ -51,9 +63,13 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.resuming_scoring_buffer("Scoring")
         ui.end_game_popup()
         winner = self.scoring_block()
-        self.ai_info_full = (self.ai_training_info, winner) #!
+        self.ai_info_full = (self.ai_training_info, winner)  # !
 
     def play_turn(self, bot: Optional[bool] = False) -> None:
+        '''
+        This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
+        bot: a bool indicating if a bot is playing this turn.
+        '''
         ui.update_scoring(self)
         truth_value: bool = False
         placement = None
@@ -99,6 +115,9 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         return
 
     def remove_dead(self) -> None:
+        '''
+        This function waits for player input to select dead stones, and then processes the removal of those stones.
+        '''
         self.killed_last_turn.clear()
         ui.update_scoring(self)
         truth_value: bool = False
@@ -123,6 +142,11 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         return
 
     def play_piece_bot(self, row: int, col: int) -> bool:
+        '''
+        This function represents the bot's move during a turn.
+        It checks if the move is valid, updates the game state, and handles capturing stones.
+        row, col: ints representing the row and column of where the bot is playing.
+        '''
         piece: BoardNode = self.board[row][col]
         if (piece.stone_here_color != cf.unicode_none):
             return False

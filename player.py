@@ -1,12 +1,20 @@
 import uifunctions as ui
 import PySimpleGUI as sg
-from time import sleep
 from typing import Optional
 
 
 class Player():
     def __init__(self, name: Optional[str] = None, color: Optional[str] = None,
                  captured: int = 0, komi: float = 0, unicode_choice: Optional[tuple] = None):
+        '''
+        Initializes a Player object.
+        Args:
+            name: The name of the player.
+            color: The color of the player.
+            captured: The number of captured stones.
+            komi: The komi value for the player.
+            unicode_choice: The Unicode choice for the player.
+        '''
         self.name: Optional[str] = name
         self.color: Optional[str] = color
         self.captured: int = captured
@@ -17,6 +25,14 @@ class Player():
     @staticmethod
     # This sets up the Player class, assigning appropriate values to each player as needed
     def setup_player(defaults, nme, clr, uc):
+        '''
+        Makes a Player instance.
+        Args:
+            defaults: A flag indicating whether to use default values.
+            nme: The name of the player.
+            clr: The color of the player.
+            uc: The Unicode choice for the player.
+        '''
         if defaults:
             if clr == "Black":
                 player_assignment = Player(name=nme, color=clr, unicode_choice=uc)
@@ -30,6 +46,7 @@ class Player():
 
     @staticmethod
     def get_input(info, conversion_func):
+        '''Gets user input, with error handling included.'''
         done = False
         while not done:
             try:
@@ -37,10 +54,10 @@ class Player():
                 done = True
             except ValueError:
                 ui.default_popup_no_button(info="Invalid input. Please try again", time=2)
-                sleep(1.3)
         return user_input
 
-    def choose_name(self) -> None:  # feels like i could somehow combine choose_name and choose_komi...
+    def choose_name(self) -> None:
+        "Allows a player to choose their name."
         info: str = "Please Click Yes if you want to change your name"
         modify_name: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_name == "No":
@@ -50,6 +67,7 @@ class Player():
                                     than 30 characters:", lambda x: str(x)[:30])
 
     def choose_komi(self) -> None:
+        "Allows a player to choose their komi."
         info: str = "Please Click Yes if you want to change your Komi"
         modify_komi: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_komi == "No" and self.color == "White":
