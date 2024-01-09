@@ -128,7 +128,7 @@ class ScoringBoard(GoBoard):
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-                # self.draw_dead_stones(item[0], item[1])
+                self.draw_dead_stones(item[0], item[1])
         for item in self.MCST_collection.white_MCSTS_final:
             if item[3] is True:
                 for node in item[1].member_set:
@@ -223,7 +223,7 @@ class ScoringBoard(GoBoard):
         '''Counts the territory for both players and determines the winner.'''
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
-        self.end_of_game()
+        # self.end_of_game()
         pb = self.player_black
         pw = self.player_white
         player_black_score = pb.komi + pb.territory + len(self.black_set)

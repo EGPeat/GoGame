@@ -56,16 +56,17 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
                 self.play_turn(True)  # Change this to true if you want it to be bot vs bot
-                sleep(0.2)
             elif self.whose_turn == self.player_white:
                 self.play_turn(True)
-                sleep(0.2)
 
         self.mode = "Scoring"
         self.times_passed = 0
         self.resuming_scoring_buffer("Scoring")
-        ui.end_game_popup()
-        winner = self.scoring_block()
+        # ui.end_game_popup()
+        # winner = self.scoring_block()
+        winner = self.making_score_board_object()
+        print(f"winner is {winner}")
+        sleep(5)
         self.ai_info_full = (self.ai_training_info, winner)  # !
 
     def play_turn(self, bot: Optional[bool] = False) -> None:
@@ -76,6 +77,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         ui.update_scoring(self)
         truth_value: bool = False
         placement = None
+        tries = 0
         while not truth_value:
             if not bot:
                 event, values = self.window.read()
@@ -92,12 +94,29 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                     row, col = values['-GRAPH-']
                     found_piece, piece = self.find_piece_click([row, col])
                 else:  # ! Black Box Func for now
-                    # Add in code to allow the computer to pass after around turn 54
-                    row = randrange(0, self.board_size)
-                    col = randrange(0, self.board_size)
-                    placement: Tuple = (row, col)
-                    piece = self.board[row][col]
-                    found_piece = True
+                    # Two different ways for managing having a pass function. Choose as you like.
+                    val = randrange(0, (self.board_size * self.board_size))
+                    tries += 1
+                    if tries >= 120:
+                        val = self.board_size * self.board_size
+
+                    """if self.turn_num >= 54:
+                        val = randrange(0, (self.board_size*self.board_size)+1)
+                    else:
+                        val = randrange(0, (self.board_size*self.board_size))"""
+                    if val == (self.board_size*self.board_size):
+                        self.times_passed += 1
+                        self.turn_num += 1
+                        self.position_played_log.append(("Pass", -3, -3))
+                        self.killed_log.append([])
+                        self.switch_player()
+                        return
+                    else:
+                        row = val // self.board_size
+                        col = val % self.board_size
+                        placement: Tuple = (row, col)
+                        piece = self.board[row][col]
+                        found_piece = True
                 if found_piece:
                     if not bot:
                         truth_value = self.play_piece(piece.row, piece.col)

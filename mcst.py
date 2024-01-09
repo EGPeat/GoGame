@@ -109,7 +109,6 @@ class CollectionOfMCST:
             # print('\n\n')
 
 
-
 class MCST:
     def __init__(self, board: List[List[BoardNode]], outer_pieces: BoardString,  # Maybe turn person is an issue?
                  inner_pieces: BoardString, iterations: int, max_sim_depth: int, turn_person: Tuple[Player, Player]) -> None:
@@ -506,11 +505,8 @@ class MCST:
         if life_check or only_outside_color:
             if life_check:
                 self.win_cache[self.cache_hash[1:]] = (1, 0)
-                #print("This games result was a LOSS2")
             else:
                 self.win_cache[self.cache_hash[1:]] = (1, 1)
-                #print("This games result was a WIN2")
-            #self.print_board()
             return True
 
         self.switch_player_setup(node)
@@ -651,14 +647,10 @@ class MCST:
         unique_colors = {spot.stone_here_color for spot in self.inner.member_set}
         if len(unique_colors) <= 2 and self.outer_color in unique_colors:
             self.win_cache[self.cache_hash[1:]] = (1, 1)
-            #print("This games result was a WIN")
-            #self.print_board()
             self.load_backup(backup, node)
             return 1
         else:
             self.win_cache[self.cache_hash[1:]] = (1, 0)
-            #print("This games result was a LOSS")
-            #self.print_board()
             self.load_backup(backup, node)
             return 0
 
