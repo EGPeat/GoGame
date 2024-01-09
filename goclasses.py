@@ -5,7 +5,6 @@ import pygame
 import sys
 from player import Player
 from handicap import Handicap
-
 import config as cf
 from typing import Tuple, Optional, List, Set, Union
 
@@ -13,37 +12,23 @@ from typing import Tuple, Optional, List, Set, Union
 sys.setrecursionlimit(10000)
 
 
-def choose_board_type(vs_bot: Optional[bool] = False,
-                      vs_other_person: Optional[bool] = False,
-                      password: Optional[int] = 13,
-                      ip_address: Optional[str] = None, *args):
+def choose_board_type(vs_bot: Optional[bool] = False, *args):
     '''
     This function is used in the initialization of the game...
-    It chooses the correct type of board (GoBoard, BotBoard, MultiplayerBoard) based on a set of inputs.
+    It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
     Parameters:
         vs_bot: If True, play against an AI opponent.
-        vs_other_person: If True, play in multiplayer mode against another person.
-        password: variable representing a server password for human multiplayer game.
-        ip_address: ip address for the host of a human multiplayer game.
     '''
     from botnormalgo import BotBoard
-    from multiplayer import MultiplayerBoard
     if vs_bot:
         GameBoard = BotBoard(*args)
-    elif vs_other_person:
-        if ip_address:
-            GameBoard = MultiplayerBoard(password, ip_address, *args)
-        else:
-            GameBoard = MultiplayerBoard(password, None, *args)
     else:
         GameBoard = GoBoard(*args)
     return GameBoard
 
 
 def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
-                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
-                      vs_other_person: Optional[bool] = False,
-                      password: Optional[int] = 13, ip_address: Optional[str] = None) -> None:
+                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False) -> None:
     '''
     Initialize a new game based on user preferences.
     Parameters:
@@ -52,21 +37,15 @@ def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
         defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
         fixes_handicap: If True, prompt the user to modify the handicap.
         vs_bot: If True, play against an AI opponent.
-        vs_other_person: If True, play in multiplayer mode against another person.
-        password: variable representing a server password for human multiplayer game.
-        ip_address: ip address for the host of a human multiplayer game.
     '''
 
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
         only_modify_name: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
         if only_modify_name == "No":
-            game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, True)
-        else:
-            game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
-
+            game_board = choose_board_type(vs_bot, board_size, True)
     else:
-        game_board = choose_board_type(vs_bot, vs_other_person, password, ip_address, board_size, defaults)
+        game_board = choose_board_type(vs_bot, board_size, defaults)
 
     window.close()
     ui.setup_board_window_pygame(game_board)

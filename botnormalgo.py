@@ -10,7 +10,7 @@ from random import randrange
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
     def __init__(self, board_size=19, defaults=True):
         super().__init__(board_size, defaults)
-        self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = None  # Might be Tuple of placement, or maybe a string
+        self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = []  # Might be Tuple of placement, or maybe a string
         self.ai_info_full: Tuple[List[Tuple[str, Tuple[int, int]]], bool] = None
         # Currently there isn't any way to figure out/have the game stop...
 
