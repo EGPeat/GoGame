@@ -3,8 +3,9 @@ import pygame
 from handicap import Handicap
 from goclasses import GoBoard, BoardNode
 import config as cf
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Set
 from random import randrange
+from time import sleep
 
 
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
@@ -54,9 +55,11 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             self.handicap = hc.custom_handicap(False)
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
-                self.play_turn()  # Change this to true if you want it to be bot vs bot
+                self.play_turn(True)  # Change this to true if you want it to be bot vs bot
+                sleep(0.2)
             elif self.whose_turn == self.player_white:
                 self.play_turn(True)
+                sleep(0.2)
 
         self.mode = "Scoring"
         self.times_passed = 0
@@ -89,12 +92,12 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                     row, col = values['-GRAPH-']
                     found_piece, piece = self.find_piece_click([row, col])
                 else:  # ! Black Box Func for now
+                    # Add in code to allow the computer to pass after around turn 54
                     row = randrange(0, self.board_size)
                     col = randrange(0, self.board_size)
                     placement: Tuple = (row, col)
                     piece = self.board[row][col]
                     found_piece = True
-                # self.combined_network.send(f"{piece.row, piece.col} ")
                 if found_piece:
                     if not bot:
                         truth_value = self.play_piece(piece.row, piece.col)
@@ -157,7 +160,68 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             return True
         elif (self.self_death_rule(piece, self.whose_turn) == 0):
             return False
+        elif self.fills_eye(piece):
+            return False
         else:
             self.piece_placement(piece, row, col)
             self.killed_last_turn.clear()
             return True
+
+    def fills_eye(self, piece: BoardNode) -> bool:
+        '''Check if placing a stone in the given position would fill an eye.'''
+        # False means it will not fill an eye, so it can place there
+        for neighbor in piece.connections:
+            if neighbor.stone_here_color != self.whose_turn.unicode:
+                return False
+        piece_diagonals = self.diagonals_setup(piece)
+        counter = 0
+        dual_eye_check = False
+        bad_diagonals = False
+
+        for item in piece_diagonals:
+            if item.stone_here_color == cf.unicode_none:
+                # This next thing checks to see if that diagonal is also a eye (dual eye setup) plus more
+                surrounded_properly = True
+                for neighbor in item.connections:
+                    if neighbor.stone_here_color != self.whose_turn.unicode:
+                        # This doesn't fully work safely (sometimes fills eyes),
+                        # but i think a NN will eventually figure out what is a dumb move
+                        surrounded_properly = False
+                if not surrounded_properly:
+                    counter += 1
+                if surrounded_properly:
+                    item_diagonals = self.diagonals_setup(piece)
+                    temp_counter = 0
+                    # This next thing checks to see if that diagonal is also a eye (dual eye setup)
+                    for second_item in item_diagonals:
+                        if second_item.stone_here_color != self.whose_turn.unicode:
+                            temp_counter += 1
+                    if temp_counter < 2:
+                        dual_eye_check = True
+                    else:
+                        counter += 1
+                        # This might be bad/not correct... But maybe a NN will be able to figure out not acting dumb
+                # I might need to eventually add in a check regarding honeycomb shapes, if it doesn't work properly...
+            elif item.stone_here_color == self.not_whose_turn.unicode:
+                counter += 1
+
+        if counter > 1:
+            bad_diagonals = True
+
+        if bad_diagonals:  # Therefore it's ok to fill
+            return False
+        elif dual_eye_check:  # Therefore don't fill
+            return True
+        else:  # Not ok to fill
+            return True
+
+    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
+        board_size = len(self.board)
+        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+        diagonals = set()
+        for item in diagonal_change:
+            new_row, new_col = piece.row + item[0], piece.col + item[1]
+            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
+                diagonals.add(self.board[new_row][new_col])
+        return diagonals

@@ -91,6 +91,7 @@ class CollectionOfMCST:
             temp: MCST = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
+        print("Running the black test")
         for idx in range(len(self.black_MCSTS)):
             item = self.black_MCSTS_tuple_list[idx]
             # print(item[1])
@@ -98,6 +99,7 @@ class CollectionOfMCST:
             self.black_MCSTS_final.append((item[0], item[1], item[2], output))
             # print(self.black_MCSTS_final[idx])
             # print('\n\n')
+        print("Running the white test")
         for idx in range(len(self.white_MCSTS)):
             item = self.white_MCSTS_tuple_list[idx]
             # print(item[1])
@@ -107,12 +109,15 @@ class CollectionOfMCST:
             # print('\n\n')
 
 
+
 class MCST:
     def __init__(self, board: List[List[BoardNode]], outer_pieces: BoardString,  # Maybe turn person is an issue?
                  inner_pieces: BoardString, iterations: int, max_sim_depth: int, turn_person: Tuple[Player, Player]) -> None:
         self.board = board
         self.inner = inner_pieces
         self.outer = outer_pieces
+        self.outer_color = next(iter(self.outer.member_set)).stone_here_color
+
         self.cache: Dict[str, FrozenSet[BoardNode]] = {}
         self.win_cache: Dict[str, Tuple[int, int]] = {}
         self.cache_hash: str = None
@@ -287,14 +292,51 @@ class MCST:
 
     def fills_eye(self, piece: BoardNode, node: MCSTNode) -> bool:
         '''Check if placing a stone in the given position would fill an eye.'''
+        # False means it will not fill an eye, so it can place there
         for neighbor in piece.connections:
             if neighbor.stone_here_color != node.whose_turn.unicode:
                 return False
         piece_diagonals = self.diagonals_setup(piece)
+        counter = 0
+        dual_eye_check = False
+        bad_diagonals = False
+
         for item in piece_diagonals:
-            if item.stone_here_color != node.whose_turn.unicode:
-                return False
-        return True
+            if item.stone_here_color == cf.unicode_none:
+                # This next thing checks to see if that diagonal is also a eye (dual eye setup) plus more
+                surrounded_properly = True
+                for neighbor in item.connections:
+                    if neighbor.stone_here_color != node.whose_turn.unicode:
+                        # This doesn't fully work safely (sometimes fills eyes),
+                        # but i think a NN will eventually figure out what is a dumb move
+                        surrounded_properly = False
+                if not surrounded_properly:
+                    counter += 1
+                if surrounded_properly:
+                    item_diagonals = self.diagonals_setup(piece)
+                    temp_counter = 0
+                    # This next thing checks to see if that diagonal is also a eye (dual eye setup)
+                    for second_item in item_diagonals:
+                        if second_item.stone_here_color != node.whose_turn.unicode:
+                            temp_counter += 1
+                    if temp_counter < 2:
+                        dual_eye_check = True
+                    else:
+                        counter += 1
+                        # This might be bad/not correct... But maybe a NN will be able to figure out not acting dumb
+                # I might need to eventually add in a check regarding honeycomb shapes, if it doesn't work properly...
+            elif item.stone_here_color == node.not_whose_turn.unicode:
+                counter += 1
+
+        if counter > 1:
+            bad_diagonals = True
+
+        if bad_diagonals:  # Therefore it's ok to fill
+            return False
+        elif dual_eye_check:  # Therefore don't fill
+            return True
+        else:  # Not ok to fill
+            return True
 
     def ko_rule_break(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> bool:
         '''Checks if placing a piece breaks the ko rule.'''
@@ -464,8 +506,11 @@ class MCST:
         if life_check or only_outside_color:
             if life_check:
                 self.win_cache[self.cache_hash[1:]] = (1, 0)
+                #print("This games result was a LOSS2")
             else:
                 self.win_cache[self.cache_hash[1:]] = (1, 1)
+                #print("This games result was a WIN2")
+            #self.print_board()
             return True
 
         self.switch_player_setup(node)
@@ -479,7 +524,7 @@ class MCST:
 
     def check_inner_kill(self) -> bool:
         '''Checks if all stones in the inner region have the same color.'''
-        color = next(iter(self.outer.member_set)).stone_here_color
+        color = self.outer_color
         for item in self.inner.member_set:
             if item.stone_here_color != color and item.stone_here_color != cf.unicode_none:
                 return False
@@ -487,7 +532,7 @@ class MCST:
 
     def check_inner_life(self) -> bool:
         '''Checks if there is more than one living eye in the inner region.'''
-        color = next(iter(self.outer.member_set)).stone_here_color
+        color = self.outer_color
         eye_list = self.making_eye_list(color)
         living_eyes = 0
         if len(eye_list) == 1:
@@ -604,13 +649,16 @@ class MCST:
                 self.load_backup(backup, node)
                 return cache_value[1]
         unique_colors = {spot.stone_here_color for spot in self.inner.member_set}
-        outer_item = next(iter(self.outer.member_set))
-        if len(unique_colors) <= 2 and outer_item.stone_here_color in unique_colors:
+        if len(unique_colors) <= 2 and self.outer_color in unique_colors:
             self.win_cache[self.cache_hash[1:]] = (1, 1)
+            #print("This games result was a WIN")
+            #self.print_board()
             self.load_backup(backup, node)
             return 1
         else:
             self.win_cache[self.cache_hash[1:]] = (1, 0)
+            #print("This games result was a LOSS")
+            #self.print_board()
             self.load_backup(backup, node)
             return 0
 

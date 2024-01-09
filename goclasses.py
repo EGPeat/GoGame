@@ -6,7 +6,7 @@ import sys
 from player import Player
 from handicap import Handicap
 import config as cf
-from typing import Tuple, Optional, List, Set, Union
+from typing import Tuple, Optional, List, Set, Union, Type
 
 
 sys.setrecursionlimit(10000)
@@ -515,7 +515,7 @@ class GoBoard():
         self.position_played_log.append((self.whose_turn.color, row, col))
         self.refresh_board_pygame()
 
-#Potential for splitting the undo functionality to it's own file
+# Potential for splitting the undo functionality to it's own file
     def undo_checker(self) -> None:
         '''Calls the undo_turn function with appropriate parameters'''
         if self.mode == "Scoring":
@@ -719,7 +719,7 @@ class GoBoard():
             self.screen: pygame.Surface = backup_screen
             self.backup_board: pygame.Surface = backup_backup_board
 
-    def load_pkl(self, inputPath):
+    def load_pkl(self, inputPath) -> Type['GoBoard']:
         '''Loads the current state of the game from a pkl file.'''
         import pickle
         with open(inputPath, 'rb') as file:
@@ -731,7 +731,7 @@ class GoBoard():
         self.screen.blit(self.backup_board, (0, 0))
         for board_row in self.board:
             for item in board_row:
-                #Can do it better using if... in?
+                # Can do it better using if... in?
                 if item.stone_here_color == cf.unicode_black or item.stone_here_color == cf.unicode_white:  # this is bad, fix
                     pygame.draw.circle(self.screen, item.stone_here_color,
                                        (item.screen_row, item.screen_col), self.pygame_board_vals[2])

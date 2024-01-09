@@ -1,11 +1,9 @@
 from time import sleep
 import pygame
-import copy
 from player import Player
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
-# Go and fix copy.deepcopy/remove it where i can or make my own version of things...
 
 
 class ScoringBoard(GoBoard):
@@ -14,7 +12,7 @@ class ScoringBoard(GoBoard):
         self.parent = parent_obj
         self.defaults: bool = self.parent.defaults
         self.board_size: int = self.parent.board_size
-        self.board: List[List[BoardNode]] = copy.deepcopy(self.parent.board)
+        self.board: List[List[BoardNode]] = self.parent.board
 
         self.init_helper_player_deep()
 
@@ -22,11 +20,11 @@ class ScoringBoard(GoBoard):
         self.times_passed: int = self.parent.times_passed
         self.turn_num: int = self.parent.turn_num
         PPL_Type = List[Union[str, Tuple[str, int, int]]]
-        self.position_played_log: PPL_Type = copy.deepcopy(self.parent.position_played_log)
-        self.visit_kill: Set[BoardNode] = copy.deepcopy(self.parent.visit_kill)
-        self.killed_last_turn: Set[BoardNode] = copy.deepcopy(self.parent.killed_last_turn)
+        self.position_played_log: PPL_Type = self.parent.position_played_log
+        self.visit_kill: Set[BoardNode] = self.parent.visit_kill
+        self.killed_last_turn: Set[BoardNode] = self.parent.killed_last_turn
         KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
-        self.killed_log: KL_Type = copy.deepcopy(self.parent.killed_log)
+        self.killed_log: KL_Type = self.parent.killed_log
 
         # Mode and handicap attributes
         self.mode: str = self.parent.mode
@@ -39,11 +37,11 @@ class ScoringBoard(GoBoard):
         self.white_strings: List[BoardString] = list()
 
     def init_helper_player_deep(self) -> None:
-        '''Makes a deepcopy of the variables to do with Players'''
-        self.player_black: Player = copy.deepcopy(self.parent.player_black)
-        self.player_white: Player = copy.deepcopy(self.parent.player_white)
-        self.whose_turn: Player = copy.deepcopy(self.parent.whose_turn)
-        self.not_whose_turn: Player = copy.deepcopy(self.parent.not_whose_turn)
+        '''Makes a copy of the variables to do with Players'''
+        self.player_black: Player = self.parent.player_black
+        self.player_white: Player = self.parent.player_white
+        self.whose_turn: Player = self.parent.whose_turn
+        self.not_whose_turn: Player = self.parent.not_whose_turn
 
     def pieces_into_sets(self) -> None:
         self.empty_space_set: Set[BoardNode] = set()
@@ -70,8 +68,7 @@ class ScoringBoard(GoBoard):
             if success:
                 tmp = self.finding_correct_mixed_string(obj_obj, player.unicode, original_string, player_strings)
                 if tmp[0]:
-                    mixed_str, outer_str = tmp[1], tmp[2]  # You need to modify the above function to get the mixed_str
-                    # to return the correct area inside of the outer_str. Just modify a floodfill.
+                    mixed_str, outer_str = tmp[1], tmp[2]
                     mixed_str_color.append(mixed_str)
                     outer_str_color.append(outer_str)
 
@@ -89,12 +86,13 @@ class ScoringBoard(GoBoard):
         # sleep(0.2)
         self.refresh_board_pygame()
 
-    def dealing_with_dead_stones(self) -> bool:
+    def dealing_with_dead_stones(self) -> bool:  # Could easily split up this function into multiple functions
         '''
         Manages the process of dealing with dead stones, including finding and removing them.
         Initializes and uses the MCST collection for scoring.
         Returns the winner after counting territory.
         '''
+        import copy
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
         self.making_go_board_strings(self.black_set, cf.unicode_black, False)
@@ -115,9 +113,8 @@ class ScoringBoard(GoBoard):
 
         self.make_mixed_and_outer(self.mixed_string_for_white, self.outer_string_white,
                                   self.player_white, self.white_strings, cf.unicode_white)
-
-        from mcst import CollectionOfMCST
         self.remove_safe_strings()
+        from mcst import CollectionOfMCST
         print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
         # import cProfile
         # import pstats
@@ -288,23 +285,23 @@ class ScoringBoard(GoBoard):
                 - (False, -1) if the mixed strings are not correct or connected.
                 - (True, con_str_full, discon_str) if the mixed strings are correct and connected.
         """
-        connections, con_str, discon_str = self.making_mixed_strings(piece, color, original_string, list_strings)
+        con_str, discon_str = self.making_mixed_strings(piece, color, original_string, list_strings)
         # If you change the or in the following two checks, it will generate larger areas to test
         if con_str.xmin < discon_str.xmin or con_str.xmax > discon_str.xmax:
             return (False, -1)
         elif con_str.ymin < discon_str.ymin or con_str.ymax > discon_str.ymax:
             return (False, -1)
         else:
+            import copy
             base_piece = con_str.member_set.pop()
             con_str_temp = self.flood_fill_with_outer(base_piece, discon_str)
             con_str_full = BoardString("Internal Area", con_str_temp[0])
             self.mixed_string_set_removal(copy.deepcopy(con_str_temp[0]), color)
-            # return (True, con_str, discon_str)
             return (True, con_str_full, discon_str)
 
     def making_mixed_strings(self, piece: BoardNode, color: Tuple[int, int, int],
                              original_string: BoardString, list_strings: List[BoardString]) -> \
-            Tuple[Set[BoardNode], BoardString, BoardString]:
+            Tuple[BoardString, BoardString]:
         """
         Generate mixed strings by connecting empty spaces and opponent stones.
 
@@ -327,7 +324,7 @@ class ScoringBoard(GoBoard):
                 connections.update(outer_temp)
         con_str = BoardString("Empty and Enemy", connections)
         discon_str = BoardString("Disconnected Outer String", disconnected_temp)
-        return connections, con_str, discon_str  #Why is connections returned/used?
+        return con_str, discon_str
 
     def generating_mixed_strings(self, piece: BoardNode, color: Tuple[int, int, int], og_str: BoardString,
                                  str_list: List[BoardString], conn_piece: Union[None, Set[BoardNode]] = None,
