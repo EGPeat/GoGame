@@ -2,15 +2,53 @@ from handicap import Handicap
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from random import randrange
-import PySimpleGUI as sg
 import sys
 from typing import Tuple, Optional, List, Set, Union, Type
 from scoringboard import ScoringBoard
 
 sys.setrecursionlimit(10000)
 
-# Some of these functions are never used, but are editted to remove window/pygame/pysimplegui stuff
-# It should be possible to remove those things from this code
+
+def choose_board_type(vs_bot: Optional[bool] = False, ai_training: Optional[bool] = False, *args):
+    '''
+    This function is used in the initialization of the game...
+    It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
+    Parameters:
+        vs_bot: If True, play against an AI opponent.
+    '''
+    from botnormalgo import BotBoard
+    from neuralnetboard import NNBoard
+    if ai_training:
+        GameBoard = NNBoard(*args)
+    elif vs_bot:
+        GameBoard = BotBoard(*args)
+    else:
+        GameBoard = GoBoard(*args)
+    return GameBoard
+
+
+def initializing_game(board_size: int, defaults: Optional[bool] = True,
+                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
+                      ai_training: Optional[bool] = False, no_window: Optional[bool] = False) -> None:
+    '''
+    Initialize a new game based on user preferences.
+    Parameters:
+        window: The pySimpleGui window for user interactions.
+        board_size: The size of the game board.
+        defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
+        fixes_handicap: If True, prompt the user to modify the handicap.
+        vs_bot: If True, play against an AI opponent.
+    '''
+
+    if defaults:
+        game_board = choose_board_type(vs_bot, ai_training, board_size, defaults)
+
+    if not fixes_handicap:
+        if not vs_bot:  # This is a hack to manage AI training. Fix eventually.
+            game_board.play_game(fixes_handicap)
+        if vs_bot:   # This is a hack to manage AI training. Fix eventually.
+            temp = game_board.play_game(fixes_handicap)
+            return temp
 
 
 class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
@@ -70,7 +108,6 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         self.mode = "Scoring"
         self.times_passed = 0  # This is a hack to manage AI training. Fix eventually.
         self.resuming_scoring_buffer("Scoring")
-        print("Pause1. This is scoringboard stuff. Unsure if needs window or not.")
         winner = self.making_score_board_object()
         print(f"winner is {winner}")
         return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
@@ -118,30 +155,6 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         self.killed_log.append(temp_list)
         turn_string = (self.make_board_string(), placement)
         self.ai_training_info.append(turn_string)
-        self.switch_player()
-        return
-
-    def remove_dead(self) -> None:
-        '''
-        This function waits for player input to select dead stones, and then processes the removal of those stones.
-        '''
-        self.killed_last_turn.clear()
-        truth_value: bool = False
-        while not truth_value:
-            event, values = self.window.read()
-            else_choice: bool = self.remove_dead_event_handling(event)
-            if not else_choice:
-                return
-            row, col = values['-GRAPH-']
-            found_piece, piece = self.find_piece_click([row, col])
-            if found_piece:
-                other_user_agrees, piece_string = self.remove_dead_found_piece(piece)
-                if other_user_agrees == "No":
-                    self.remove_dead_undo_list(piece_string)
-                    return
-
-                self.remove_stones_and_update_score(piece_string)
-                break
         self.switch_player()
         return
 
@@ -227,107 +240,11 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                 diagonals.add(self.board[new_row][new_col])
         return diagonals
 
-    def play_game_view_endgame(self) -> None:  # Might be wrong, requires testing.
-        '''Allows the user to view a completed game'''
-        event, _ = self.window.read()
-        if event == "Exit Game":
-            from main import play_game_main
-            self.close_window()
-            play_game_main()
-            quit()
-        elif event == sg.WIN_CLOSED:
-            quit()
-
-    def remove_dead_found_piece(self, piece: BoardNode) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
-        '''
-        Helper function for remove_dead().
-        Uses floodfill to find all connected Nodes of the same color as the variable piece.
-        Gets the agreement (or disagreement) of the other player.
-        '''
-        series: Tuple[Set[BoardNode], Set[BoardNode]] = NNScoringBoard.flood_fill(piece)  #!
-        piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
-        for item in series[0]:
-            if item.stone_here_color == self.player_black.unicode:
-                piece_string.append(((item.row, item.col), item.stone_here_color))
-                item.stone_here_color = cf.unicode_diamond_black
-
-            else:
-                piece_string.append(((item.row, item.col), item.stone_here_color))
-                item.stone_here_color = cf.unicode_diamond_white
-        info: str = "Other player, please click yes if you are ok with these changes"
-        other_user_agrees: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
-        return other_user_agrees, piece_string
-
-    def remove_dead_undo_list(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
-        '''Undoes the removal of dead stones and revert the board to its previous state.'''
-        for tpl in piece_string:
-            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
-            if item.stone_here_color == cf.unicode_diamond_black:
-                item.stone_here_color = self.player_black.unicode
-            elif item.stone_here_color == cf.unicode_diamond_white:
-                item.stone_here_color = self.player_white.unicode
-
-    def remove_stones_and_update_score(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
-        '''
-        Helper function for remove_dead().
-        Removes stones marked as dead during scoring and update player scores.
-        '''
-        for tpl in piece_string:
-            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
-            item.stone_here_color = cf.unicode_none
-
-        captured_count: int = len(piece_string)
-        self.player_white.captured += captured_count if piece_string[0][1] == self.player_black.unicode else 0
-        self.player_black.captured += captured_count if piece_string[0][1] == self.player_white.unicode else 0
-
-        temp_list: List[Tuple[Tuple[int, int, int], int, int, str]] = list()
-        for item in piece_string:
-            temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
-
-        self.killed_log.append(temp_list)
-        self.position_played_log.append("Dead Removed")
-        self.turn_num += 1
-
-    def end_of_game(self) -> None:
-        '''Handles the end of the game, i.e. displaying the winner, saving the game state, and returning to the main menu.'''
-        from main import play_game_main
-        self.close_window()
-        play_game_main()
-        quit()
-
     def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
         '''Places a piece on the board and updates game state.'''
         piece.stone_here_color = self.whose_turn.unicode
         self.turn_num += 1
         self.position_played_log.append((self.whose_turn.color, row, col))
-
-    def undo_turn(self, scoring: Optional[bool] = False) -> None:
-        '''Undo the most recent turn, reverting the board to its state one turn ago.'''
-        if self.undo_special_cases():
-            return
-        if not scoring:
-            _, row, col = self.position_played_log.pop()
-            self.board[row][col].stone_here_color = cf.unicode_none
-        else:
-            self.position_played_log.pop()
-        # This part reverts the board back to its state 1 turn ago
-        revive = self.killed_log.pop()
-        capture_update_val: int = len(revive)
-
-        if len(revive) > 0:
-            unicode: Tuple[int, int, int] = revive[0][0]
-        else:
-            unicode: Tuple[int, int, int] = cf.unicode_none
-        for item in revive:
-            if not scoring:
-                unicode, row, col = item
-            else:
-                unicode, row, col, scoring = item
-            place: BoardNode = self.board[row][col]
-            place.stone_here_color = unicode
-        self.turn_num -= 1
-        self.not_whose_turn.captured -= capture_update_val
-        self.switch_player()
 
     def making_score_board_object(self):
         '''Creates a ScoringBoard object to handle scoring and dead stones.'''
@@ -394,7 +311,7 @@ class NNScoringBoard(ScoringBoard):
                                   self.player_white, self.white_strings, cf.unicode_white)
         self.remove_safe_strings()
         from mcst import CollectionOfMCST
-        #print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
+        # print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
                                                 5000, 30, (self.whose_turn, self.not_whose_turn))
