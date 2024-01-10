@@ -91,7 +91,7 @@ class CollectionOfMCST:
             temp: MCST = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
-        print("Running the black test")
+        # print("Running the black test")
         for idx in range(len(self.black_MCSTS)):
             item = self.black_MCSTS_tuple_list[idx]
             # print(item[1])
@@ -99,7 +99,7 @@ class CollectionOfMCST:
             self.black_MCSTS_final.append((item[0], item[1], item[2], output))
             # print(self.black_MCSTS_final[idx])
             # print('\n\n')
-        print("Running the white test")
+        # print("Running the white test")
         for idx in range(len(self.white_MCSTS)):
             item = self.white_MCSTS_tuple_list[idx]
             # print(item[1])
@@ -205,10 +205,10 @@ class MCST:
             result: int = self.simulate(selected_node)
             self.backpropagate(selected_node, result)
         if self.root.wins >= self.iteration_number//2:
-            print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
+            #print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return True  # This means the internal pieces should be counted as dead
         else:
-            print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
+            #print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return False
 
     def backpropagate(self, node: MCSTNode, result: int) -> None:

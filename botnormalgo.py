@@ -5,24 +5,22 @@ from goclasses import GoBoard, BoardNode
 import config as cf
 from typing import Tuple, List, Optional, Set
 from random import randrange
-from time import sleep
 
 
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
     def __init__(self, board_size=19, defaults=True):
         super().__init__(board_size, defaults)
         self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = []  # Might be Tuple of placement, or maybe a string
-        self.ai_info_full: Tuple[List[Tuple[str, Tuple[int, int]]], bool] = None
-        # Currently there isn't any way to figure out/have the game stop...
 
-    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False) -> None:
+    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
         '''
         This function figures out the gamemode of the board (playing, finished, scoring) and then calls the appropriate function.
         from_file: a bool representing if the board should be loaded from file
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
         if self.mode == "Playing":
-            self.play_game_playing_mode(from_file, fixes_handicap)
+            temp = self.play_game_playing_mode(from_file, fixes_handicap)
+            return temp  # This is a hack to manage AI training. Fix eventually.
         elif self.mode == "Finished":
             self.play_game_view_endgame()
         elif from_file is True and not self.mode_change:
@@ -35,7 +33,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             self.times_passed = 0
             self.scoring_block()
 
-    def play_game_playing_mode(self, from_file, fixes_handicap) -> None:
+    def play_game_playing_mode(self, from_file, fixes_handicap):
         '''
         This function handles the game logic during the "Playing" mode.
         It sets up the board and does handicaps if necessary based on from_file and fixes_handicap variable.
@@ -66,8 +64,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         # winner = self.scoring_block()
         winner = self.making_score_board_object()
         print(f"winner is {winner}")
-        sleep(5)
-        self.ai_info_full = (self.ai_training_info, winner)  # !
+        return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
 
     def play_turn(self, bot: Optional[bool] = False) -> None:
         '''
@@ -124,9 +121,9 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                         truth_value = self.play_piece_bot(piece.row, piece.col)
                     if truth_value:
                         self.times_passed = 0
-                        pygame.draw.circle(self.screen, self.whose_turn.unicode,
-                                           (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
-                        pygame.display.update()
+                        #pygame.draw.circle(self.screen, self.whose_turn.unicode,
+                        #                   (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
+                        #pygame.display.update()
         temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))

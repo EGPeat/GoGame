@@ -48,6 +48,10 @@ def play_game_main():
             go.initializing_game(window, 9, True)
         elif event == "Play Against AI":
             go.initializing_game(window, 9, True, vs_bot=True)
+        elif event == "AI Training":
+            from neuralnet import training_cycle
+            training_cycle(window)
+
         elif event == "New Hex Game":
             window.close()
             pygt.main()

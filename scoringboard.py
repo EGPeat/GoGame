@@ -115,7 +115,7 @@ class ScoringBoard(GoBoard):
                                   self.player_white, self.white_strings, cf.unicode_white)
         self.remove_safe_strings()
         from mcst import CollectionOfMCST
-        print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
+        #print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
         # import cProfile
         # import pstats
         # with cProfile.Profile() as pr:
@@ -128,13 +128,13 @@ class ScoringBoard(GoBoard):
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-                self.draw_dead_stones(item[0], item[1])
+                #self.draw_dead_stones(item[0], item[1])
         for item in self.MCST_collection.white_MCSTS_final:
             if item[3] is True:
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-        self.refresh_board_pygame()
+        #self.refresh_board_pygame()
         winner = self.counting_territory()
         return winner
         # stats = pstats.Stats(pr)

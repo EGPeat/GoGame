@@ -85,6 +85,7 @@ def setup_menu():
             sg.Button("New Game From Default", font=('Arial Bold', 12)),
             sg.Button("New Hex Game", font=("Arial Bold", 12))],
         [sg.Button("Play Against AI", font=('Arial Bold', 12)),
+         sg.Button("AI Training", font=('Arial Bold', 12)),
          sg.Cancel("Exit Game", font=('Arial Bold', 12))]]  # need to add options for mp for different board sizes lol
     window = sg.Window('Game Screen', layout, size=(700, 700), finalize=True)
     return window
