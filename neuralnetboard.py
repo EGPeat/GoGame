@@ -53,8 +53,8 @@ def initializing_game(board_size: int, defaults: Optional[bool] = True,
 
 class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
     def __init__(self, board_size=19, defaults=True):
-        self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = []  # Might be Tuple of placement, or maybe a string
-
+        # self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = []  # Might be Tuple of placement, or maybe a string
+        self.ai_training_info: List[str] = []
         self.defaults: bool = defaults
         self.board_size: int = board_size
         self.board: List[List[BoardNode]] = self.setup_board()
@@ -79,6 +79,16 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         from_file: a bool representing if the board should be loaded from file
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
+        empty_board = ''
+        for _ in range(self.board_size*self.board_size):
+            empty_board += '0'
+        for _ in range(15):
+            self.ai_training_info.append(empty_board)
+        self.ai_white_board = empty_board
+        self.ai_black_board = ''
+        for _ in range(self.board_size*self.board_size):
+            self.ai_black_board += '1'
+
         temp = self.play_game_playing_mode(from_file, fixes_handicap)
         return temp  # This is a hack to manage AI training. Fix eventually.
 
@@ -117,21 +127,31 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
         bot: a bool indicating if a bot is playing this turn.
         '''
+        from neuralnet import neural_net_calcuation
         truth_value: bool = False
-        placement = None
+        # placement = None
         tries = 0
         while not truth_value:
             if bot:  # ! Black Box Func for now
-                #Two different ways for managing having a pass function. Choose as you like.
-                val = randrange(0, (self.board_size * self.board_size))
-                tries += 1
-                if tries >= 120:
-                    val = self.board_size * self.board_size
 
-                """if self.turn_num >= 54:
-                    val = randrange(0, (self.board_size*self.board_size)+1)
+                val = randrange(0, (self.board_size * self.board_size))
+                nn_input = []
+                if self.whose_turn.unicode == cf.unicode_black:
+                    nn_input = self.ai_training_info[-15:]
+                    nn_input.append(self.ai_black_board)
                 else:
-                    val = randrange(0, (self.board_size*self.board_size))"""
+                    nn_input = self.ai_training_info[-15:]
+                    nn_input.append(self.ai_white_board)
+                val2 = neural_net_calcuation(nn_input, self.board_size)
+                tries += 1
+                if self.turn_num >= 81 or tries >= 120:
+                    if tries >= 120:
+                        val = self.board_size * self.board_size
+                    else:
+                        val = randrange(0, (self.board_size*self.board_size)+1)
+                else:
+                    val = randrange(0, (self.board_size*self.board_size))
+
                 if val == (self.board_size*self.board_size):
                     self.times_passed += 1
                     self.turn_num += 1
@@ -142,7 +162,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                 else:
                     row = val // self.board_size
                     col = val % self.board_size
-                    placement: Tuple = (row, col)
+                    # placement: Tuple = (row, col)
                     piece = self.board[row][col]
                     found_piece = True
             if found_piece:
@@ -153,7 +173,8 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
-        turn_string = (self.make_board_string(), placement)
+        # turn_string = (self.make_board_string(), placement)
+        turn_string = self.make_board_string()
         self.ai_training_info.append(turn_string)
         self.switch_player()
         return

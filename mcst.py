@@ -205,10 +205,10 @@ class MCST:
             result: int = self.simulate(selected_node)
             self.backpropagate(selected_node, result)
         if self.root.wins >= self.iteration_number//2:
-            #print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
+            # print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return True  # This means the internal pieces should be counted as dead
         else:
-            #print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
+            # print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return False
 
     def backpropagate(self, node: MCSTNode, result: int) -> None:
