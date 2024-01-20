@@ -137,11 +137,15 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                 val = randrange(0, (self.board_size * self.board_size))
                 nn_input = []
                 if self.whose_turn.unicode == cf.unicode_black:
-                    nn_input = self.ai_training_info[-15:]
+                    nn_input = self.ai_training_info[-8:]
+                    nn_input.reverse()
                     nn_input.append(self.ai_black_board)
                 else:
-                    nn_input = self.ai_training_info[-15:]
+                    nn_input = self.ai_training_info[-8:]
+                    nn_input.reverse()
                     nn_input.append(self.ai_white_board)
+
+
                 val2 = neural_net_calcuation(nn_input, self.board_size)
                 tries += 1
                 if self.turn_num >= 81 or tries >= 120:
