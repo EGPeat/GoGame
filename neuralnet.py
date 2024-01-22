@@ -122,20 +122,10 @@ def neural_net_calcuation(input_boards: List[str], board_size: int):
         if len(input_boards) == 0:
             helper_end(input_array, pop_board, board_size, board_idx)
 
-    print("uwu2")
-    output_array = nn_model(input_array)
-
-    print(input_array)
-    print(output_array)
-    val = np.argmax(output_array[1])
-    print(val)
-
-    row = val // board_size
-    col = val % board_size
-    print(f"the value spot is {row},{col}")
-    print("uwu")
-
-    print("owo")
+    value_output, policy_output = nn_model(input_array)
+    output_array = ((float(value_output[0][0]), np.array(policy_output)))
+    # float casting could cause some sort of loss of percision. Fix later
+    return output_array
 
 
 def helper_black(input_array, pop_board, board_size, board_idx):

@@ -1,7 +1,7 @@
 import random
 import math
 from typing import Tuple, List, Set, Union, Optional, Type, Literal, Dict, FrozenSet
-from scoringboard import BoardNode, BoardString
+from goclasses import BoardNode, BoardString
 import config as cf
 from player import Player
 
@@ -11,7 +11,6 @@ class MCSTNode:
                  board_list=None, killed_last: Union[Set[None], Set[BoardNode]] = set(),
                  placement_location: Tuple[Union[str, Tuple[int, int]], int, Tuple[int, int, int]] = ((-1, -1), -1, -1),
                  parent: Union[None, Type['MCSTNode']] = None) -> None:
-        from scoringboard import BoardNode
         self.placement_choice = placement_location[0]
         self.choice_info = placement_location
         self.board_list: List[str] = board_list
@@ -653,10 +652,3 @@ class MCST:
             self.win_cache[self.cache_hash[1:]] = (1, 0)
             self.load_backup(backup, node)
             return 0
-
-
-"""
-For training AI, have each turn a board_hash generated, as well as a text representation of the move played.
-Add this to a list or other data structure and then feed to AI.
-How to have the AI know when to consider the game done/close to done???
-"""
