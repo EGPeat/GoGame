@@ -3,8 +3,10 @@ from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from random import randrange
 import sys
-from typing import Tuple, Optional, List, Set, Union, Type
+from typing import Tuple, Optional, List, Set, Union, Type, Dict, FrozenSet
 from scoringboard import ScoringBoard
+from player import Player
+from mcst import MCSTNode, CollectionOfMCST, MCST
 
 sys.setrecursionlimit(10000)
 
@@ -111,7 +113,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             self.handicap = hc.custom_handicap(False)
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
-                self.play_turn(True)  # Change this to true if you want it to be bot vs bot
+                self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
             elif self.whose_turn == self.player_white:
                 self.play_turn(True)
 
@@ -122,7 +124,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         print(f"winner is {winner}")
         return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
 
-    def play_turn(self, bot: Optional[bool] = False) -> None:
+    def play_turn(self, bot: Optional[bool] = False, good_bot: Optional[bool] = False) -> None:
         '''
         This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
         bot: a bool indicating if a bot is playing this turn.
@@ -133,21 +135,24 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         tries = 0
         while not truth_value:
             if bot:  # ! Black Box Func for now
+                if good_bot:
+                    val = randrange(0, (self.board_size * self.board_size))
+                    nn_input = []
+                    if self.whose_turn.unicode == cf.unicode_black:
+                        nn_input = self.ai_training_info[-8:]
+                        nn_input.reverse()
+                        nn_input.append(self.ai_black_board)
+                    else:
+                        nn_input = self.ai_training_info[-8:]
+                        nn_input.reverse()
+                        nn_input.append(self.ai_white_board)
 
-                val = randrange(0, (self.board_size * self.board_size))
-                nn_input = []
-                if self.whose_turn.unicode == cf.unicode_black:
-                    nn_input = self.ai_training_info[-8:]
-                    nn_input.reverse()
-                    nn_input.append(self.ai_black_board)
+                    val2 = neural_net_calcuation(nn_input, self.board_size)
+                    tries += 1
                 else:
-                    nn_input = self.ai_training_info[-8:]
-                    nn_input.reverse()
-                    nn_input.append(self.ai_white_board)
+                    val = randrange(0, (self.board_size * self.board_size))
+                    tries += 1
 
-
-                val2 = neural_net_calcuation(nn_input, self.board_size)
-                tries += 1
                 if self.turn_num >= 81 or tries >= 120:
                     if tries >= 120:
                         val = self.board_size * self.board_size
@@ -353,3 +358,75 @@ class NNScoringBoard(ScoringBoard):
                     spot.stone_here_color = cf.unicode_none
         winner = self.counting_territory()
         return winner
+
+
+class NNMCSTNode(MCSTNode):
+    def __init__(self, turn_person: Tuple[Player, Player],
+                 board_list=None, killed_last: Union[Set[None], Set[BoardNode]] = set(),
+                 placement_location: Tuple[Union[str, Tuple[int, int]], int, Tuple[int, int, int]] = ((-1, -1), -1, -1),
+                 parent: Union[None, Type['MCSTNode']] = None) -> None:
+        from scoringboard import BoardNode
+        self.placement_choice = placement_location[0]
+        self.choice_info = placement_location
+        self.board_list: List[str] = board_list
+        self.parent: Union[None, Type['MCSTNode']] = parent
+        self.children: List[MCSTNode] = []
+        self.move_choices: Dict[str, BoardNode] = dict()
+        self.visits: int = 0
+        self.wins: int = 0
+        self.mean_next_state: float = 0
+        self.prior_probability: float = 0
+        self.killed_last_turn: Union[Set[None], Set[BoardNode]] = killed_last
+        self.child_killed_last: Union[Set[BoardNode], Set[None]] = set()
+        self.visit_kill: Set[BoardNode] = set()
+        self.whose_turn: Player = turn_person[0]
+        self.not_whose_turn: Player = turn_person[1]
+        self.mcstnode_init()
+        self.cache_hash: str = self.generate_cache()
+
+
+class NNCollectionOfMCST(CollectionOfMCST):
+    def __init__(self, board: List[List[BoardNode]], black_outer: List[BoardString], black_inner: List[BoardString],
+                 white_outer: List[BoardString], white_inner: List[BoardString],
+                 iterations: int, max_sim_depth: int, players: Tuple[Player, Player]) -> None:
+        self.black_MCSTS_tuple_list: List[Tuple[BoardString, BoardString, MCST]] = list()
+        self.black_MCSTS: List[MCST] = list()
+        self.white_MCSTS_tuple_list: List[Tuple[BoardString, BoardString, MCST]] = list()
+        self.white_MCSTS: List[MCST] = list()
+        self.black_MCSTS_final: List[Tuple[BoardString, BoardString, MCST, bool]] = list()
+        self.white_MCSTS_final: List[Tuple[BoardString, BoardString, MCST, bool]] = list()
+
+        for idx in range(len(black_outer)):
+            temp: MCST = MCST(board, black_outer[idx], black_inner[idx], iterations, max_sim_depth, players)
+            self.black_MCSTS.append(temp)
+            self.black_MCSTS_tuple_list.append([black_outer[idx], black_inner[idx], temp])
+
+        for idx in range(len(white_outer)):
+            temp: MCST = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
+            self.white_MCSTS.append(temp)
+            self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
+        for idx in range(len(self.black_MCSTS)):
+            item = self.black_MCSTS_tuple_list[idx]
+            output: bool = self.black_MCSTS[idx].run_mcst()
+            self.black_MCSTS_final.append((item[0], item[1], item[2], output))
+
+        for idx in range(len(self.white_MCSTS)):
+            item = self.white_MCSTS_tuple_list[idx]
+            output: bool = self.white_MCSTS[idx].run_mcst()  # If output is true, it means you kill the internal pieces
+            self.white_MCSTS_final.append((item[0], item[1], item[2], output))
+
+
+class NNMCST(MCST):
+    def __init__(self, board: List[List[BoardNode]], outer_pieces: BoardString,  # Maybe turn person is an issue?
+                 inner_pieces: BoardString, iterations: int, max_sim_depth: int, turn_person: Tuple[Player, Player]) -> None:
+        self.board = board
+        self.inner = inner_pieces
+        self.outer = outer_pieces
+        self.outer_color = next(iter(self.outer.member_set)).stone_here_color
+
+        self.cache: Dict[str, FrozenSet[BoardNode]] = {}
+        self.win_cache: Dict[str, Tuple[int, int]] = {}
+        self.cache_hash: str = None
+        self.secondary_init(inner_pieces, outer_pieces, turn_person)
+        self.iteration_number: int = iterations
+        self.max_simulation_depth = max_sim_depth
