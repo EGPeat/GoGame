@@ -100,26 +100,47 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         from_file: a bool representing if the board should be loaded from file
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
-        if not from_file:
-            self.board = self.setup_board()
-        else:
-            if self.position_played_log[-1][0] == "Black":
-                self.switch_player()
-                self.play_turn(True)
-        if fixes_handicap:
-            hc: Handicap = Handicap(self)
-            self.handicap = hc.custom_handicap(False)
-        while (self.times_passed <= 1):
-            if self.whose_turn == self.player_black:
-                self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
-            elif self.whose_turn == self.player_white:
-                self.play_turn(True)
+        import cProfile
+        import pstats
+        with cProfile.Profile() as pr:
+            if not from_file:
+                self.board = self.setup_board()
+            else:
+                if self.position_played_log[-1][0] == "Black":
+                    self.switch_player()
+                    self.play_turn(True)
+            if fixes_handicap:
+                hc: Handicap = Handicap(self)
+                self.handicap = hc.custom_handicap(False)
+            while (self.times_passed <= 1):
+                if self.whose_turn == self.player_black:
+                    self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
+                    #! Maybe have the NN loaded as a variable in the NN class? It might cut down a bit on runtime.
+                    # Maybe work on having parrallel computing?
+                elif self.whose_turn == self.player_white:
+                    self.play_turn(True, True)  # This is in self-play mode
+                    # self.play_turn(True)
 
-        self.mode = "Scoring"
-        self.times_passed = 0  # This is a hack to manage AI training. Fix eventually.
-        self.resuming_scoring_buffer("Scoring")
-        winner = self.making_score_board_object()
-        print(f"winner is {winner}")
+            self.mode = "Scoring"
+            self.times_passed = 0  # This is a hack to manage AI training. Fix eventually.
+            self.resuming_scoring_buffer("Scoring")
+            winner = self.making_score_board_object()
+            print(f"winner is {winner}")
+            import json
+            file_name = 'saved_self_play.json'
+            saved_list = []
+            for item in self.ai_output_info:
+                saved_list.append(tuple((item, winner)))
+            print(saved_list)
+            with open(file_name, "a") as fn2:
+                json.dump(saved_list, fn2)
+
+
+
+            stats = pstats.Stats(pr)
+            stats.sort_stats(pstats.SortKey.TIME)
+            # stats.print_stats()
+            stats.dump_stats(filename="5000x30testingv3.prof")
         return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
 
     def play_turn(self, bot: Optional[bool] = False, good_bot: Optional[bool] = False) -> None:
@@ -134,21 +155,14 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         while not truth_value:
             if bot:  # Rewrite this function to not use tries and be more in line with the NN
                 if good_bot:
-                    import cProfile
-                    import pstats
-                    with cProfile.Profile() as pr:
-                        self.board_copy: List[BoardString] = copy.deepcopy(self.board)
-                        # self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                        #                          self.ai_white_board, 1600, (self.whose_turn, self.not_whose_turn))
-                        self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                                                  self.ai_white_board, 5, (self.whose_turn, self.not_whose_turn))
-                        val, output_chances = self.turn_nnmcst.run_mcst()
-                        self.ai_output_info.append(output_chances)
-                        tries += 1  # Very likely unnecessary
-                        stats = pstats.Stats(pr)
-                        stats.sort_stats(pstats.SortKey.TIME)
-                        # stats.print_stats()
-                        stats.dump_stats(filename="5000x30testingv3.prof")
+                    self.board_copy: List[BoardString] = copy.deepcopy(self.board)
+                    # self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
+                    #                          self.ai_white_board, 1600, (self.whose_turn, self.not_whose_turn))
+                    self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
+                                              self.ai_white_board, 3, (self.whose_turn, self.not_whose_turn))
+                    val, output_chances = self.turn_nnmcst.run_mcst()
+                    self.ai_output_info.append(output_chances)
+                    tries += 1  # Very likely unnecessary
                     print(f"val is {val}")
                 else:   # potential for a problem if the MCST output is somehow invalid?
                     val = randrange(0, (self.board_size * self.board_size))

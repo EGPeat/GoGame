@@ -137,7 +137,7 @@ class NNMCST(MCST):
                 location = 81  # Hardcoded value
             chance_list[location] = spawn.number_times_choosen / (self.iteration_number)
             values_list[location] = self.get_UCB_score(spawn)
-        #for idx in range(len(chance_list)):
+        # for idx in range(len(chance_list)):
         #    print(f"{chance_list[idx]}, {values_list[idx]}")
 
         return chance_list
