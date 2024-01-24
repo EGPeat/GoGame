@@ -11,7 +11,7 @@ np.set_printoptions(threshold=sys.maxsize)
 def nn_model(input_array):
     conv_output = nn_model_conv_layer(input_array)
     res_output = nn_model_res_layer(conv_output)
-    for _ in range(39):
+    for _ in range(9):  # 39 is the normal amount
         res_output = nn_model_res_layer(res_output)
 
     policy_output = nn_model_policy_head(res_output)

@@ -44,7 +44,7 @@ class NNMCST(MCST):
                  iterations: int, turn_person: Tuple[Player, Player]) -> None:
         self.board = board
         self.board_BoardString = None
-        self.ai_training_info = training_info
+        self.ai_training_info = copy.deepcopy(training_info)
         self.ai_white_board = white_board
         self.ai_black_board = black_board
 
@@ -62,7 +62,7 @@ class NNMCST(MCST):
         temp_set: Set[BoardNode] = set()
         for idx_1 in range(9):
             for idx_2 in range(9):
-                temp_set.add(self.board[idx_1][idx_2]) 
+                temp_set.add(self.board[idx_1][idx_2])
         self.board_BoardString = BoardString(cf.unicode_none, temp_set)
 
     def best_child_finder(self, node: NNMCSTNode) -> NNMCSTNode:
@@ -111,19 +111,36 @@ class NNMCST(MCST):
         for idx in range(self.iteration_number):
             selected_node = self.select(self.root, idx)
             value_output = self.expand(selected_node, idx)
-            self.backpropagate(selected_node, value_output)  # unsure about expand and backprop
-
+            self.backpropagate(selected_node, value_output)
         best_child_value = float('-inf')
         best_child: NNMCSTNode = None
-    
         for spawn in self.root.children:
             spawn_value = self.get_UCB_score(spawn)
             if spawn_value >= best_child_value:
                 best_child = spawn
                 best_child_value = spawn_value
         location = (best_child.choice_info[0][1], best_child.choice_info[0][0])  # potential issue again....
+        if location[0] != "a":
+            location = best_child.choice_info[0][1] * 9 + best_child.choice_info[0][0]
+        else:
+            location = 81  # Hardcoded values
+        output_chances = self.get_choice_info()
+        return location, output_chances
 
-        return location
+    def get_choice_info(self) -> List[float]:
+        chance_list: List[float] = [None] * 82
+        values_list: List[float] = [None] * 82
+        for spawn in self.root.children:
+            if spawn.choice_info[0][1] != 'a':
+                location = spawn.choice_info[0][1] * 9 + spawn.choice_info[0][0]
+            else:
+                location = 81  # Hardcoded value
+            chance_list[location] = spawn.number_times_choosen / (self.iteration_number)
+            values_list[location] = self.get_UCB_score(spawn)
+        #for idx in range(len(chance_list)):
+        #    print(f"{chance_list[idx]}, {values_list[idx]}")
+
+        return chance_list
 
     def select(self, node: NNMCSTNode, idx: int) -> NNMCSTNode:
         '''Selects a node for expansion, as well as generates child nodes.'''
@@ -136,7 +153,7 @@ class NNMCST(MCST):
             for move in legal_moves:
                 probability = self.get_probabilities_for_child(policy_output, move)
                 self.make_child_node(move, node, idx, probability)
-            return node
+            return self.select(node, idx)
 
         root_child = self.best_child_finder(node)
         while root_child.children:
@@ -172,15 +189,17 @@ class NNMCST(MCST):
         while not legal_move:
             move = argmax(policy_copy)
             if move != 81:
-                policy_copy[0][move] = 0  # Could break af
+                # policy_copy[0][move] = 0  # Could break af
+                policy_copy[0][move] = -2  # Could break af
                 board_node = self.board[move // 9][move % 9]
                 legal_move = self.test_piece_placement(board_node, node)
                 selected_move = board_node
             else:
+                print("2")
                 selected_move = "Pass"
+                legal_move = True
         probability = self.get_probabilities_for_child(policy_output, selected_move)
         self.make_child_node(selected_move, node, idx, probability)
-
         return value_output
 
     def generate_moves(self, node: NNMCSTNode, simulate=False, final_test=False) -> List[Union[BoardNode, Literal["Pass"]]]:

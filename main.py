@@ -7,6 +7,7 @@ import pygametest as pygt
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
 # Fix up the issue regarding the MCST and edge cases regarding eyes (talk to professor)
+# Rare issue with the NN MCST, unsure what it is
 
 
 def play_game_main():
