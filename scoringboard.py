@@ -221,7 +221,9 @@ class ScoringBoard(GoBoard):
         pw = self.player_white
         player_black_score = pb.komi + pb.territory + len(self.black_set)
         player_white_score = pw.komi + pw.territory + len(self.white_set)
+        print(f"black has {pb.komi} and {pb.territory} and {len(self.black_set)}")
         difference = player_black_score - player_white_score
+        print(f"white has {pw.komi} and {pw.territory} and {len(self.white_set)}, making the difference {difference}")
         if difference > 0:
             return 1  # Might be a more descriptive way to have it say who won, which could be better for training an AI...
         else:

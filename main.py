@@ -7,7 +7,7 @@ import pygametest as pygt
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
 # Make it so the MCST/NN won't pass until later on
-
+# It tries to play the same move several times in a row
 
 def play_game_main():
     '''
@@ -48,11 +48,13 @@ def play_game_main():
             go.initializing_game(window, 9, True)
         elif event == "Play Against AI":
             go.initializing_game(window, 9, True, vs_bot=True)
-        elif event == "AI Training":
+        elif event == "AI SelfPlay":
             from neuralnet import training_cycle
             window.close()
             training_cycle()
-
+        elif event == "AI Training":
+            from neuralnet import loading_file_for_training
+            loading_file_for_training()
         elif event == "New Hex Game":
             window.close()
             pygt.main()

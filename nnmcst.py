@@ -41,7 +41,7 @@ class NNMCSTNode(MCSTNode):
 
 class NNMCST(MCST):
     def __init__(self, board: List[List[BoardNode]], training_info: List[str], white_board: str, black_board: str,
-                 iterations: int, turn_person: Tuple[Player, Player]) -> None:
+                 iterations: int, turn_person: Tuple[Player, Player], nn) -> None:
         self.board = board
         self.board_BoardString = None
         self.ai_training_info = copy.deepcopy(training_info)
@@ -56,6 +56,7 @@ class NNMCST(MCST):
         board_list_for_root = self.make_board_string()
         self.root: NNMCSTNode = NNMCSTNode(turn_person, self.ai_training_info, 1, board_list_for_root,
                                            placement_location=("Root", -1, -1))
+        self.neural_net_inst = nn
 
     def secondary_init(self) -> None:
         '''Helper function for init.'''
@@ -195,7 +196,6 @@ class NNMCST(MCST):
                 legal_move = self.test_piece_placement(board_node, node)
                 selected_move = board_node
             else:
-                print("2")
                 selected_move = "Pass"
                 legal_move = True
         probability = self.get_probabilities_for_child(policy_output, selected_move)
@@ -275,8 +275,8 @@ class NNMCST(MCST):
             nn_input.reverse()
             nn_input.append(self.ai_white_board)
 
-        value_output, policy_output = neural_net_calcuation(nn_input, 9)  # 9 is hardcoded value, not so good
-        return (value_output, policy_output)
+        val_output, policy_output = neural_net_calcuation(nn_input, 9, self.neural_net_inst)  # 9 is hardcoded value, not so good
+        return (val_output, policy_output)
 
     def get_probabilities_for_child(self, policy_output, choosen_bnode: BoardNode):
         # heavily unsure if it should be row first or col first

@@ -72,6 +72,9 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         # Mode and handicap attributes
         self.mode, self.mode_change = "Playing", True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
+        from neuralnet import nn_model, load_model_weights
+        self.nn = nn_model()
+        # load_model_weights(self.nn)
 
     def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
         '''
@@ -115,7 +118,6 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             while (self.times_passed <= 1):
                 if self.whose_turn == self.player_black:
                     self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
-                    #! Maybe have the NN loaded as a variable in the NN class? It might cut down a bit on runtime.
                     # Maybe work on having parrallel computing?
                 elif self.whose_turn == self.player_white:
                     self.play_turn(True, True)  # This is in self-play mode
@@ -131,16 +133,16 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             saved_list = []
             for item in self.ai_output_info:
                 saved_list.append(tuple((item, winner)))
-            print(saved_list)
             with open(file_name, "a") as fn2:
                 json.dump(saved_list, fn2)
+            print("ok")
 
-
-
+            print("Done")
             stats = pstats.Stats(pr)
             stats.sort_stats(pstats.SortKey.TIME)
             # stats.print_stats()
             stats.dump_stats(filename="5000x30testingv3.prof")
+        quit()
         return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
 
     def play_turn(self, bot: Optional[bool] = False, good_bot: Optional[bool] = False) -> None:
@@ -158,12 +160,16 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                     self.board_copy: List[BoardString] = copy.deepcopy(self.board)
                     # self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
                     #                          self.ai_white_board, 1600, (self.whose_turn, self.not_whose_turn))
+                    import time
+                    t0= time.time()
                     self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                                              self.ai_white_board, 3, (self.whose_turn, self.not_whose_turn))
+                                              self.ai_white_board, 16, (self.whose_turn, self.not_whose_turn), self.nn)
                     val, output_chances = self.turn_nnmcst.run_mcst()
                     self.ai_output_info.append(output_chances)
+                    t1 = time.time()
+                    print(f"the times is {t1-t0}")
                     tries += 1  # Very likely unnecessary
-                    print(f"val is {val}")
+                    print(f"val is {val} and turn is {self.turn_num}")
                 else:   # potential for a problem if the MCST output is somehow invalid?
                     val = randrange(0, (self.board_size * self.board_size))
                     tries += 1
