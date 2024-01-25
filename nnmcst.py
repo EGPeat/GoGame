@@ -4,7 +4,7 @@ from player import Player
 from mcst import MCSTNode, MCST
 import config as cf
 import math
-from neuralnet import neural_net_calcuation
+from neuralnet import neural_net_calcuation, generate_17_length
 import copy
 from numpy import argmax
 # Need to set the probability for each child node on creation based on the neural net choice
@@ -102,13 +102,14 @@ class NNMCST(MCST):
             node.mean_value_v = node.total_v_children / node.number_times_choosen
             node = node.parent
 
-    def run_mcst(self) -> Tuple[int, int]:
+    def run_mcst(self) -> Tuple[int, List[float]]:
         """
         Run the Monte Carlo Search Tree (MCST) algorithm.
 
         Returns:
             bool: True if the internal pieces should be counted as dead, False otherwise.
         """
+        nn_input_backup = self.nn_input_generation(self.root, training=True)
         for idx in range(self.iteration_number):
             selected_node = self.select(self.root, idx)
             value_output = self.expand(selected_node, idx)
@@ -126,21 +127,16 @@ class NNMCST(MCST):
         else:
             location = 81  # Hardcoded values
         output_chances = self.get_choice_info()
-        return location, output_chances
+        return location, output_chances, nn_input_backup
 
     def get_choice_info(self) -> List[float]:
-        chance_list: List[float] = [None] * 82
-        values_list: List[float] = [None] * 82
+        chance_list: List[float] = [0] * 82
         for spawn in self.root.children:
             if spawn.choice_info[0][1] != 'a':
                 location = spawn.choice_info[0][1] * 9 + spawn.choice_info[0][0]
             else:
                 location = 81  # Hardcoded value
             chance_list[location] = spawn.number_times_choosen / (self.iteration_number)
-            values_list[location] = self.get_UCB_score(spawn)
-        # for idx in range(len(chance_list)):
-        #    print(f"{chance_list[idx]}, {values_list[idx]}")
-
         return chance_list
 
     def select(self, node: NNMCSTNode, idx: int) -> NNMCSTNode:
@@ -265,6 +261,12 @@ class NNMCST(MCST):
         node.switch_player()
 
     def child_nn_info(self, node: NNMCSTNode):
+        nn_input = self.nn_input_generation(node)
+
+        val_output, policy_output = neural_net_calcuation(nn_input, 9, self.neural_net_inst)  # 9 is hardcoded value, not so good
+        return (val_output, policy_output)
+
+    def nn_input_generation(self, node: NNMCSTNode, training: bool = False):
         nn_input = []
         if node.whose_turn.unicode == cf.unicode_black:
             nn_input = node.ai_training_info_node[-8:]
@@ -274,9 +276,10 @@ class NNMCST(MCST):
             nn_input = node.ai_training_info_node[-8:]
             nn_input.reverse()
             nn_input.append(self.ai_white_board)
-
-        val_output, policy_output = neural_net_calcuation(nn_input, 9, self.neural_net_inst)  # 9 is hardcoded value, not so good
-        return (val_output, policy_output)
+        if training:
+            temp = generate_17_length(nn_input, 9)
+            nn_input = temp.tolist()
+        return nn_input
 
     def get_probabilities_for_child(self, policy_output, choosen_bnode: BoardNode):
         # heavily unsure if it should be row first or col first

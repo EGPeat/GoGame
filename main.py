@@ -3,11 +3,12 @@ import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
 # To do:
-# Add AI to game
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
-# Make it so the MCST/NN won't pass until later on
-# It tries to play the same move several times in a row
+# x and y also mixed up in the nn mcst
+# Make it so the MCST/NN won't pass until later on?
+# It will play the exact same game everytime...
+
 
 def play_game_main():
     '''
@@ -51,9 +52,16 @@ def play_game_main():
         elif event == "AI SelfPlay":
             from neuralnet import training_cycle
             window.close()
-            training_cycle()
+            import cProfile
+            import pstats
+            with cProfile.Profile() as pr:
+                training_cycle()
+                stats = pstats.Stats(pr)
+                stats.sort_stats(pstats.SortKey.TIME)
+                stats.dump_stats(filename="5000x30testingv3.prof")
         elif event == "AI Training":
             from neuralnet import loading_file_for_training
+            window.close()
             loading_file_for_training()
         elif event == "New Hex Game":
             window.close()

@@ -72,9 +72,8 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         # Mode and handicap attributes
         self.mode, self.mode_change = "Playing", True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
-        from neuralnet import nn_model, load_model_weights
+        from neuralnet import nn_model
         self.nn = nn_model()
-        # load_model_weights(self.nn)
 
     def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
         '''
@@ -103,47 +102,53 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         from_file: a bool representing if the board should be loaded from file
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
-        import cProfile
-        import pstats
-        with cProfile.Profile() as pr:
-            if not from_file:
-                self.board = self.setup_board()
-            else:
-                if self.position_played_log[-1][0] == "Black":
-                    self.switch_player()
-                    self.play_turn(True)
-            if fixes_handicap:
-                hc: Handicap = Handicap(self)
-                self.handicap = hc.custom_handicap(False)
-            while (self.times_passed <= 1):
-                if self.whose_turn == self.player_black:
-                    self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
-                    # Maybe work on having parrallel computing?
-                elif self.whose_turn == self.player_white:
-                    self.play_turn(True, True)  # This is in self-play mode
-                    # self.play_turn(True)
+        if not from_file:
+            self.board = self.setup_board()
+        else:
+            if self.position_played_log[-1][0] == "Black":
+                self.switch_player()
+                self.play_turn(True)
+        if fixes_handicap:
+            hc: Handicap = Handicap(self)
+            self.handicap = hc.custom_handicap(False)
+        while (self.times_passed <= 1):
+            if self.whose_turn == self.player_black:
+                self.play_turn(True, True)  # Change this to true if you want it to be bot vs bot
+                # Maybe work on having parrallel computing?
+            elif self.whose_turn == self.player_white:
+                self.play_turn(True, True)  # This is in self-play mode
+                # self.play_turn(True)
 
-            self.mode = "Scoring"
-            self.times_passed = 0  # This is a hack to manage AI training. Fix eventually.
-            self.resuming_scoring_buffer("Scoring")
-            winner = self.making_score_board_object()
-            print(f"winner is {winner}")
-            import json
-            file_name = 'saved_self_play.json'
-            saved_list = []
-            for item in self.ai_output_info:
-                saved_list.append(tuple((item, winner)))
-            with open(file_name, "a") as fn2:
-                json.dump(saved_list, fn2)
-            print("ok")
+        self.mode = "Scoring"
+        self.times_passed = 0  # This is a hack to manage AI training. Fix eventually.
+        self.resuming_scoring_buffer("Scoring")
+        winner = self.making_score_board_object()
+        print(f"winner is {winner}")
+        import json
 
-            print("Done")
-            stats = pstats.Stats(pr)
-            stats.sort_stats(pstats.SortKey.TIME)
-            # stats.print_stats()
-            stats.dump_stats(filename="5000x30testingv3.prof")
-        quit()
-        return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
+        file_name = 'saved_self_play.json'
+
+        # Load existing data from the JSON file
+        try:
+            with open(file_name, "r") as fn2:
+                existing_data = json.load(fn2)
+        except FileNotFoundError:
+            existing_data = []
+
+        # Add new tuples to the list
+        new_data = []
+        for item in self.ai_output_info:
+            new_data.append(tuple((item[0], item[1], winner)))
+
+        # Combine existing data with new data
+        updated_data = existing_data + new_data
+
+        # Dump the updated list back to the JSON file
+        with open(file_name, "w") as fn2:
+            json.dump(updated_data, fn2)
+
+        return winner  # This is a hack to manage AI training. Fix eventually.
+
 
     def play_turn(self, bot: Optional[bool] = False, good_bot: Optional[bool] = False) -> None:
         '''
@@ -158,27 +163,32 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             if bot:  # Rewrite this function to not use tries and be more in line with the NN
                 if good_bot:
                     self.board_copy: List[BoardString] = copy.deepcopy(self.board)
-                    # self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                    #                          self.ai_white_board, 1600, (self.whose_turn, self.not_whose_turn))
+                    print_board = self.ai_training_info[-1]
+                    for idx in range(9):
+                        temp = print_board[(idx*9+1):(idx*9+10)]
+                        temp_emoji = str()
+                        for idx in range(len(temp)):
+                            if temp[idx] == '1':
+                                temp_emoji += '\u26AB'
+                            elif temp[idx] == '2':
+                                temp_emoji += '\u26AA'
+                            else:
+                                temp_emoji += "\u26D4"
+                        print(temp_emoji)
                     import time
-                    t0= time.time()
+                    t0 = time.time()
                     self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
                                               self.ai_white_board, 16, (self.whose_turn, self.not_whose_turn), self.nn)
-                    val, output_chances = self.turn_nnmcst.run_mcst()
-                    self.ai_output_info.append(output_chances)
+                    val, output_chances, formatted_ai_training_info = self.turn_nnmcst.run_mcst()
+                    self.ai_output_info.append(tuple((formatted_ai_training_info, output_chances)))
                     t1 = time.time()
                     print(f"the times is {t1-t0}")
                     tries += 1  # Very likely unnecessary
-                    print(f"val is {val} and turn is {self.turn_num}")
+                    print(f"val is {val}, pos is {val%9}, {val//9} and turn is {self.turn_num}")
+                    # Why is it doing things column first...
                 else:   # potential for a problem if the MCST output is somehow invalid?
                     val = randrange(0, (self.board_size * self.board_size))
                     tries += 1
-
-                if self.turn_num >= 81 or tries >= 120:
-                    if tries >= 120:
-                        val = self.board_size * self.board_size
-                    else:
-                        val = randrange(0, (self.board_size*self.board_size)+1)
 
                 if val == (self.board_size*self.board_size):
                     self.times_passed += 1
