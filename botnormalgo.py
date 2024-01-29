@@ -23,11 +23,11 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         elif self.mode == "Finished":
             self.play_game_view_endgame()
         elif from_file is True and not self.mode_change:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             self.scoring_block()
 
         else:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             self.mode_change = True
             self.times_passed = 0
             self.scoring_block()
@@ -43,7 +43,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         if not from_file:
             self.board = self.setup_board()
         else:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             if self.position_played_log[-1][0] == "Black":
                 self.switch_player()
                 self.play_turn(True)
@@ -79,8 +79,8 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                 event = "-GRAPH-"  # ! Black Box Func for now
 
             if event != "-GRAPH-":
-                # self.combined_network.send(f"{event} ")
-                self.turn_options(event, text="Passed")
+                from turn_options import normal_turn_options
+                normal_turn_options(self, event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
@@ -134,12 +134,14 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         '''
         This function waits for player input to select dead stones, and then processes the removal of those stones.
         '''
+        from remove_dead import remove_stones_and_update_score, remove_dead_undo_list, remove_dead_found_piece
+        from turn_options import remove_dead_turn_options
         self.killed_last_turn.clear()
         ui.update_scoring(self)
         truth_value: bool = False
         while not truth_value:
             event, values = self.window.read()
-            else_choice: bool = self.remove_dead_event_handling(event)
+            else_choice: bool = remove_dead_turn_options(self, event)
             if not else_choice:
                 return
             row, col = values['-GRAPH-']
@@ -147,12 +149,11 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             if found_piece and piece.stone_here_color == cf.unicode_none:
                 ui.def_popup("You can't remove empty areas", 1)
             elif found_piece:
-                other_user_agrees, piece_string = self.remove_dead_found_piece(piece)
+                other_user_agrees, piece_string = remove_dead_found_piece(self, piece)
                 if other_user_agrees == "No":
-                    self.remove_dead_undo_list(piece_string)
+                    remove_dead_undo_list(self, piece_string)
                     return
-
-                self.remove_stones_and_update_score(piece_string)
+                remove_stones_and_update_score(self, piece_string)
                 break
         self.switch_player()
         return

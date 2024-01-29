@@ -6,59 +6,8 @@ import sys
 from player import Player
 from handicap import Handicap
 import config as cf
-from typing import Tuple, Optional, List, Set, Union, Type
+from typing import Tuple, Optional, List, Set, Union
 sys.setrecursionlimit(10000)
-
-
-def choose_board_type(vs_bot: Optional[bool] = False, *args):
-    '''
-    This function is used in the initialization of the game...
-    It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
-    Parameters:
-        vs_bot: If True, play against an AI opponent.
-    '''
-    if vs_bot:
-        from botnormalgo import BotBoard
-        return BotBoard(*args)
-    else:
-        return GoBoard(*args)
-
-
-def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
-                      vs_bot: Optional[bool] = False) -> None:
-    '''
-    Initialize a new game based on user preferences.
-    Parameters:
-        window: The pySimpleGui window for user interactions.
-        board_size: The size of the game board.
-        defaults: If True, use default settings;
-            otherwise, allow the user to modify player names and komi.
-        vs_bot: If True, play against an AI opponent.
-    '''
-
-    game_board = initialize_player_choice(board_size, defaults, vs_bot)
-    window.close()
-    ui.setup_board_window_pygame(game_board)
-    handicap_info = False
-    if not defaults:
-        if request_handicap_info():
-            handicap_info = True
-    game_board.play_game(fixes_handicap=handicap_info)
-
-
-def request_handicap_info() -> str:
-    info: str = "Click yes if you want to modify the handicap"
-    return sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
-
-
-def initialize_player_choice(board_size: int, defaults: Optional[bool] = True,
-                             vs_bot: Optional[bool] = False):
-    info: str = "Click yes if you want to modify the player names and komi"
-    if not defaults:
-        modify_player: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
-        if modify_player == "No":
-            defaults = True
-    return choose_board_type(vs_bot, board_size, defaults)
 
 
 class BoardNode():
@@ -221,11 +170,11 @@ class GoBoard():
         elif self.mode == "Finished":
             self.play_game_view_endgame()
         elif from_file is True and not self.mode_change:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             self.scoring_block()
 
         else:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             self.mode_change = True
             self.times_passed = 0
             self.scoring_block()
@@ -241,7 +190,7 @@ class GoBoard():
         if not from_file:
             self.board = self.setup_board()
         else:
-            self.refresh_board_pygame()
+            ui.refresh_board_pygame(self)
             if self.position_played_log[-1][0] == "Black":
                 self.switch_player()
                 self.play_turn()
@@ -258,24 +207,15 @@ class GoBoard():
 
     def play_game_view_endgame(self) -> None:  # Might be wrong, requires testing.
         '''Allows the user to view a completed game'''
-        self.refresh_board_pygame()
+        ui.refresh_board_pygame(self)
         event, _ = self.window.read()
         if event == "Exit Game":
             from main import play_game_main
-            self.close_window()
+            ui.close_window(self)
             play_game_main()
             quit()
         elif event == sg.WIN_CLOSED:
             quit()
-
-    def switch_button_mode(self) -> None:
-        '''Updates the button text in the PySimpleGui window'''
-        if self.mode == "Scoring":
-            self.window["Res"].update("Resume Game")
-            self.times_passed = 0
-        elif self.mode == "Playing":
-            self.window["Res"].update("Quit Program")
-        self.mode_change = False
 
     def scoring_block(self) -> bool:
         '''
@@ -285,9 +225,10 @@ class GoBoard():
         '''
         while self.mode != "Finished":
             if self.mode_change:
-                self.switch_button_mode()
+                ui.switch_button_mode(self)
             while self.mode == "Scoring":
-                self.remove_dead()
+                from remove_dead import remove_dead
+                remove_dead(self)
                 if self.times_passed == 2:
                     self.mode = "Finished"
             if self.mode_change:
@@ -299,7 +240,8 @@ class GoBoard():
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        winner = self.making_score_board_object()
+        from scoringboard import making_score_board_object
+        winner = making_score_board_object(self)
         return winner
 
     def resuming_scoring_buffer(self, text) -> None:
@@ -308,90 +250,14 @@ class GoBoard():
         self.position_played_log.append(text)
         self.killed_log.append([])
 
-    def remove_dead(self) -> None:
-        '''
-        This function waits for player input to select dead stones, and then processes the removal of those stones.
-        '''
-        self.killed_last_turn.clear()
-        ui.update_scoring(self)
-        truth_value: bool = False
-        while not truth_value:
-            event, values = self.window.read()
-            else_choice: bool = self.remove_dead_event_handling(event)
-            if not else_choice:
-                return
-            row, col = values['-GRAPH-']
-            found_piece, piece = self.find_piece_click([row, col])
-            if found_piece and piece.stone_here_color == cf.unicode_none:
-                ui.def_popup("You can't remove empty areas", 1)
-            elif found_piece:
-                other_user_agrees, piece_string = self.remove_dead_found_piece(piece)
-                if other_user_agrees == "No":
-                    self.remove_dead_undo_list(piece_string)
-                    return
-
-                self.remove_stones_and_update_score(piece_string)
-                break
-        self.switch_player()
-        return
-
-    def remove_dead_found_piece(self, piece: BoardNode) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
-        '''
-        Helper function for remove_dead().
-        Uses floodfill to find all connected Nodes of the same color as the variable piece.
-        Gets the agreement (or disagreement) of the other player.
-        '''
-        from scoringboard import ScoringBoard
-        series: Tuple[Set[BoardNode], Set[BoardNode]] = ScoringBoard.flood_fill(piece)  # !
-        piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
-        for item in series[0]:
-            if item.stone_here_color == self.player_black.unicode:
-                piece_string.append(((item.row, item.col), item.stone_here_color))
-                item.stone_here_color = cf.unicode_diamond_black
-
-            else:
-                piece_string.append(((item.row, item.col), item.stone_here_color))
-                item.stone_here_color = cf.unicode_diamond_white
-        self.refresh_board_pygame()
-        info: str = "Other player, please click yes if you are ok with these changes"
-        other_user_agrees: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
-        return other_user_agrees, piece_string
-
-    def remove_dead_undo_list(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
-        '''Undoes the removal of dead stones and revert the board to its previous state.'''
-        for tpl in piece_string:
-            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
-            if item.stone_here_color == cf.unicode_diamond_black:
-                item.stone_here_color = self.player_black.unicode
-            elif item.stone_here_color == cf.unicode_diamond_white:
-                item.stone_here_color = self.player_white.unicode
-        self.refresh_board_pygame()
-
-    def remove_stones_and_update_score(self, piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]]) -> None:
-        '''
-        Helper function for remove_dead().
-        Removes stones marked as dead during scoring and update player scores.
-        '''
-        for tpl in piece_string:
-            item: BoardNode = self.board[tpl[0][0]][tpl[0][1]]
-            item.stone_here_color = cf.unicode_none
-
-        self.refresh_board_pygame()
-        temp_list: List[Tuple[Tuple[int, int, int], int, int, str]] = list()
-        for item in piece_string:
-            temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
-
-        self.killed_log.append(temp_list)
-        self.position_played_log.append("Dead Removed")
-        self.turn_num += 1
-
     def end_of_game(self) -> None:
         '''Handles the end of the game, i.e. displaying the winner, saving the game state, and returning to the main menu.'''
         ui.end_game_popup_two(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
-        self.save_pickle()
+        from saving_loading import save_pickle
+        save_pickle(self)
         from main import play_game_main
-        self.close_window()
+        ui.close_window(self)
         play_game_main()
         quit()
 
@@ -411,7 +277,8 @@ class GoBoard():
         while not truth_value:
             event, values = self.window.read()
             if event != "-GRAPH-":
-                self.turn_options(event, text="Passed")
+                from turn_options import normal_turn_options
+                normal_turn_options(self, event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
             else:
@@ -431,58 +298,6 @@ class GoBoard():
         self.killed_log.append(temp_list)
         self.switch_player()
         return
-
-    def turn_options(self, event, text: Optional[str] = None) -> None:
-        '''Handles various game options based on the given event.'''
-        if event in (sg.WIN_CLOSED, "Res"):
-            quit()
-        if event == "Pass Turn":
-            ui.def_popup("Skipped turn", 0.5)
-            self.times_passed += 1
-            self.turn_num += 1
-            self.position_played_log.append((text, -3, -3))
-            self.killed_log.append([])
-            self.switch_player()
-        elif event == "Save Game":
-            self.save_pickle()
-        elif event == "Undo Turn":
-            if self.turn_num == 0:
-                ui.def_popup("You can't undo when nothing has happened.", 2)
-            elif self.turn_num >= 1:
-                self.undo_checker()
-                return
-        elif event == "Exit Game":
-            from main import play_game_main
-            self.close_window()
-            play_game_main()
-            quit()
-        else:
-            raise ValueError
-
-    def remove_dead_event_handling(self, event) -> None:
-        '''Handles events related to removing dead stones during scoring.'''
-        if event == "Pass Turn":
-            self.turn_options(event, text="Scoring Passed")
-            return
-        elif event == "Save Game":
-            self.save_pickle()
-        elif event == "Res":
-            self.mode = "Playing"
-            self.mode_change = True
-            self.resuming_scoring_buffer("Resumed")
-            return
-        elif event == "Undo Turn":
-            self.turn_options(event)
-            return
-        elif event == "Exit Game":
-            from main import play_game_main
-            self.close_window()
-            play_game_main()
-            quit()
-        elif event == sg.WIN_CLOSED:
-            quit()
-        else:
-            return True
 
     def play_piece(self, row: int, col: int) -> bool:
         '''Attempts to play a piece on the board and handles rule violations.'''
@@ -509,81 +324,7 @@ class GoBoard():
         piece.stone_here_color = self.whose_turn.unicode
         self.turn_num += 1
         self.position_played_log.append((self.whose_turn.color, row, col))
-        self.refresh_board_pygame()
-
-# Potential for splitting the undo functionality to it's own file
-    def undo_checker(self) -> None:
-        '''Calls the undo_turn function with appropriate parameters'''
-        if self.mode == "Scoring":
-            self.undo_turn(scoring=True)
-        else:
-            self.undo_turn()
-
-    def undo_turn(self, scoring: Optional[bool] = False) -> None:
-        '''Undo the most recent turn, reverting the board to its state one turn ago.'''
-        if self.undo_special_cases():
-            return
-        if not scoring:
-            _, row, col = self.position_played_log.pop()
-            self.board[row][col].stone_here_color = cf.unicode_none
-        else:
-            self.position_played_log.pop()
-        # This part reverts the board back to its state 1 turn ago
-        revive = self.killed_log.pop()
-
-        if len(revive) > 0:
-            unicode: Tuple[int, int, int] = revive[0][0]
-        else:
-            unicode: Tuple[int, int, int] = cf.unicode_none
-        for item in revive:
-            if not scoring:
-                unicode, row, col = item
-            else:
-                unicode, row, col, scoring = item
-            place: BoardNode = self.board[row][col]
-            place.stone_here_color = unicode
-        self.refresh_board_pygame()
-        self.turn_num -= 1
-        self.switch_player()
-
-    def undo_special_cases(self) -> bool:
-        '''Handle special cases during undo, such as resuming scoring or handling consecutive passes.'''
-        last_entry: str = self.position_played_log[-1]
-
-        if last_entry == "Resumed" or last_entry == "Scoring":
-            tmp: str = self.position_played_log.pop()
-            self.move_back()
-            self.turn_num -= 1
-            self.mode_change = True
-
-            if tmp == "Resumed":
-                self.mode = "Scoring"
-                self.times_passed = 2
-            elif tmp == "Scoring":
-                self.mode = "Playing"
-            return True
-
-        if last_entry[0] in {"Passed", "Scoring Passed"}:
-            self.position_played_log.pop()
-            self.move_back()
-            self.turn_num -= 1
-            self.times_passed = 0
-
-            if self.position_played_log and self.position_played_log[-1][0] in {"Passed", "Scoring Passed"}:
-                self.times_passed = 1
-
-            self.switch_player()
-            return True
-        return False
-
-    def move_back(self) -> None:
-        '''Move back to the previous killed state, updating self.killed_last_turn.'''
-        if len(self.killed_log) > 0:
-            self.killed_last_turn.clear()
-            temp_list = self.killed_log.pop()
-            for item in temp_list:
-                temp_node = BoardNode(row_value=item[1], col_value=item[2])
-                self.killed_last_turn.add(temp_node)
+        ui.refresh_board_pygame(self)
 
     def ko_rule_break(self, piece: BoardNode) -> bool:  # no superko, but if it becomes a problem...
         '''Checks if placing a piece breaks the ko rule.'''
@@ -643,124 +384,3 @@ class GoBoard():
         if truth_value is False:
             piece.stone_here_color = cf.unicode_none
         return truth_value
-
-    def save_to_SGF(self, filename2: str) -> None:
-        '''Saves the current game to a SGF file.'''
-        with open(f"{filename2}.sgf", 'w', encoding='utf-8') as file:
-            from datetime import date
-            seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed",
-                    "Resumed", "Scoring", "Scoring Passed"]
-            movement_string: str = ""
-            today = date.today()
-            header: str = f"(;\nFF[4]\nCA[UTF-8]\nGM[1]\nDT[{today}]\nGN[relaxed]\n\
-            PC[https://github.com/EGPeat/GoGame]\n\
-            PB[{self.player_black.name}]\n\
-            PW[{self.player_white.name}]\n\
-            BR[Unknown]\nWR[Unknown]\n\
-            OT[Error: time control missing]\nRE[?]\n\
-            SZ[{self.board_size}]\nKM[{self.player_white.komi}]\nRU[Japanese];"
-            file.write(header)
-            handicap_flag: bool = self.handicap[0]
-            for idx, item in enumerate(self.position_played_log):
-                if handicap_flag and idx < self.handicap[2]:
-                    color: str = 'B' if self.handicap[1] == "Black" else 'W'
-                    row: str = chr(97 + int(item[1]))
-                    col: str = chr(97 + int(item[2]))
-                    text: str = f";{color}[{col}{row}]\n"
-                    movement_string += text
-                elif item[0] in seqs or item in seqs:
-                    pass
-                elif item[0] == "Passed":
-                    if movement_string[-7] == "B" or movement_string[-5] == "B":
-                        text2: str = ";W[]\n"
-                    else:
-                        text2: str = ";B[]\n"
-                    movement_string += text2
-                else:
-                    row: str = chr(97 + int(item[1]))
-                    col: str = chr(97 + int(item[2]))
-                    color: str = 'B' if item[0] == self.player_black.color else 'W'
-                    text: str = f";{color}[{col}{row}]\n"
-                    movement_string += text
-            movement_string += ")"
-            file.write(movement_string)
-
-    def save_pickle(self) -> None:
-        '''Saves the game to a pkl in the correct pklfiles folder'''
-        import pickle
-        from os import chdir, getcwd, path
-        wd = getcwd()
-        full_path = path.join(wd, 'pklfiles')
-        if not wd.endswith('pklfiles'):
-            chdir(full_path)
-        filename: str = ''
-        while len(filename) < 1:
-            text: str = "Please write the name of the file you want to save to. Do not include the file extension."
-            filename: str = (sg.popup_get_text(text, title="Please Enter Text", font=('Arial Bold', 15)))
-            if filename is None:
-                return
-        filename = path.join(full_path, f"{filename}")
-        with open(f"{filename}.pkl", "wb") as pkl_file:
-            backup_window: sg.Window = self.window
-            backup_screen: pygame.Surface = self.screen
-            backup_backup_board: pygame.Surface = self.backup_board
-            del self.window
-            del self.screen
-            del self.backup_board
-            pickle.dump(self, pkl_file)
-            self.window: sg.Window = backup_window
-            self.screen: pygame.Surface = backup_screen
-            self.backup_board: pygame.Surface = backup_backup_board
-
-    def load_pkl(self, inputPath) -> Type['GoBoard']:
-        '''Loads the current state of the game from a pkl file.'''
-        import pickle
-        with open(inputPath, 'rb') as file:
-            friend = pickle.load(file)
-        return friend
-
-    def refresh_board_pygame(self) -> None:
-        '''Refreshes the pygame screen to show the updated board'''
-        self.screen.blit(self.backup_board, (0, 0))
-        for board_row in self.board:
-            for item in board_row:
-                # Can do it better using if... in?
-                if item.stone_here_color == cf.unicode_black or item.stone_here_color == cf.unicode_white:  # this is bad, fix
-                    pygame.draw.circle(self.screen, item.stone_here_color,
-                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                elif item.stone_here_color == cf.unicode_diamond_black or item.stone_here_color == cf.unicode_diamond_white:
-                    pygame.draw.circle(self.screen, item.stone_here_color,
-                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-                elif item.stone_here_color == cf.unicode_triangle_black or item.stone_here_color == cf.unicode_triangle_white:
-                    pygame.draw.circle(self.screen, item.stone_here_color,
-                                       (item.screen_row, item.screen_col), self.pygame_board_vals[2])
-        pygame.display.update()
-
-    def close_window(self):
-        '''Closes the pygame display and PySimpleGui window'''
-        import platform
-        if platform.system() == "Linux":
-            self.window.close()
-        elif platform.system() == "Windows":
-            self.window.close()
-            del self.window
-            del self.backup_board
-            pygame.display.quit()
-
-    def making_score_board_object(self):
-        '''Creates a ScoringBoard object to handle scoring and dead stones.'''
-        from scoringboard import ScoringBoard
-        import platform  # Required as for some reason the code/window behaves differently between linux and windows
-        self.scoring_dead = ScoringBoard(self)
-        if platform.system() == "Linux":
-            self.window.close()
-            ui.setup_board_window_pygame(self.scoring_dead)  # Makes a window, but nothing you click will do anything
-            self.scoring_dead.refresh_board_pygame()
-            winner = self.scoring_dead.dealing_with_dead_stones()
-            return winner
-        elif platform.system() == "Windows":
-            self.close_window()
-            ui.setup_board_window_pygame(self.scoring_dead)
-            self.scoring_dead.refresh_board_pygame()
-            winner = self.scoring_dead.dealing_with_dead_stones()
-            return winner

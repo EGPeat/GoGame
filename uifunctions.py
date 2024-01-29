@@ -2,6 +2,7 @@ import PySimpleGUI as sg
 import os
 import platform
 import pygame
+import config as cf
 from typing import Tuple, List
 
 
@@ -277,3 +278,43 @@ def stars_pygame(self, window, circle_radius: float, setup: bool = False):
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
             elif setup:
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
+
+
+def switch_button_mode(board) -> None:
+    '''Updates the button text in the PySimpleGui window'''
+    if board.mode == "Scoring":
+        board.window["Res"].update("Resume Game")
+        board.times_passed = 0
+    elif board.mode == "Playing":
+        board.window["Res"].update("Quit Program")
+    board.mode_change = False
+
+
+def refresh_board_pygame(board) -> None:
+    '''Refreshes the pygame screen to show the updated board'''
+    board.screen.blit(board.backup_board, (0, 0))
+    for board_row in board.board:
+        for item in board_row:
+            # Can do it better using if... in?
+            if item.stone_here_color == cf.unicode_black or item.stone_here_color == cf.unicode_white:  # this is bad, fix
+                pygame.draw.circle(board.screen, item.stone_here_color,
+                                   (item.screen_row, item.screen_col), board.pygame_board_vals[2])
+            elif item.stone_here_color == cf.unicode_diamond_black or item.stone_here_color == cf.unicode_diamond_white:
+                pygame.draw.circle(board.screen, item.stone_here_color,
+                                   (item.screen_row, item.screen_col), board.pygame_board_vals[2])
+            elif item.stone_here_color == cf.unicode_triangle_black or item.stone_here_color == cf.unicode_triangle_white:
+                pygame.draw.circle(board.screen, item.stone_here_color,
+                                   (item.screen_row, item.screen_col), board.pygame_board_vals[2])
+    pygame.display.update()
+
+
+def close_window(board):
+    '''Closes the pygame display and PySimpleGui window'''
+    import platform
+    if platform.system() == "Linux":
+        board.window.close()
+    elif platform.system() == "Windows":
+        board.window.close()
+        del board.window
+        del board.backup_board
+        pygame.display.quit()

@@ -79,7 +79,7 @@ class Handicap():
             self.go_board.play_piece(row, col)
             pygame.draw.circle(self.go_board.screen, self.go_board.whose_turn.unicode,
                                (place.screen_row, place.screen_col), self.go_board.pygame_board_vals[2])
-        self.go_board.refresh_board_pygame()
+        ui.refresh_board_pygame(self.go_board)
         self.go_board.switch_player()
 
     def validate_handicap_placement(self):
@@ -91,7 +91,8 @@ class Handicap():
                 ui.def_popup("You can't do these actions during the handicap stage.", 3)
                 event, values = self.go_board.window.read()
             if event == "Exit Game" or event == "Res":
-                self.go_board.turn_options(event)
+                from turn_options import normal_turn_options
+                normal_turn_options(self.go_board, event)
             row, col = values['-GRAPH-']
             found_piece, piece = self.go_board.find_piece_click([row, col])
             if found_piece:

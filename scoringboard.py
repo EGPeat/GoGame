@@ -1,9 +1,28 @@
 from time import sleep
 import pygame
+import uifunctions as ui
 from player import Player
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
+
+
+def making_score_board_object(board):
+    '''Creates a ScoringBoard object to handle scoring and dead stones.'''
+    import platform  # Required as for some reason the code/window behaves differently between linux and windows
+    board.scoring_dead = ScoringBoard(board)
+    if platform.system() == "Linux":
+        board.window.close()
+        ui.setup_board_window_pygame(board.scoring_dead)  # Makes a window, but nothing you click will do anything
+        ui.refresh_board_pygame(board.scoring_dead)
+        winner = board.scoring_dead.dealing_with_dead_stones()
+        return winner
+    elif platform.system() == "Windows":
+        ui.close_window(board)
+        ui.setup_board_window_pygame(board.scoring_dead)
+        ui.refresh_board_pygame(board.scoring_dead)
+        winner = board.scoring_dead.dealing_with_dead_stones()
+        return winner
 
 
 class ScoringBoard(GoBoard):
@@ -84,7 +103,7 @@ class ScoringBoard(GoBoard):
         pygame.display.update()
         sleep(1.5)
         # sleep(0.2)
-        self.refresh_board_pygame()
+        ui.refresh_board_pygame(self)
 
     def dealing_with_dead_stones(self) -> bool:  # Could easily split up this function into multiple functions
         '''
@@ -131,7 +150,7 @@ class ScoringBoard(GoBoard):
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-        # self.refresh_board_pygame()
+        # ui.refresh_board_pygame(self)
         winner = self.counting_territory()
         return winner
 

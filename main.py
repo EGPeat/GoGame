@@ -1,4 +1,4 @@
-import goclasses as go
+import game_initialization as start
 import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
@@ -38,20 +38,20 @@ def play_game_main():
             file = file[-1]
             sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
                                 auto_close=True, auto_close_duration=3)
-            go_board = go.GoBoard()
-            friend = go_board.load_pkl(file)
+            from saving_loading import load_pkl
+            friend = load_pkl(file)
             ui.setup_board_window_pygame(friend)
             window.close()
             friend.play_game(from_file=True, fixes_handicap=False)
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()
-            go.initializing_game(window, board_size, defaults=False)
+            start.initializing_game(window, board_size, defaults=False)
 
         elif event == "New Game From Default":
-            go.initializing_game(window, 9, True)
+            start.initializing_game(window, 9, True)
         elif event == "Play Against AI":
-            go.initializing_game(window, 9, True, vs_bot=True)
+            start.initializing_game(window, 9, True, vs_bot=True)
         elif event == "AI SelfPlay":
             from neuralnet import training_cycle
             window.close()
