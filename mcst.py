@@ -250,27 +250,16 @@ class MCST:
 
     def best_child_finder(self, node: MCSTNode) -> MCSTNode:
         '''Finds the best child of the given node.'''
-        # current_best_val = float('-inf')
         current_best_child: MCSTNode = None
-
-        # for child in node.children:
-        #    child_val = self.get_UCB_score(child)
-        #    if child_val > current_best_val:
-        #        current_best_val = child_val
-        #        current_best_child = child
-        # THIS CHOOSES A RANDOM CHILD.############################
         current_best_child = random.choice(node.children)
         return current_best_child
 
     def get_UCB_score(self, child: MCSTNode) -> float:
         '''Calculate the Upper Confidence Bound (UCB) score for a given child node.'''
         explor_weight = 1.4
-        # if child.visits == 0:
-        #    return float('inf')
         t_node = child
         if t_node.parent:
             t_node = t_node.parent
-        # return ((child.wins/child.visits) + exploration_weight * (math.sqrt(math.log(top_node.visits)/child.visits)))
         return (child.wins / max(1, child.visits)) + explor_weight * (math.sqrt(math.log(t_node.visits) / max(1, child.visits)))
 
     def test_piece_placement(self, piece: BoardNode, node: MCSTNode, simulate=False, final_test=False) -> Tuple[bool, BoardNode]:

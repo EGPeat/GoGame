@@ -7,10 +7,10 @@ import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
 
 
-def making_score_board_object(board):
+def making_score_board_object(board: GoBoard):
     '''Creates a ScoringBoard object to handle scoring and dead stones.'''
     import platform  # Required as for some reason the code/window behaves differently between linux and windows
-    board.scoring_dead = ScoringBoard(board)
+    board.scoring_dead: ScoringBoard = ScoringBoard(board)
     if platform.system() == "Linux":
         board.window.close()
         ui.setup_board_window_pygame(board.scoring_dead)  # Makes a window, but nothing you click will do anything
@@ -134,7 +134,6 @@ class ScoringBoard(GoBoard):
                                   self.player_white, self.white_strings, cf.unicode_white)
         self.remove_safe_strings()
         from mcst import CollectionOfMCST
-        # print(f"the amount is {len(self.mixed_string_for_black)} (mixed black) and {len(self.mixed_string_for_white)} (white)")
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
                                                 5000, 30, (self.whose_turn, self.not_whose_turn))
@@ -144,13 +143,11 @@ class ScoringBoard(GoBoard):
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-                # self.draw_dead_stones(item[0], item[1])
         for item in self.MCST_collection.white_MCSTS_final:
             if item[3] is True:
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
                     spot.stone_here_color = cf.unicode_none
-        # ui.refresh_board_pygame(self)
         winner = self.counting_territory()
         return winner
 
