@@ -99,9 +99,8 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     text = f"It is currently {game_board.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
     Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {game_board.player_black.captured}\nPlayer 1 komi: {game_board.player_black.komi}\n\n\n\
-    Player 2 Name: {game_board.player_white.name}\nPlayer 2 Color: White\n\
-    Player 2 Captured Pieces: {game_board.player_white.captured}\nPlayer 2 komi: {game_board.player_white.komi}"
+    Player 1 komi: {game_board.player_black.komi}\n\n\nPlayer 2 Name: {game_board.player_white.name}\n\
+    Player 2 Color: White\nPlayer 2 komi: {game_board.player_white.komi}"
     layout_buttons = [
         [sg.Button("Pass Turn", font=('Arial Bold', 12)),
          sg.Button("Save Game", font=('Arial Bold', 12)),
@@ -129,19 +128,12 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     screen = pygame.display.set_mode((700, 700))
     game_board.screen = screen
     game_board.window = window
-    if platform.system() == "Linux":
-        while True:  # For some reason this is required
-            _, _ = window.read(timeout=100)
-            pygame.display.update()
-            break
     pygame.display.init()
     while True:  # For some reason this is required
         _, _ = window.read(timeout=100)
         pygame.display.update()
         break
     screen.fill(pygame.Color(200, 162, 200))
-    pygame.display.update()
-
     draw_gameboard(game_board, screen)
     pygame.display.update()
     return window
@@ -161,9 +153,8 @@ def update_scoring(self):
     '''Updates the scoring in the PySimpleGui window.'''
     text = f"It is currently {self.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {self.turn_num}\n\n\nPlayer 1 Name: {self.player_black.name}\nPlayer 1 Color: Black\n\
-    Player 1 Captured Pieces: {self.player_black.captured}\nPlayer 1 komi: {self.player_black.komi}\n\n\n\
-    Player 2 Name: {self.player_white.name}\nPlayer 2 Color: White\n\
-    Player 2 Captured Pieces: {self.player_white.captured}\nPlayer 2 komi: {self.player_white.komi}"
+    Player 1 komi: {self.player_black.komi}\n\n\nPlayer 2 Name: {self.player_white.name}\n\
+    Player 2 Color: White\nPlayer 2 komi: {self.player_white.komi}"
     self.window['Scoring'].update(text)
 
 
@@ -237,7 +228,7 @@ def hex_ui_setup():
         pygame.display.init()
         pygame.display.update()
         while True:
-            event, values = window.read(timeout=10)
+            _, _ = window.read(timeout=10)
             pygame.display.update()
             break
     return window
@@ -286,13 +277,3 @@ def stars_pygame(self, window, circle_radius: float, setup: bool = False):
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
             elif setup:
                 pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
-
-
-def server_info_button(text1, text2):
-    '''Displays server information in a PySimpleGUI window.'''
-    text = f" Server IP is: {text2} \n Password is: {text1}"
-    layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 20), size=20, expand_x=True, expand_y=True,
-                      key='Scoring', justification='center')]]
-    full_layout = [[layout_sidebar]]
-
-    _ = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)

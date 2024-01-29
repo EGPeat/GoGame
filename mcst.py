@@ -203,7 +203,7 @@ class MCST:
             self.expand(selected_node, idx)
             result: int = self.simulate(selected_node)
             self.backpropagate(selected_node, result)
-        if self.root.wins >= self.iteration_number//2:
+        if self.root.wins >= self.iteration_number // 2:
             # print(f"the total amount was {self.iteration_number} with wins of {self.root.wins}")
             return True  # This means the internal pieces should be counted as dead
         else:
@@ -367,7 +367,7 @@ class MCST:
         return liberties
 
     def remove_stones(self, node: MCSTNode) -> None:
-        '''Removes stones marked for removal and updates the player's captured count.'''
+        '''Removes stones marked for removal'''
         node.child_killed_last.clear()
         for position in node.visit_kill:
             node.child_killed_last.add(position)

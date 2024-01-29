@@ -60,11 +60,6 @@ def nn_model_value_head(input_array):
     return win_chances
 
 
-def training_run():
-    temp = nn.initializing_game(9, True, vs_bot=True, ai_training=True, no_window=True)
-    return temp
-
-
 def training_cycle():
     info_for_ai = []
     length = 1
@@ -72,7 +67,7 @@ def training_cycle():
     import time
     start_time = time.time()
     for _ in range(length):
-        info_for_ai.append(training_run())
+        info_for_ai.append(nn.initializing_game(9, True))
         if info_for_ai[-1] == 1:
             sum_val += 1
         loading_file_for_training()
@@ -178,7 +173,7 @@ def loading_file_for_training():
     value_loss = keras.losses.MeanSquaredError()  # Change?
     policy_loss = keras.losses.CategoricalCrossentropy()  # Change?
     metrics = ['accuracy']  # change?
-    length = len(selected_samples)//4
+    length = len(selected_samples) // 4
     selected_samples = random.sample(selected_samples, length)
     # dataset = [-500000:]
     # selected_samples = random.sample(dataset, 2048)

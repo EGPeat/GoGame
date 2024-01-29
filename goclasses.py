@@ -7,67 +7,58 @@ from player import Player
 from handicap import Handicap
 import config as cf
 from typing import Tuple, Optional, List, Set, Union, Type
-
-
 sys.setrecursionlimit(10000)
 
 
-def choose_board_type(vs_bot: Optional[bool] = False, ai_training: Optional[bool] = False, *args):
+def choose_board_type(vs_bot: Optional[bool] = False, *args):
     '''
     This function is used in the initialization of the game...
     It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
     Parameters:
         vs_bot: If True, play against an AI opponent.
     '''
-    from botnormalgo import BotBoard
-    from neuralnetboard import NNBoard
-    if ai_training:
-        GameBoard = NNBoard(*args)
-    elif vs_bot:
-        GameBoard = BotBoard(*args)
+    if vs_bot:
+        from botnormalgo import BotBoard
+        return BotBoard(*args)
     else:
-        GameBoard = GoBoard(*args)
-    return GameBoard
+        return GoBoard(*args)
 
 
 def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
-                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
-                      ai_training: Optional[bool] = False, no_window: Optional[bool] = False) -> None:
+                      vs_bot: Optional[bool] = False) -> None:
     '''
     Initialize a new game based on user preferences.
     Parameters:
         window: The pySimpleGui window for user interactions.
         board_size: The size of the game board.
-        defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
-        fixes_handicap: If True, prompt the user to modify the handicap.
+        defaults: If True, use default settings;
+            otherwise, allow the user to modify player names and komi.
         vs_bot: If True, play against an AI opponent.
     '''
 
+    game_board = initialize_player_choice(board_size, defaults, vs_bot)
+    window.close()
+    ui.setup_board_window_pygame(game_board)
+    handicap_info = False
+    if not defaults:
+        if request_handicap_info():
+            handicap_info = True
+    game_board.play_game(fixes_handicap=handicap_info)
+
+
+def request_handicap_info() -> str:
+    info: str = "Click yes if you want to modify the handicap"
+    return sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
+
+
+def initialize_player_choice(board_size: int, defaults: Optional[bool] = True,
+                             vs_bot: Optional[bool] = False):
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
-        only_modify_name: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
-        if only_modify_name == "No":
-            game_board = choose_board_type(vs_bot, ai_training, board_size, True)
-    else:
-        game_board = choose_board_type(vs_bot, ai_training, board_size, defaults)
-
-    window.close()
-    if not no_window:
-        ui.setup_board_window_pygame(game_board)
-    info: str = "Click yes if you want to modify the handicap"
-    if fixes_handicap:
-        modify_handicap: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
-        if modify_handicap == "Yes":
-            game_board.play_game(fixes_handicap=True)
-        else:
-            game_board.play_game(fixes_handicap=False)
-
-    else:
-        if not vs_bot:  # This is a hack to manage AI training. Fix eventually.
-            game_board.play_game(fixes_handicap)
-        if vs_bot:   # This is a hack to manage AI training. Fix eventually.
-            temp = game_board.play_game(fixes_handicap)
-            return temp
+        modify_player: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))
+        if modify_player == "No":
+            defaults = True
+    return choose_board_type(vs_bot, board_size, defaults)
 
 
 class BoardNode():
@@ -386,10 +377,6 @@ class GoBoard():
             item.stone_here_color = cf.unicode_none
 
         self.refresh_board_pygame()
-        captured_count: int = len(piece_string)
-        self.player_white.captured += captured_count if piece_string[0][1] == self.player_black.unicode else 0
-        self.player_black.captured += captured_count if piece_string[0][1] == self.player_white.unicode else 0
-
         temp_list: List[Tuple[Tuple[int, int, int], int, int, str]] = list()
         for item in piece_string:
             temp_list.append((item[1], item[0][0], item[0][1], "Scoring"))
@@ -543,7 +530,6 @@ class GoBoard():
             self.position_played_log.pop()
         # This part reverts the board back to its state 1 turn ago
         revive = self.killed_log.pop()
-        capture_update_val: int = len(revive)
 
         if len(revive) > 0:
             unicode: Tuple[int, int, int] = revive[0][0]
@@ -558,7 +544,6 @@ class GoBoard():
             place.stone_here_color = unicode
         self.refresh_board_pygame()
         self.turn_num -= 1
-        self.not_whose_turn.captured -= capture_update_val
         self.switch_player()
 
     def undo_special_cases(self) -> bool:
@@ -636,11 +621,10 @@ class GoBoard():
         return liberties
 
     def remove_stones(self) -> None:
-        '''Removes stones marked for removal and updates the player's captured count.'''
+        '''Removes stones marked for removal.'''
         self.killed_last_turn.clear()
         for position in self.visit_kill:
             self.killed_last_turn.add(position)
-            self.whose_turn.captured += 1
             position.stone_here_color = cf.unicode_none
 
     def kill_stones(self, piece: BoardNode) -> bool:  # needs to return true if it does kill stones

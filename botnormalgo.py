@@ -1,5 +1,4 @@
 import uifunctions as ui
-import pygame
 from handicap import Handicap
 from goclasses import GoBoard, BoardNode
 import config as cf
@@ -60,8 +59,6 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         self.mode = "Scoring"
         self.times_passed = 0
         self.resuming_scoring_buffer("Scoring")
-        # ui.end_game_popup()
-        # winner = self.scoring_block()
         winner = self.making_score_board_object()
         print(f"winner is {winner}")
         return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
@@ -101,7 +98,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                         val = randrange(0, (self.board_size*self.board_size)+1)
                     else:
                         val = randrange(0, (self.board_size*self.board_size))"""
-                    if val == (self.board_size*self.board_size):
+                    if val == (self.board_size * self.board_size):
                         self.times_passed += 1
                         self.turn_num += 1
                         self.position_played_log.append(("Pass", -3, -3))
@@ -121,9 +118,9 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                         truth_value = self.play_piece_bot(piece.row, piece.col)
                     if truth_value:
                         self.times_passed = 0
-                        #pygame.draw.circle(self.screen, self.whose_turn.unicode,
+                        # pygame.draw.circle(self.screen, self.whose_turn.unicode,
                         #                   (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
-                        #pygame.display.update()
+                        # pygame.display.update()
         temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))

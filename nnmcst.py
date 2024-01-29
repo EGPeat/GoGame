@@ -89,7 +89,7 @@ class NNMCST(MCST):
             penalty_term_inner_upper += sibling.number_times_choosen
 
         penalty_term_inner_upper = math.sqrt(penalty_term_inner_upper)
-        penalty_term_inner = penalty_term_inner_upper/(1+child.number_times_choosen)
+        penalty_term_inner = penalty_term_inner_upper / (1 + child.number_times_choosen)
         penalty_term = explor_weight * child.prior_probability * penalty_term_inner
         ucb_value = child.mean_value_v + penalty_term
         return ucb_value

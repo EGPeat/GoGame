@@ -2,12 +2,14 @@ import goclasses as go
 import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
+# from test_cases.testinggoclasses import test_function
 # To do:
 # Typechecking setting in VSCode...
 # Go back and fix the x and y mixup
 # x and y also mixed up in the nn mcst
 # Make it so the MCST/NN won't pass until later on?
 # It will play the exact same game everytime...
+# move programming files to a new folder
 
 
 def play_game_main():
@@ -19,6 +21,7 @@ def play_game_main():
     '''
     window = ui.setup_menu()
 
+    # All of the go.initializing_game stuff is kinda messed up in python 3.9, but good in 3.10
     while True:
         event, _ = window.read()
 
@@ -39,11 +42,11 @@ def play_game_main():
             friend = go_board.load_pkl(file)
             ui.setup_board_window_pygame(friend)
             window.close()
-            friend.play_game(True, False)
+            friend.play_game(from_file=True, fixes_handicap=False)
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()
-            go.initializing_game(window, board_size, defaults=False, fixes_handicap=True)
+            go.initializing_game(window, board_size, defaults=False)
 
         elif event == "New Game From Default":
             go.initializing_game(window, 9, True)

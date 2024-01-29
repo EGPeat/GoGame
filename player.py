@@ -5,19 +5,17 @@ from typing import Optional
 
 class Player():
     def __init__(self, name: Optional[str] = None, color: Optional[str] = None,
-                 captured: int = 0, komi: float = 0, unicode_choice: Optional[tuple] = None):
+                 komi: float = 0, unicode_choice: Optional[tuple] = None):
         '''
         Initializes a Player object.
         Args:
             name: The name of the player.
             color: The color of the player.
-            captured: The number of captured stones.
             komi: The komi value for the player.
             unicode_choice: The Unicode choice for the player.
         '''
         self.name: Optional[str] = name
         self.color: Optional[str] = color
-        self.captured: int = captured
         self.komi: float = komi
         self.unicode: Optional[tuple] = unicode_choice
         self.territory: int = 0
@@ -71,7 +69,7 @@ class Player():
         info: str = "Please Click Yes if you want to change your Komi"
         modify_komi: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_komi == "No" and self.color == "White":
-            self.komi = 7.5
+            self.komi = 6.5
             return
         elif modify_komi == "No":
             return

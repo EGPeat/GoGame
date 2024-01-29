@@ -9,46 +9,15 @@ from scoringboard import ScoringBoard
 sys.setrecursionlimit(10000)
 
 
-def choose_board_type(vs_bot: Optional[bool] = False, ai_training: Optional[bool] = False, *args):
-    '''
-    This function is used in the initialization of the game...
-    It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
-    Parameters:
-        vs_bot: If True, play against an AI opponent.
-    '''
-    from botnormalgo import BotBoard
-    from neuralnetboard import NNBoard
-    if ai_training:
-        GameBoard = NNBoard(*args)
-    elif vs_bot:
-        GameBoard = BotBoard(*args)
-    else:
-        GameBoard = GoBoard(*args)
-    return GameBoard
-
-
-def initializing_game(board_size: int, defaults: Optional[bool] = True,
-                      fixes_handicap: Optional[bool] = False, vs_bot: Optional[bool] = False,
-                      ai_training: Optional[bool] = False, no_window: Optional[bool] = False) -> None:
+def initializing_game(board_size: int, defaults: Optional[bool] = True) -> None:
     '''
     Initialize a new game based on user preferences.
     Parameters:
-        window: The pySimpleGui window for user interactions.
         board_size: The size of the game board.
         defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
-        fixes_handicap: If True, prompt the user to modify the handicap.
-        vs_bot: If True, play against an AI opponent.
     '''
-
-    if defaults:
-        game_board = choose_board_type(vs_bot, ai_training, board_size, defaults)
-
-    if not fixes_handicap:
-        if not vs_bot:  # This is a hack to manage AI training. Fix eventually.
-            game_board.play_game(fixes_handicap)
-        if vs_bot:   # This is a hack to manage AI training. Fix eventually.
-            temp = game_board.play_game(fixes_handicap)
-            return temp
+    game_board = NNBoard(board_size, defaults)
+    return game_board.play_game(False)
 
 
 class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
@@ -82,13 +51,13 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
         empty_board = ''
-        for _ in range(self.board_size*self.board_size):
+        for _ in range(self.board_size * self.board_size):
             empty_board += '0'
         for _ in range(10):
             self.ai_training_info.append(empty_board)
         self.ai_white_board = empty_board
         self.ai_black_board = ''
-        for _ in range(self.board_size*self.board_size):
+        for _ in range(self.board_size * self.board_size):
             self.ai_black_board += '1'
 
         temp = self.play_game_playing_mode(from_file, fixes_handicap)
@@ -149,7 +118,6 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
 
         return winner  # This is a hack to manage AI training. Fix eventually.
 
-
     def play_turn(self, bot: Optional[bool] = False, good_bot: Optional[bool] = False) -> None:
         '''
         This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
@@ -165,7 +133,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                     self.board_copy: List[BoardString] = copy.deepcopy(self.board)
                     print_board = self.ai_training_info[-1]
                     for idx in range(9):
-                        temp = print_board[(idx*9+1):(idx*9+10)]
+                        temp = print_board[(idx * 9 + 1):(idx * 9 + 10)]
                         temp_emoji = str()
                         for idx in range(len(temp)):
                             if temp[idx] == '1':
@@ -190,7 +158,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                     val = randrange(0, (self.board_size * self.board_size))
                     tries += 1
 
-                if val == (self.board_size*self.board_size):
+                if val == (self.board_size * self.board_size):
                     self.times_passed += 1
                     self.turn_num += 1
                     self.position_played_log.append(("Pass", -3, -3))
