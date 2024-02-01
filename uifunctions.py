@@ -6,14 +6,6 @@ import config as cf
 from typing import Tuple, List
 
 
-def p(input):
-    print(input)
-
-
-def pt(input):
-    print(type(input))
-
-
 def start_game() -> int:
     '''Starts the game, asking for user input regarding the size of the board.'''
     info = "Please click the size you wish to have your Go Board as."
