@@ -6,11 +6,6 @@ sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import goclasses as go
 import game_initialization as start
 from botnormalgo import BotBoard
-# pytest --collect-only
-# coverage run -m pytest
-# coverage html
-# cd htmlcov/
-# firefox index.html
 
 
 class TestClassPyTestGameInit:
@@ -32,10 +27,10 @@ class TestClassPyTestGameInit:
         answer = start.initialize_player_choice(board_size, defaults, vs_bot)
         assert (isinstance(answer, output) is True)
 
-    @pytest.mark.parametrize("vs_bot, output, popup",
-                             [(True, BotBoard, "Yes"), (False, go.GoBoard, "Yes"),
-                              (True, BotBoard, "No"), (False, go.GoBoard, "No")])
-    def test_initialize_player_choice_not_default(self, vs_bot, output, mocker, popup):
+    @pytest.mark.parametrize("vs_bot, popup",
+                             [(True, "Yes"), (False, "Yes"),
+                              (True, "No"), (False, "No")])
+    def test_initialize_player_choice_not_default(self, vs_bot, mocker, popup):
         defaults = False
         mocker.patch('PySimpleGUI.popup_yes_no', return_value=popup)
         mocker.patch('game_initialization.choose_board_type')
