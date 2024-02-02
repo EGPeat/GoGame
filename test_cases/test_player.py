@@ -6,7 +6,7 @@ import player
 import config as cf
 
 
-class TestClassPyTestGameInit:
+class TestClassPyTestPlayer:
 
     @patch("player.Player.choose_name")
     @patch("player.Player.choose_komi")

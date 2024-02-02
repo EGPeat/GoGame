@@ -150,6 +150,10 @@ class GoBoard():
                     item.connections.add(board[place[0]][place[1]])
         return board
 
+    def read_window(self):
+        event, values = self.window.read()
+        return event, values
+
     def switch_player(self) -> None:
         '''Switches the current player by updating whose_turn and not_whose_turn'''
         if self.whose_turn == self.player_black:

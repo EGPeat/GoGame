@@ -14,7 +14,7 @@ class Handicap():
     def default_handicap() -> Tuple[bool, str, int]:
         return (False, "None", 0)
 
-    def custom_handicap(self, defaults: bool) -> Tuple[bool, str, int]:
+    def custom_handicap(self, defaults: bool) -> Tuple[bool, str, int]:  # Refactor?
         '''Allows the players to choose a custom or manual handicap. Players can choose who gets the handicap, and how much.'''
         if defaults:
             return (False, "None", 0)
@@ -82,20 +82,27 @@ class Handicap():
         ui.refresh_board_pygame(self.go_board)
         self.go_board.switch_player()
 
+    def handle_special_events(self, event):
+        '''Handles special events during handicap placement.'''
+        while event in ["Pass Turn", "Save Game", "Undo Turn"]:
+            ui.def_popup("You can't do these actions during the handicap stage.", 3)
+            event, _ = self.go_board.read_window()
+        return event
+
+    def handle_exit_or_resume(self, event):
+        '''Handles Exit Game or Resume events during handicap placement.'''
+        if event in ["Exit Game", "Res"]:
+            from turn_options import normal_turn_options
+            normal_turn_options(self.go_board, event)
+
     def validate_handicap_placement(self):
-        '''Makes sure the player chooses a valid location to place a handicap stone.'''
-        valid_piece: bool = False
-        while not valid_piece:
-            event, values = self.go_board.window.read()
-            while event == "Pass Turn" or event == "Save Game" or event == "Undo Turn":
-                ui.def_popup("You can't do these actions during the handicap stage.", 3)
-                event, values = self.go_board.window.read()
-            if event == "Exit Game" or event == "Res":
-                from turn_options import normal_turn_options
-                normal_turn_options(self.go_board, event)
+        '''Ensures the player chooses a valid location to place a handicap stone.'''
+        while True:
+            event, values = self.go_board.read_window()
+            event = self.handle_special_events(event)
+            self.handle_exit_or_resume(event)
+
             row, col = values['-GRAPH-']
             found_piece, piece = self.go_board.find_piece_click([row, col])
-            if found_piece:
-                if piece.stone_here_color == cf.unicode_none:
-                    valid_piece = found_piece
-        return piece
+            if found_piece and piece.stone_here_color == cf.unicode_none:
+                return piece

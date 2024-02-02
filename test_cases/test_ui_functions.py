@@ -59,11 +59,11 @@ class TestClassPyTestUI:
                               (13, 1), (13, 2), (13, 7), (13, 9),
                               (19, 1), (19, 2), (19, 7), (19, 9),
                               ])
-    @patch('PySimpleGUI.Window.read')
+    @patch('PySimpleGUI.Window.read')  # This test doesn't quite work right
     def test_handicap_number_gui(self, mock_read, board_size, expected_option):
-        mock_read.return_value = (str(expected_option), {})
-        result = ui.handicap_number_gui(board_size)
-        assert result == expected_option
+        with patch('PySimpleGUI.Window.read', side_effect=[(str(expected_option), {})]):
+            result = ui.handicap_number_gui(board_size)
+            assert result == expected_option
 
     def test_setup_menu(self):
         window = ui.setup_menu()

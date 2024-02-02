@@ -15,7 +15,7 @@ class Player():
             unicode_choice: The Unicode choice for the player.
         '''
         self.name: Optional[str] = name
-        self.color: Optional[str] = color
+        self.color: Optional[str] = color  # Refactor? I'm not really sure it's necessary
         self.komi: float = komi
         self.unicode: Optional[tuple] = unicode_choice
         self.territory: int = 0

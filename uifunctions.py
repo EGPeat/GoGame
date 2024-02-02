@@ -6,7 +6,7 @@ import config as cf
 from typing import Tuple, List
 
 
-def start_game() -> int:
+def start_game() -> int:  # Refactor?
     '''Starts the game, asking for user input regarding the size of the board.'''
     info = "Please click the size you wish to have your Go Board as."
 
@@ -25,7 +25,7 @@ def start_game() -> int:
         return 19
 
 
-def handicap_person_gui() -> str:
+def handicap_person_gui() -> str:  # Refactor?
     '''Asks for user input regarding which player will get a handicap'''
     info = "Please enter some information regarding a handicap. Which player will get a handicap?"
 
@@ -39,7 +39,7 @@ def handicap_person_gui() -> str:
     return option
 
 
-def handicap_number_gui(board_size: int) -> int:
+def handicap_number_gui(board_size: int) -> int:  # Refactor?
     '''Asks for user input regarding the handicap size'''
     info = "Please enter some information regarding a handicap. How large is the handicap?"
     deflt = ('Arial Bold', 16)
@@ -157,7 +157,7 @@ def end_game_popup():
     sg.popup(info, title="Scoring", line_width=200, auto_close=True, auto_close_duration=3)
 
 
-def end_game_popup_two(self):
+def end_game_popup_two(self):  # Refactor?
     pb = self.player_black
     pw = self.player_white
     player_black_score = pb.komi + pb.territory + len(self.black_set)
@@ -227,15 +227,20 @@ def hex_ui_setup():
     return window
 
 
-def draw_gameboard(game_board, screen):
+def draw_gameboard(game_board, screen, gameboard_surface=pygame.surface.Surface((700, 700))):
     '''Draws the gameboard using pygame'''
     workable_area: int = 620
     distance: float = workable_area / (game_board.board_size - 1)
     circle_radius: float = distance / 3
     game_board.pygame_board_vals = (workable_area, distance, circle_radius)
-    gameboard_surface = pygame.surface.Surface((700, 700))
     gameboard_surface.fill(pygame.Color(200, 162, 200))
+    draw_linez(game_board, distance, gameboard_surface)
+    stars_pygame(game_board, gameboard_surface, circle_radius)
+    screen.blit(gameboard_surface, (0, 0))
+    game_board.backup_board = gameboard_surface
 
+
+def draw_linez(game_board, distance, gameboard_surface):
     for xidx in range(game_board.board_size):
         x_val: float = 40 + xidx * distance
         x_val_previous: float = x_val - distance
@@ -246,12 +251,10 @@ def draw_gameboard(game_board, screen):
                 pygame.draw.line(gameboard_surface, (0, 0, 0), (x_val_previous, y_val), (x_val, y_val))
             if yidx > 0:
                 pygame.draw.line(gameboard_surface, (0, 0, 0), (x_val, y_val_previous), (x_val, y_val))
-    stars_pygame(game_board, gameboard_surface, circle_radius, setup=True)
-    screen.blit(gameboard_surface, (0, 0))
-    game_board.backup_board = gameboard_surface
 
 
-def stars_pygame(self, window, circle_radius: float, setup: bool = False):
+def stars_pygame(self, window, circle_radius: float):
+    # Refactor? Should add other stars...
     '''Draws the stars on the gameboard using pygame'''
     size: int = self.board_size
     lst9: List[Tuple[int, int]] = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
@@ -259,17 +262,11 @@ def stars_pygame(self, window, circle_radius: float, setup: bool = False):
     if size == 9:
         for item in lst9:
             node = self.board[item[0]][item[1]]
-            if node.stone_here_color == "\U0001F7E9" and not setup:
-                pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
-            elif setup:
-                pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
+            pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
     else:
         for item in lst_not_9:
             node = self.board[item[0]][item[1]]
-            if self.board[item[0]][item[1]].stone_here_color == "\U0001F7E9" and not setup:
-                pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
-            elif setup:
-                pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
+            pygame.draw.circle(window, (255, 165, 0), (node.screen_row, node.screen_col), circle_radius)
 
 
 def switch_button_mode(board) -> None:
@@ -300,7 +297,7 @@ def refresh_board_pygame(board) -> None:
     pygame.display.update()
 
 
-def close_window(board):
+def close_window(board):  # Refactor? Why does linux not delete board.window
     '''Closes the pygame display and PySimpleGui window'''
     import platform
     if platform.system() == "Linux":

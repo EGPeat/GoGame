@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import pytest
@@ -40,13 +39,11 @@ class TestClassPyTestGameInit:
         else:
             start.choose_board_type.assert_called_once_with(vs_bot, 9, defaults)
 
+    def test_choose_board_type_go_board2(self):
+        assert isinstance(start.choose_board_type(True, 9, True), BotBoard)
 
-class TestClassGameInit(unittest.TestCase):
-    def test_choose_board_type_go_board(self):
-        self.assertIsInstance(start.choose_board_type(True, 9, True), BotBoard)
-
-    def test_choose_board_type_bot_board(self):
-        self.assertIsInstance(start.choose_board_type(False, 9, True), go.GoBoard)
+    def test_choose_board_type_bot_board2(self):
+        assert isinstance(start.choose_board_type(False, 9, True), go.GoBoard)
 
     @patch("game_initialization.initialize_player_choice")
     @patch("game_initialization.ui.setup_board_window_pygame")

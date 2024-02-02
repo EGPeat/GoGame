@@ -1,13 +1,9 @@
 #!/bin/bash
 
-# Run tests with coverage
+# pytest --collect-only
+# pytest --ignore-glob=*test_ui* -vv
+#coverage run --source=. -m pytest
 coverage run -m pytest
-
-# Generate HTML coverage report
 coverage html
-
-# Navigate to the HTML coverage directory
 cd htmlcov/
-
-# Open the coverage report in Firefox
 firefox index.html
