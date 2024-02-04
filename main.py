@@ -5,7 +5,7 @@ import pygametest as pygt
 # from test_cases.testinggoclasses import test_function
 # To do:
 # Typehint more/better
-# Go back and fix the x and y mixup
+# Go back and fix the x and y mixup (use the xymixup file)
 # x and y also mixed up in the nn mcst
 # Make it so the MCST/NN won't pass until later on?
 # It will play the exact same game everytime...

@@ -6,4 +6,4 @@
 coverage run -m pytest
 coverage html
 cd htmlcov/
-firefox saving_loading_py.html
+firefox remove_dead_py.html
