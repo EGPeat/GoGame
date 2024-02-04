@@ -280,6 +280,7 @@ class GoBoard():
         truth_value: bool = False
         while not truth_value:
             event, values = self.window.read()
+            # self.window.write_event_value('-GRAPH-', (591, 114)) Useful for testing
             if event != "-GRAPH-":
                 from turn_options import normal_turn_options
                 normal_turn_options(self, event, text="Passed")

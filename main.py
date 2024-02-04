@@ -4,12 +4,13 @@ import PySimpleGUI as sg
 import pygametest as pygt
 # from test_cases.testinggoclasses import test_function
 # To do:
-# Typechecking setting in VSCode...
+# Typehint more/better
 # Go back and fix the x and y mixup
 # x and y also mixed up in the nn mcst
 # Make it so the MCST/NN won't pass until later on?
 # It will play the exact same game everytime...
 # move programming files to a new folder
+# Add readme and better documentation
 
 
 def play_game_main():
@@ -26,23 +27,9 @@ def play_game_main():
         event, _ = window.read()
 
         if event == "Choose File":
-            from os import chdir, getcwd, path
-            wd = getcwd()
-            full_path = path.join(wd, 'pklfiles')
-            if not wd.endswith('pklfiles'):
-                chdir(full_path)
-            file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
-            if file is None or file == "":
-                continue
-            file = file.split("/")
-            file = file[-1]
-            sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
-                                auto_close=True, auto_close_duration=3)
-            from saving_loading import load_pkl
-            friend = load_pkl(file)
-            ui.setup_board_window_pygame(friend)
-            window.close()
-            friend.play_game(from_file=True, fixes_handicap=False)
+            from saving_loading import choose_file
+            choose_file(window)
+            break
 
         elif event == "New Game From Custom":
             board_size = ui.start_game()
@@ -70,7 +57,7 @@ def play_game_main():
             window.close()
             pygt.main()
 
-        if event in (sg.WIN_CLOSED, 'Exit Game'):
+        elif event in (sg.WIN_CLOSED, 'Exit Game'):
             break
 
     window.close()

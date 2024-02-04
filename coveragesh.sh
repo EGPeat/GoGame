@@ -6,4 +6,4 @@
 coverage run -m pytest
 coverage html
 cd htmlcov/
-firefox index.html
+firefox saving_loading_py.html

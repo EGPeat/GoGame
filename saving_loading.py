@@ -5,48 +5,6 @@ from typing import Type
 from goclasses import GoBoard
 
 
-def save_to_SGF(board: GoBoard, filename2: str) -> None:
-    '''Saves the current game to a SGF file.'''
-    with open(f"{filename2}.sgf", 'w', encoding='utf-8') as file:
-        from datetime import date
-        seqs = ["Dead Removed", "Break between handicaps and normal play", "Dead Removed",
-                "Resumed", "Scoring", "Scoring Passed"]
-        movement_string: str = ""
-        today = date.today()
-        header: str = f"(;\nFF[4]\nCA[UTF-8]\nGM[1]\nDT[{today}]\nGN[relaxed]\n\
-        PC[https://github.com/EGPeat/GoGame]\n\
-        PB[{board.player_black.name}]\n\
-        PW[{board.player_white.name}]\n\
-        BR[Unknown]\nWR[Unknown]\n\
-        OT[Error: time control missing]\nRE[?]\n\
-        SZ[{board.board_size}]\nKM[{board.player_white.komi}]\nRU[Japanese];"
-        file.write(header)
-        handicap_flag: bool = board.handicap[0]
-        for idx, item in enumerate(board.position_played_log):
-            if handicap_flag and idx < board.handicap[2]:
-                color: str = 'B' if board.handicap[1] == "Black" else 'W'
-                row: str = chr(97 + int(item[1]))
-                col: str = chr(97 + int(item[2]))
-                text: str = f";{color}[{col}{row}]\n"
-                movement_string += text
-            elif item[0] in seqs or item in seqs:
-                pass
-            elif item[0] == "Passed":
-                if movement_string[-7] == "B" or movement_string[-5] == "B":
-                    text2: str = ";W[]\n"
-                else:
-                    text2: str = ";B[]\n"
-                movement_string += text2
-            else:
-                row: str = chr(97 + int(item[1]))
-                col: str = chr(97 + int(item[2]))
-                color: str = 'B' if item[0] == board.player_black.color else 'W'
-                text: str = f";{color}[{col}{row}]\n"
-                movement_string += text
-        movement_string += ")"
-        file.write(movement_string)
-
-
 def save_pickle(board: GoBoard) -> None:
     '''Saves the game to a pkl in the correct pklfiles folder'''
     import pickle
@@ -81,3 +39,24 @@ def load_pkl(inputPath) -> Type['GoBoard']:
     with open(inputPath, 'rb') as file:
         friend = pickle.load(file)
     return friend
+
+
+def choose_file(window):
+    from os import chdir, getcwd, path
+    from uifunctions import setup_board_window_pygame
+    wd = getcwd()
+    full_path = path.join(wd, 'pklfiles')
+    if not wd.endswith('pklfiles'):
+        chdir(full_path)
+    file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
+    if file is None or file == "":
+        return
+    file = file.split("/")
+    file = file[-1]
+    sg.popup_no_buttons('You chose', file, non_blocking=True, font=('Arial Bold', 15),
+                        auto_close=True, auto_close_duration=3)
+    friend = load_pkl(file)
+    setup_board_window_pygame(friend)
+    window.close()
+    friend.play_game(from_file=True, fixes_handicap=False)
+    return

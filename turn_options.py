@@ -51,10 +51,7 @@ def remove_dead_turn_options(board: GoBoard, event) -> None:
         normal_turn_options(board, event)
         return
     elif event == "Exit Game":
-        from main import play_game_main
-        ui.close_window(board)
-        play_game_main()
-        quit()
+        normal_turn_options(board, event)
     elif event == sg.WIN_CLOSED:
         quit()
     else:

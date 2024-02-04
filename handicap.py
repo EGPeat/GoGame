@@ -18,13 +18,9 @@ class Handicap():
         '''Allows the players to choose a custom or manual handicap. Players can choose who gets the handicap, and how much.'''
         if defaults:
             return (False, "None", 0)
-        info: str = "Please Click Yes if you want choose where you play your handicap."
-        manual_handicap: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
-        choosen_list: list = self.choose_handicap_list()
-        actual_handicap: bool = self.handicap_person()
+        manual_handicap, choosen_list, actual_handicap, handicap_value = self.custom_handicap_player_input()
         if not actual_handicap:
             return (False, "None", 0)
-        handicap_value: int = ui.handicap_number_gui(self.go_board.board_size)
         if manual_handicap == "No":
             self.play_automatic_handicap(handicap_value, choosen_list)
         else:
@@ -32,6 +28,16 @@ class Handicap():
         self.go_board.position_played_log.append(("Break between handicaps and normal play", -1, -1))
         self.go_board.turn_num = 0
         return (True, self.go_board.not_whose_turn.color, handicap_value)
+
+    def custom_handicap_player_input(self):  # Typehint
+        info: str = "Please Click Yes if you want choose where you play your handicap."
+        manual_handicap: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
+        choosen_list: list = self.choose_handicap_list()
+        actual_handicap: bool = self.handicap_person()
+        if not actual_handicap:
+            return ("No", [], False, -1)
+        handicap_value: int = ui.handicap_number_gui(self.go_board.board_size)
+        return manual_handicap, choosen_list, actual_handicap, handicap_value
 
     def manual_handicap_placement(self, handicap_info: int) -> None:
         '''Allows the player to choose where to place their handicap pieces.'''
