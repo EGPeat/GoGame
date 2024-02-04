@@ -6,4 +6,4 @@
 coverage run -m pytest
 coverage html
 cd htmlcov/
-firefox remove_dead_py.html
+firefox goclasses_py.html

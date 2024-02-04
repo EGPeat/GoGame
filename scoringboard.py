@@ -232,7 +232,6 @@ class ScoringBoard(GoBoard):
         '''Counts the territory for both players and determines the winner.'''
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
-        # self.end_of_game()
         pb = self.player_black
         pw = self.player_white
         player_black_score = pb.komi + pb.territory + len(self.black_set)

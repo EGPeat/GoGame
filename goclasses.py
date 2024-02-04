@@ -19,8 +19,8 @@ class BoardNode():
         self.stone_here_color: Tuple[int, int, int] = cf.unicode_none
         self.connections: Set[BoardNode] = set()
 
-    def __str__(self) -> str:
-        return (f"This is a BoardNode with coordinates of ({self.col},{self.row}) and a stone of {self.stone_here_color}")
+    def __str__(self) -> str:  # Recently changed, could be an issue
+        return (f"This is a BoardNode with coordinates of ({self.row},{self.col}) and a stone of {self.stone_here_color}")
 
 
 class BoardString():
@@ -114,7 +114,7 @@ class GoBoard():
         self.whose_turn: Player = self.player_black
         self.not_whose_turn: Player = self.player_white
 
-    def make_board_string(self) -> str:   # Target of optimization
+    def make_board_string(self) -> str:   # Refactor, is wrong. After tests written
         '''
         Generate a string representation of the current game board.
 
@@ -122,7 +122,6 @@ class GoBoard():
         '1' for black, '2' for white, and '0' for an empty intersection.
         The first character represents the player's turn (1 for black, 2 for white).
         '''
-        # It needs to add in the turn choice made somehow.
         board_string = '1' if self.whose_turn == self.player_black else '2'
         for xidx in range(len(self.board)):
             for yidx in range(len(self.board)):
@@ -134,7 +133,7 @@ class GoBoard():
                     board_string += '2'
         return board_string
 
-    def setup_board(self) -> List[List[BoardNode]]:
+    def setup_board(self) -> List[List[BoardNode]]:  # Refactor/change up the hardcoded numbers
         '''
         Sets up and returns the initialized board.
         Returns a 2D list representing the game board with initialized BoardNode objects.
@@ -212,7 +211,7 @@ class GoBoard():
     def play_game_view_endgame(self) -> None:  # Might be wrong, requires testing.
         '''Allows the user to view a completed game'''
         ui.refresh_board_pygame(self)
-        event, _ = self.window.read()
+        event, _ = self.read_window()
         if event == "Exit Game":
             from main import play_game_main
             ui.close_window(self)
@@ -246,6 +245,7 @@ class GoBoard():
                 self.times_passed = 0
         from scoringboard import making_score_board_object
         winner = making_score_board_object(self)
+        self.end_of_game()
         return winner
 
     def resuming_scoring_buffer(self, text) -> None:
@@ -260,10 +260,6 @@ class GoBoard():
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
         from saving_loading import save_pickle
         save_pickle(self)
-        from main import play_game_main
-        ui.close_window(self)
-        play_game_main()
-        quit()
 
     def find_piece_click(self, input_location: Tuple[float, float]) -> Tuple[bool, Union[List[int], BoardNode]]:
         '''Finds the BoardNode corresponding to a clicked location on the game board.'''
@@ -274,12 +270,12 @@ class GoBoard():
                     return True, item
         return False, [-1, -1]
 
-    def play_turn(self) -> None:
+    def play_turn(self) -> None:  # Refactor
         '''This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.'''
         ui.update_scoring(self)
         truth_value: bool = False
         while not truth_value:
-            event, values = self.window.read()
+            event, values = self.read_window()
             # self.window.write_event_value('-GRAPH-', (591, 114)) Useful for testing
             if event != "-GRAPH-":
                 from turn_options import normal_turn_options
@@ -324,7 +320,7 @@ class GoBoard():
             self.killed_last_turn.clear()
             return True
 
-    def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
+    def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:  # Refactor? Why is row, col there...
         '''Places a piece on the board and updates game state.'''
         piece.stone_here_color = self.whose_turn.unicode
         self.turn_num += 1
