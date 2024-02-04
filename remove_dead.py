@@ -5,7 +5,7 @@ from typing import Tuple, List, Set
 import config as cf
 
 
-def remove_dead(board: GoBoard) -> None:
+def remove_dead(board: GoBoard) -> None:  # Refactor?
     '''
     This function waits for player input to select dead stones, and then processes the removal of those stones.
     '''
@@ -13,7 +13,7 @@ def remove_dead(board: GoBoard) -> None:
     ui.update_scoring(board)
     truth_value: bool = False
     while not truth_value:
-        event, values = board.window.read()
+        event, values = board.read_window()
         from turn_options import remove_dead_turn_options
         else_choice: bool = remove_dead_turn_options(board, event)
         if not else_choice:
@@ -34,6 +34,7 @@ def remove_dead(board: GoBoard) -> None:
     return
 
 
+#  Refactor?
 def remove_dead_found_piece(board: GoBoard, piece: BoardNode) -> Tuple[str, List[Tuple[Tuple[int, int], Tuple[int, int, int]]]]:
     '''
     Helper function for remove_dead().
@@ -51,7 +52,7 @@ def remove_dead_found_piece(board: GoBoard, piece: BoardNode) -> Tuple[str, List
         else:
             piece_string.append(((item.row, item.col), item.stone_here_color))
             item.stone_here_color = cf.unicode_diamond_white
-    ui.refresh_board_pygame(board)
+    ui.refresh_board_pygame(board)  # Make into a new function?
     info: str = "Other player, please click yes if you are ok with these changes"
     other_user_agrees: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
     return other_user_agrees, piece_string

@@ -4,9 +4,7 @@ import sys
 import pytest
 sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import uifunctions as ui
-import PySimpleGUI as sg
 import goclasses as go
-import pygame
 from player import Player
 
 
