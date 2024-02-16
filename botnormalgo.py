@@ -1,8 +1,8 @@
 import uifunctions as ui
 from goclasses import GoBoard, BoardNode
 import config as cf
-from typing import Set
 from random import randrange
+from goclasses import diagonals_setup
 
 
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
@@ -81,7 +81,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
         for neighbor in piece.connections:
             if neighbor.stone_here_color != self.whose_turn.unicode:
                 return False
-        piece_diagonals = self.diagonals_setup(piece)
+        piece_diagonals = diagonals_setup(self, piece)
         counter = 0
         dual_eye_check = False
         bad_diagonals = False
@@ -98,7 +98,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                 if not surrounded_properly:
                     counter += 1
                 if surrounded_properly:
-                    item_diagonals = self.diagonals_setup(item)
+                    item_diagonals = diagonals_setup(self, item)
                     temp_counter = 0
                     # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                     for second_item in item_diagonals:

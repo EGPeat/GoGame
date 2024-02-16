@@ -7,6 +7,7 @@ import goclasses as go
 from player import Player
 import config as cf
 from saving_loading import load_pkl
+from goclasses import diagonals_setup
 
 
 class TestClassPyTestGoClasses:
@@ -102,7 +103,7 @@ class TestClassPyTestGoClasses:
             assert go_board.quit.call_count == 1
 
     @pytest.mark.parametrize("location, result, who", [
-        ((0, 1), (0, 0), ("Black")),
+        ((1, 0), (0, 0), ("Black")),
         ((3, 3), (3, 4), ("White"))
     ])
     def test_kill_stones_mocked_self_death(self, location, result, who):
@@ -113,24 +114,24 @@ class TestClassPyTestGoClasses:
         the_board.board[2][2].stone_here_color = cf.unicode_black
         the_piece = the_board.board[location[0]][location[1]]
         the_board.kill_stones(the_piece)
-        assert the_board.board[result[1]][result[0]].stone_here_color == cf.unicode_none
+        assert the_board.board[result[0]][result[1]].stone_here_color == cf.unicode_none
 
     @pytest.mark.parametrize("location", [
         ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((7, 5)), ((8, 6))])
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
-    def test_play_pieces(self, mock_popup, mock_refresh, location):  # This ordering makes no sense. Definitely a x/y problem
+    def test_play_pieces(self, mock_popup, mock_refresh, location):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.board[2][2].stone_here_color = cf.unicode_black
-        successful = the_board.play_piece(location[1], location[0])
+        successful = the_board.play_piece(location[0], location[1])
 
         if location == (0, 0):
             assert successful is not True
         if location == (1, 0):
             assert successful is True
             assert the_board.board[0][0].stone_here_color == cf.unicode_none
-        if location == (5, 7):  # This part is definitely not correct
+        if location == (5, 7):
             assert successful is not True
         if location == (8, 8):
             assert successful is True
@@ -186,8 +187,8 @@ class TestClassPyTestGoClasses:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.screen = mock_window
         the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
-        mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (0, 1)}))
-        mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[0][1])))
+        mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (1, 0)}))
+        mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[1][0])))
         the_board.play_turn()
 
     @pytest.mark.parametrize("location, result", [
@@ -199,7 +200,7 @@ class TestClassPyTestGoClasses:
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         piece = the_board.board[location[0]][location[1]]
-        result_set = the_board.diagonals_setup(piece)
+        result_set = diagonals_setup(the_board, piece)
         neighbors = set()
         for idx in range(result[0]):
             neighbors.add(the_board.board[result[1][idx][0]][result[1][idx][1]])

@@ -5,6 +5,7 @@ from player import Player
 from goclasses import GoBoard, BoardNode, BoardString
 import config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
+from goclasses import diagonals_setup
 
 
 def making_score_board_object(board: GoBoard):
@@ -216,7 +217,7 @@ class ScoringBoard(GoBoard):
         piece_string = BoardString("Empty", piece_flood[0])
         for item in string_choice:
             if (
-                (neighbor.col, neighbor.row) in item.list_idx
+                (neighbor.col, neighbor.row) in item.list_idx #!
                 and len(item.list_idx) > 1
                 and (
                     item.xmax > piece_string.xmax
@@ -234,6 +235,8 @@ class ScoringBoard(GoBoard):
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
         pb = self.player_black
         pw = self.player_white
+        pb.black_set_len = len(self.black_set)
+        pw.white_set_len = len(self.white_set)
         player_black_score = pb.komi + pb.territory + len(self.black_set)
         player_white_score = pw.komi + pw.territory + len(self.white_set)
         print(f"black has {pb.komi} and {pb.territory} and {len(self.black_set)}")
@@ -375,13 +378,13 @@ class ScoringBoard(GoBoard):
                            str_list: List[BoardString], neighbor: BoardNode) -> \
             Union[Tuple[Literal[False], Set[None]], Tuple[Literal[True], Set[BoardNode]]]:
         '''Extremely complicated logic for calculating if a piece should be in the mixed string'''
-        diagonals = self.diagonals_setup(piece)
+        diagonals = diagonals_setup(self, piece)
         for diagonal in diagonals:
             if diagonal.stone_here_color == color and diagonal not in conn_piece:
                 for friend in diagonal.connections:
                     if friend in conn_piece:
                         for item in str_list.copy():
-                            if (neighbor.col, neighbor.row) in item.list_idx:
+                            if (neighbor.row, neighbor.col) in item.list_idx:
                                 return (True, item.member_set)
         return (False, set())
 
@@ -408,16 +411,6 @@ class ScoringBoard(GoBoard):
                 sets = self.flood_fill(item2)
                 self.assigns_territory(sets)
 
-    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
-        '''Set up diagonal pieces around a given piece. Returns a set of BoardNodes'''
-        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-        diagonals = set()
-        for item in diagonal_change:
-            new_row, new_col = piece.row + item[0], piece.col + item[1]
-            if new_row >= 0 and new_row < self.board_size and new_col >= 0 and new_col < self.board_size:
-                diagonals.add(self.board[new_row][new_col])
-        return diagonals
-
     def making_go_board_strings_helper(self, piece: BoardNode,
                                        connected_pieces: Union[None, Set[BoardNode]] = None) -> Set[BoardNode]:
         """Helper function to recursively identify connected pieces in a Go board string."""
@@ -428,7 +421,7 @@ class ScoringBoard(GoBoard):
             if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces:
                 self.making_go_board_strings_helper(neighbor, connected_pieces)
 
-        diagonals = self.diagonals_setup(piece)
+        diagonals = diagonals_setup(self, piece)
 
         for diagonal in diagonals:
             if diagonal.stone_here_color == piece.stone_here_color and diagonal not in connected_pieces:
@@ -506,7 +499,7 @@ class ScoringBoard(GoBoard):
         connected_pieces[0].add(piece)
         neighboring_pieces = piece.connections
         for neighbor in neighboring_pieces:
-            if (neighbor.col, neighbor.row) not in outer_pieces.list_idx and neighbor not in connected_pieces[0]:
+            if (neighbor.row, neighbor.col) not in outer_pieces.list_idx and neighbor not in connected_pieces[0]:#!
                 self.flood_fill_with_outer(neighbor, outer_pieces, connected_pieces)
             else:
                 connected_pieces[1].add(neighbor)

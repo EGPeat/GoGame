@@ -59,6 +59,6 @@ class TestClassPyTestUndoing:
     @patch("uifunctions.refresh_board_pygame")
     def test_undo_special_conditions(self, mock_refresh):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/testing_undo_conds.pkl")
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_undo.pkl")
         for _ in range(9):
             undo.undo_checker(the_board)

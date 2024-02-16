@@ -34,7 +34,7 @@ class TestClassPyTestBotNormalGo:
         assert mock_goboard.whose_turn == mock_goboard.player_white
 
     @pytest.mark.parametrize("location, result", [
-        ((2, 7), (True)),
+        ((7, 2), (True)),
         ((4, 4), (False)),
         ((1, 1), (False))
     ])
@@ -47,7 +47,7 @@ class TestClassPyTestBotNormalGo:
         assert result == output
 
     @pytest.mark.parametrize("location, result", [
-        ((2, 7), (False)),
+        ((7, 2), (False)),
         ((4, 4), (False)),
         ((1, 1), (False))
     ])
@@ -60,11 +60,10 @@ class TestClassPyTestBotNormalGo:
         assert result == output
 
     @pytest.mark.parametrize("location", [
-        ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((7, 5)), ((8, 6))])
+        ((0, 0)), ((0, 1)), ((3, 3)), ((8, 8)), ((5, 7)), ((6, 8))])
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     def test_play_pieces_botboard(self, mock_popup, mock_refresh, location):
-        # This ordering makes no sense. Definitely a x/y problem
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.__class__ = bot.BotBoard
@@ -73,40 +72,38 @@ class TestClassPyTestBotNormalGo:
 
         if location == (0, 0):
             assert successful is not True
-        if location == (1, 0):
+        if location == (0, 1):
             assert successful is True
             assert the_board.board[0][0].stone_here_color == cf.unicode_none
-        if location == (5, 7):  # This part is definitely not correct
+        if location == (7, 5):
             assert successful is not True
         if location == (8, 8):
             assert successful is True
-        if location == (8, 6):
+        if location == (6, 8):
             assert successful is not True
 
     @pytest.mark.parametrize("location", [
-        ((7, 2)), ((6, 1))])
+        ((2, 7)), ((1, 6))])
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     def test_play_pieces_botboard_fills_eye(self, mock_popup, mock_refresh, location):
-        # This ordering makes no sense. Definitely a x/y problem
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         successful = the_board.play_piece_bot(location[1], location[0])
 
-        assert the_board.board[0][6].stone_here_color == cf.unicode_black
-        assert the_board.board[2][6].stone_here_color == cf.unicode_black
+        assert the_board.board[6][0].stone_here_color == cf.unicode_black
+        assert the_board.board[6][2].stone_here_color == cf.unicode_black
         assert successful is False
 
     @pytest.mark.parametrize("location, result", [
-        ((8), (-3, -3)),
+        ((72), (-3, -3)),
         ((10), (1, 1))
     ])
     @patch("uifunctions.update_scoring")
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     def test_play_turn_bot(self, mock_popup, mock_refresh, mock_update, location, result, mocker):
-        # This ordering makes no sense. Definitely a x/y problem
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard

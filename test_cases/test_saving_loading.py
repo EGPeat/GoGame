@@ -36,7 +36,7 @@ class TestClassPyTestSavingLoading:
         input_path = f'{cur_dir}test_cases/pklfilestesting/for_unit_testing.pkl'
         result = save.load_pkl(input_path)
         assert len(result.killed_last_turn) == 1
-        assert result.position_played_log == [('Black', 1, 0), ('White', 0, 0), ('Black', 0, 1)]
+        assert result.position_played_log == [('Black', 0, 1), ('White', 0, 0), ('Black', 1, 0)]
         assert result.killed_log == [[], [], [((255, 255, 255), 0, 0)]]
 
     @patch('PySimpleGUI.popup_get_file', return_value=f'{cur_dir}test_cases/pklfilestesting/for_unit_testing.pkl')

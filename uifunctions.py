@@ -160,12 +160,12 @@ def end_game_popup():
 def end_game_popup_two(self):  # Refactor?
     pb = self.player_black
     pw = self.player_white
-    player_black_score = pb.komi + pb.territory + len(self.black_set)
-    player_white_score = pw.komi + pw.territory + len(self.white_set)
+    player_black_score = pb.komi + pb.territory + pb.black_set_len
+    player_white_score = pw.komi + pw.territory + pw.white_set_len
     difference = player_black_score - player_white_score
     info = f"Your game has finished.\nPlayer Black: {pb.name} has {pb.territory} territory\
-            , and played {len(self.black_set)} pieces and has a komi of {pb.komi}\
-            \n Player White: {pw.name} has {pw.territory} territory, and played {len(self.white_set)} pieces\
+            , and played {pb.black_set_len} pieces and has a komi of {pb.komi}\
+            \n Player White: {pw.name} has {pw.territory} territory, and played {pw.white_set_len} pieces\
               and has a komi of {pw.komi}\n Player Black has a score of {player_black_score}\n\
             Player White has a score of {player_white_score}, meaning "
     if difference > 0:

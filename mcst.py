@@ -4,6 +4,7 @@ from typing import Tuple, List, Set, Union, Optional, Type, Literal, Dict, Froze
 from goclasses import BoardNode, BoardString
 import config as cf
 from player import Player
+from goclasses import diagonals_setup
 
 
 class MCSTNode:
@@ -283,8 +284,7 @@ class MCST:
         for neighbor in piece.connections:
             if neighbor.stone_here_color != node.whose_turn.unicode:
                 return False
-        from goclasses import GoBoard.diagonals_setup
-        piece_diagonals = self.diagonals_setup(piece)
+        piece_diagonals = diagonals_setup(self, piece)
         counter = 0
         dual_eye_check = False
         bad_diagonals = False
@@ -301,7 +301,7 @@ class MCST:
                 if not surrounded_properly:
                     counter += 1
                 if surrounded_properly:
-                    item_diagonals = self.diagonals_setup(item)
+                    item_diagonals = diagonals_setup(self, item)
                     temp_counter = 0
                     # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                     for second_item in item_diagonals:
@@ -545,7 +545,7 @@ class MCST:
         color = self.color_switch(color)
         open_diagonals: int = 0
         for spot in eye_area:
-            spot_diagonals = self.diagonals_setup(spot)
+            spot_diagonals = diagonals_setup(self, spot)
             for item in spot_diagonals:
                 if open_diagonals > 1:
                     return 0
@@ -555,17 +555,6 @@ class MCST:
             return 1
         else:
             return 0
-
-    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
-        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
-        board_size = len(self.board)
-        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-        diagonals = set()
-        for item in diagonal_change:
-            new_row, new_col = piece.row + item[0], piece.col + item[1]
-            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
-                diagonals.add(self.board[new_row][new_col])
-        return diagonals
 
     def color_switch(self, original_color) -> Tuple[int, int, int]:
         '''Switches the color from black to white and vice versa.'''

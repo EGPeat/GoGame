@@ -4,6 +4,7 @@ import config as cf
 import sys
 from typing import Tuple, Optional, List, Set, Union, Type
 from scoringboard import ScoringBoard
+from goclasses import diagonals_setup
 
 sys.setrecursionlimit(10000)
 
@@ -188,7 +189,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         for neighbor in piece.connections:
             if neighbor.stone_here_color != self.whose_turn.unicode:
                 return False
-        piece_diagonals = self.diagonals_setup(piece)
+        piece_diagonals = diagonals_setup(self, piece)
         counter = 0
         dual_eye_check = False
         bad_diagonals = False
@@ -205,7 +206,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
                 if not surrounded_properly:
                     counter += 1
                 if surrounded_properly:
-                    item_diagonals = self.diagonals_setup(item)
+                    item_diagonals = diagonals_setup(self, item)
                     temp_counter = 0
                     # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                     for second_item in item_diagonals:
@@ -229,17 +230,6 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             return True
         else:  # Not ok to fill
             return True
-
-    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
-        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
-        board_size = len(self.board)
-        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-        diagonals = set()
-        for item in diagonal_change:
-            new_row, new_col = piece.row + item[0], piece.col + item[1]
-            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
-                diagonals.add(self.board[new_row][new_col])
-        return diagonals
 
     def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
         '''Places a piece on the board and updates game state.'''

@@ -62,7 +62,7 @@ class BoardString():
         from operator import itemgetter
         sorting_list: List[Tuple[int, int]] = []
         for item in set_objects:
-            sorting_list.append((item.col, item.row))  # Eventually fix this
+            sorting_list.append((item.row, item.col))  # Eventually fix this
         sorting_list.sort(key=lambda item: (item[0], item[1]))
         self.xmax: int = sorting_list[-1][0]
         self.xmin: int = sorting_list[0][0]
@@ -76,7 +76,7 @@ class BoardString():
         '''
         sorting_list: List[Tuple[int, int]] = []
         for item in set_objects:
-            sorting_list.append((item.col, item.row, (item.stone_here_color)))
+            sorting_list.append((item.row, item.col, (item.stone_here_color)))
         sorting_list.sort(key=lambda item: (item[0], item[1]))
         return sorting_list
 
@@ -140,8 +140,8 @@ class GoBoard():
         for node in board:
             for item in node:
                 workable_area: float = 620.0 / (self.board_size - 1)
-                item.screen_row = 40 + workable_area * item.row
-                item.screen_col = 40 + workable_area * item.col
+                item.screen_row = 40 + workable_area * item.col
+                item.screen_col = 40 + workable_area * item.row
                 friends: List[Tuple[int, int]] = self.check_neighbors(item)
                 for place in friends:
                     item.connections.add(board[place[0]][place[1]])
@@ -285,7 +285,9 @@ class GoBoard():
                     return
             else:
                 row, col = values['-GRAPH-']
+                print(f"row {row}, col {col}")
                 found_piece, piece = self.find_piece_click([row, col])
+                print(piece)
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
 
@@ -387,13 +389,15 @@ class GoBoard():
             piece.stone_here_color = cf.unicode_none
         return truth_value
 
-    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
-        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
-        board_size = len(self.board)
-        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-        diagonals = set()
-        for item in diagonal_change:
-            new_row, new_col = piece.row + item[0], piece.col + item[1]
-            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
-                diagonals.add(self.board[new_row][new_col])
-        return diagonals
+
+@staticmethod
+def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+    '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
+    board_size = len(self.board)
+    diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+    diagonals = set()
+    for item in diagonal_change:
+        new_row, new_col = piece.row + item[0], piece.col + item[1]
+        if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
+            diagonals.add(self.board[new_row][new_col])
+    return diagonals

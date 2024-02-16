@@ -282,7 +282,6 @@ class NNMCST(MCST):
         return nn_input
 
     def get_probabilities_for_child(self, policy_output, choosen_bnode: BoardNode):
-        # heavily unsure if it should be row first or col first
         if choosen_bnode == "Pass":
             return policy_output[0][81]
         row, col = choosen_bnode.row, choosen_bnode.col
