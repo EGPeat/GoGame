@@ -6,4 +6,4 @@ coverage run --source=. -m pytest
 #coverage run -m pytest
 coverage html
 cd htmlcov/
-firefox botnormalgo_py.html
+firefox neuralnetboard_py.html

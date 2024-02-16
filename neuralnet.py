@@ -2,7 +2,7 @@ import neuralnetboard as nn
 import numpy as np
 from typing import List
 import sys
-import keras as keras
+import tensorflow.keras as keras
 np.set_printoptions(threshold=sys.maxsize)
 
 

@@ -129,6 +129,8 @@ class TestClassPyTestUI:
         game.player_white.komi = 6.5
         game.player_black.territory = 20
         game.player_white.territory = 15
+        game.player_black.black_set_len = 0
+        game.player_white.white_set_len = 0
 
         ui.end_game_popup_two(game)
 
@@ -153,6 +155,8 @@ class TestClassPyTestUI:
         game.player_white.komi = 6.5
         game.player_black.territory = 15
         game.player_white.territory = 20
+        game.player_black.black_set_len = 0
+        game.player_white.white_set_len = 0
         ui.end_game_popup_two(game)
 
         mock_popup.assert_called_with(

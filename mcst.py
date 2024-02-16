@@ -166,9 +166,9 @@ class MCST:
         for xidx in range(len(self.board)):
             tempstr: str = ''
             for yidx in range(len(self.board)):
-                if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
+                if self.board[xidx][yidx].stone_here_color == cf.unicode_none:
                     tempstr += "0"
-                elif self.board[yidx][xidx].stone_here_color == cf.unicode_black:
+                elif self.board[xidx][yidx].stone_here_color == cf.unicode_black:
                     tempstr += '1'
                 else:
                     tempstr += '2'
@@ -186,11 +186,11 @@ class MCST:
         for xidx in range(len(board_list)):
             for yidx in range(len(board_list)):
                 if board_list[xidx][yidx] == "0":
-                    self.board[yidx][xidx].stone_here_color = cf.unicode_none
+                    self.board[xidx][yidx].stone_here_color = cf.unicode_none
                 elif board_list[xidx][yidx] == "1":
-                    self.board[yidx][xidx].stone_here_color = cf.unicode_black
+                    self.board[xidx][yidx].stone_here_color = cf.unicode_black
                 elif board_list[xidx][yidx] == "2":
-                    self.board[yidx][xidx].stone_here_color = cf.unicode_white
+                    self.board[xidx][yidx].stone_here_color = cf.unicode_white
 
     def run_mcst(self) -> bool:
         """

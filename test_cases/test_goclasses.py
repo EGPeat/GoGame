@@ -56,20 +56,13 @@ class TestClassPyTestGoClasses:
         assert mock_goboard.not_whose_turn == mock_goboard.player_black
         assert mock_goboard.whose_turn == mock_goboard.player_white
 
-    """def test_make_board_string_correct(self):
+    def test_make_board_string_correct(self):
         go_board = go.GoBoard(9, True)
         go_board.board[0][1].stone_here_color = cf.unicode_black
+        go_board.board[0][2].stone_here_color = cf.unicode_white
         answer = go_board.make_board_string()
         print(answer)
-        assert answer == '1010000000000000000000000000000000000000000000000000000000000000000000000000000000'"""
-
-    def test_make_board_string_incorrect(self):
-        go_board = go.GoBoard(9, True)
-        go_board.board[0][1].stone_here_color = cf.unicode_black
-        go_board.board[0][3].stone_here_color = cf.unicode_white
-        answer = go_board.make_board_string()
-        print(answer)
-        assert answer == '1000000000100000000000000000200000000000000000000000000000000000000000000000000000'
+        assert answer == '1012000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
     def test_print_board_node_incorrect(self):
         go_board = go.GoBoard(9, True)

@@ -5,6 +5,7 @@ sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import botnormalgo as bot
 import config as cf
 from saving_loading import load_pkl
+from goclasses import fills_eye, play_piece_bot
 
 
 class TestClassPyTestBotNormalGo:
@@ -43,7 +44,7 @@ class TestClassPyTestBotNormalGo:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
-        output = the_board.fills_eye(piece)
+        output = fills_eye(the_board, piece)
         assert result == output
 
     @pytest.mark.parametrize("location, result", [
@@ -56,11 +57,11 @@ class TestClassPyTestBotNormalGo:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes_free.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
-        output = the_board.fills_eye(piece)
+        output = fills_eye(the_board, piece)
         assert result == output
 
     @pytest.mark.parametrize("location", [
-        ((0, 0)), ((0, 1)), ((3, 3)), ((8, 8)), ((5, 7)), ((6, 8))])
+        ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((5, 7)), ((8, 6))])
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     def test_play_pieces_botboard(self, mock_popup, mock_refresh, location):
@@ -68,7 +69,7 @@ class TestClassPyTestBotNormalGo:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.__class__ = bot.BotBoard
         the_board.board[2][2].stone_here_color = cf.unicode_black
-        successful = the_board.play_piece_bot(location[1], location[0])
+        successful = play_piece_bot(the_board, location[0], location[1])
 
         if location == (0, 0):
             assert successful is not True
@@ -83,14 +84,14 @@ class TestClassPyTestBotNormalGo:
             assert successful is not True
 
     @pytest.mark.parametrize("location", [
-        ((2, 7)), ((1, 6))])
+        ((7, 2)), ((6, 1))])
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     def test_play_pieces_botboard_fills_eye(self, mock_popup, mock_refresh, location):
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
-        successful = the_board.play_piece_bot(location[1], location[0])
+        successful = play_piece_bot(the_board, location[0], location[1])
 
         assert the_board.board[6][0].stone_here_color == cf.unicode_black
         assert the_board.board[6][2].stone_here_color == cf.unicode_black

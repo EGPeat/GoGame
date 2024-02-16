@@ -11,7 +11,7 @@ from goclasses import diagonals_setup
 def making_score_board_object(board: GoBoard):
     '''Creates a ScoringBoard object to handle scoring and dead stones.'''
     import platform  # Required as for some reason the code/window behaves differently between linux and windows
-    board.scoring_dead: ScoringBoard = ScoringBoard(board)
+    board.scoring_dead = ScoringBoard(board)
     if platform.system() == "Linux":
         board.window.close()
         ui.setup_board_window_pygame(board.scoring_dead)  # Makes a window, but nothing you click will do anything
@@ -39,12 +39,10 @@ class ScoringBoard(GoBoard):
         # Turn and log attributes
         self.times_passed: int = self.parent.times_passed
         self.turn_num: int = self.parent.turn_num
-        PPL_Type = List[Union[str, Tuple[str, int, int]]]
-        self.position_played_log: PPL_Type = self.parent.position_played_log
+        self.position_played_log: List[Union[str, Tuple[str, int, int]]] = self.parent.position_played_log
         self.visit_kill: Set[BoardNode] = self.parent.visit_kill
         self.killed_last_turn: Set[BoardNode] = self.parent.killed_last_turn
-        KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
-        self.killed_log: KL_Type = self.parent.killed_log
+        self.killed_log: List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]] = self.parent.killed_log
 
         # Mode and handicap attributes
         self.mode: str = self.parent.mode
@@ -134,6 +132,9 @@ class ScoringBoard(GoBoard):
         self.make_mixed_and_outer(self.mixed_string_for_white, self.outer_string_white,
                                   self.player_white, self.white_strings, cf.unicode_white)
         self.remove_safe_strings()
+        from saving_loading import save_pickle
+        save_pickle(self)
+        
         from mcst import CollectionOfMCST
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
@@ -217,7 +218,7 @@ class ScoringBoard(GoBoard):
         piece_string = BoardString("Empty", piece_flood[0])
         for item in string_choice:
             if (
-                (neighbor.col, neighbor.row) in item.list_idx #!
+                (neighbor.row, neighbor.col) in item.list_idx
                 and len(item.list_idx) > 1
                 and (
                     item.xmax > piece_string.xmax
@@ -499,7 +500,7 @@ class ScoringBoard(GoBoard):
         connected_pieces[0].add(piece)
         neighboring_pieces = piece.connections
         for neighbor in neighboring_pieces:
-            if (neighbor.row, neighbor.col) not in outer_pieces.list_idx and neighbor not in connected_pieces[0]:#!
+            if (neighbor.row, neighbor.col) not in outer_pieces.list_idx and neighbor not in connected_pieces[0]:
                 self.flood_fill_with_outer(neighbor, outer_pieces, connected_pieces)
             else:
                 connected_pieces[1].add(neighbor)

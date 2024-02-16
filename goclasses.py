@@ -19,7 +19,7 @@ class BoardNode():
         self.stone_here_color: Tuple[int, int, int] = cf.unicode_none
         self.connections: Set[BoardNode] = set()
 
-    def __str__(self) -> str:  # Recently changed, could be an issue
+    def __str__(self) -> str:
         return (f"This is a BoardNode with coordinates of ({self.row},{self.col}) and a stone of {self.stone_here_color}")
 
 
@@ -62,7 +62,7 @@ class BoardString():
         from operator import itemgetter
         sorting_list: List[Tuple[int, int]] = []
         for item in set_objects:
-            sorting_list.append((item.row, item.col))  # Eventually fix this
+            sorting_list.append((item.row, item.col))
         sorting_list.sort(key=lambda item: (item[0], item[1]))
         self.xmax: int = sorting_list[-1][0]
         self.xmin: int = sorting_list[0][0]
@@ -112,7 +112,7 @@ class GoBoard():
         self.whose_turn: Player = self.player_black
         self.not_whose_turn: Player = self.player_white
 
-    def make_board_string(self) -> str:   # Refactor, is wrong. After tests written
+    def make_board_string(self) -> str:
         '''
         Generate a string representation of the current game board.
 
@@ -123,9 +123,9 @@ class GoBoard():
         board_string = '1' if self.whose_turn == self.player_black else '2'
         for xidx in range(len(self.board)):
             for yidx in range(len(self.board)):
-                if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
+                if self.board[xidx][yidx].stone_here_color == cf.unicode_none:
                     board_string += "0"
-                elif self.board[yidx][xidx].stone_here_color == cf.unicode_black:
+                elif self.board[xidx][yidx].stone_here_color == cf.unicode_black:
                     board_string += '1'
                 else:
                     board_string += '2'
@@ -285,9 +285,7 @@ class GoBoard():
                     return
             else:
                 row, col = values['-GRAPH-']
-                print(f"row {row}, col {col}")
                 found_piece, piece = self.find_piece_click([row, col])
-                print(piece)
                 if found_piece:
                     truth_value = self.play_piece(piece.row, piece.col)
 
@@ -323,7 +321,7 @@ class GoBoard():
             self.killed_last_turn.clear()
             return True
 
-    def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:  # Refactor? Why is row, col there...
+    def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
         '''Places a piece on the board and updates game state.'''
         piece.stone_here_color = self.whose_turn.unicode
         self.turn_num += 1
@@ -401,3 +399,99 @@ def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
         if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
             diagonals.add(self.board[new_row][new_col])
     return diagonals
+
+
+@staticmethod
+def fills_eye(self, piece: BoardNode) -> bool:
+    '''Check if placing a stone in the given position would fill an eye.'''
+    # False means it will not fill an eye, so it can place there
+    for neighbor in piece.connections:
+        if neighbor.stone_here_color != self.whose_turn.unicode:
+            return False
+    piece_diagonals = diagonals_setup(self, piece)
+    counter = 0
+    dual_eye_check = False
+    bad_diagonals = False
+
+    for item in piece_diagonals:
+        if item.stone_here_color == cf.unicode_none:
+            # This next thing checks to see if that diagonal is also a eye (dual eye setup) plus more
+            surrounded_properly = True
+            for neighbor in item.connections:
+                if neighbor.stone_here_color != self.whose_turn.unicode:
+                    # This doesn't fully work safely (sometimes fills eyes),
+                    # but i think a NN will eventually figure out what is a dumb move
+                    surrounded_properly = False
+            if not surrounded_properly:
+                counter += 1
+            if surrounded_properly:
+                item_diagonals = diagonals_setup(self, item)
+                temp_counter = 0
+                # This next thing checks to see if that diagonal is also a eye (dual eye setup)
+                for second_item in item_diagonals:
+                    if second_item.stone_here_color != self.whose_turn.unicode:
+                        temp_counter += 1
+                if temp_counter < 2:
+                    dual_eye_check = True
+                else:
+                    counter += 1
+                    # This might be bad/not correct... But maybe a NN will be able to figure out not acting dumb
+            # I might need to eventually add in a check regarding honeycomb shapes, if it doesn't work properly...
+        elif item.stone_here_color == self.not_whose_turn.unicode:
+            counter += 1
+
+    if counter > 1:
+        bad_diagonals = True
+
+    if bad_diagonals:  # Therefore it's ok to fill
+        return False
+    elif dual_eye_check:  # Therefore don't fill
+        return True
+    else:  # Not ok to fill
+        return True
+
+
+@staticmethod
+def play_piece_bot(self, row: int, col: int) -> bool:
+    '''
+    This function represents the bot's move during a turn.
+    It checks if the move is valid, updates the game state, and handles capturing stones.
+    row, col: ints representing the row and column of where the bot is playing.
+    '''
+    piece: BoardNode = self.board[row][col]
+    if (piece.stone_here_color != cf.unicode_none):
+        return False
+    elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
+        return False
+    elif (self.kill_stones(piece) is True):
+        self.piece_placement(piece, row, col)
+        return True
+    elif (self.self_death_rule(piece, self.whose_turn) == 0):
+        return False
+    elif fills_eye(self, piece):
+        return False
+    else:
+        self.piece_placement(piece, row, col)
+        self.killed_last_turn.clear()
+        return True
+
+
+@staticmethod
+def play_turn_bot_helper(self, truth_value, val):
+    if val == (self.board_size * self.board_size):
+        self.times_passed += 1
+        self.turn_num += 1
+        self.position_played_log.append(("Pass", -3, -3))
+        self.killed_log.append([])
+        self.switch_player()
+        return "Break"
+    else:
+        row = val // self.board_size
+        col = val % self.board_size
+        piece = self.board[row][col]
+        found_piece = True
+    if found_piece:
+        truth_value = play_piece_bot(self, piece.row, piece.col)
+        if truth_value:
+            self.times_passed = 0
+    return truth_value

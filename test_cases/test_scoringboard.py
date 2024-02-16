@@ -10,7 +10,7 @@ import player as pl
 from goclasses import play_piece_bot
 
 
-class TestClassPyTestNeuralNetBoard:
+class TestClassPyTestScoringBoard:
 
     @pytest.fixture
     def mock_window(self):
@@ -46,10 +46,3 @@ class TestClassPyTestNeuralNetBoard:
             call('⚫⚫⛔⚫⚪⛔⚪⚪⚪'),
             call('⚫⚫⚫⚫⚪⛔⚪⚪⚪')]
         fake_print.assert_has_calls(calls, any_order=True)
-
-
-    #def test_init_board(self):
-    #    test_board = nn.initializing_game(9, True)
-    #    assert isinstance(test_board.player_black, pl.Player)
-    #    assert test_board.board_size == 9
-    #    assert test_board.nn == test_board.nn_bad
