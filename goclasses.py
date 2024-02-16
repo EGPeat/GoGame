@@ -90,12 +90,10 @@ class GoBoard():
 
         # Turn and log attributes
         self.times_passed, self.turn_num = 0, 0
-        PPL_Type = List[Union[str, Tuple[str, int, int]]]
-        self.position_played_log: PPL_Type = []
+        self.position_played_log: List[Union[str, Tuple[str, int, int]]] = []
         self.visit_kill: Set[BoardNode] = set()
         self.killed_last_turn: Set[BoardNode] = set()
-        KL_Type = List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]
-        self.killed_log: KL_Type = list()
+        self.killed_log: List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]] = list()
 
         # Mode and handicap attributes
         self.mode, self.mode_change = "Playing", True
@@ -141,9 +139,9 @@ class GoBoard():
         board: List[List[BoardNode]] = [[BoardNode(row, col) for col in range(self.board_size)] for row in range(self.board_size)]
         for node in board:
             for item in node:
-                workable_area: int = 620 / (self.board_size - 1)
-                item.screen_row: float = 40 + workable_area * item.row
-                item.screen_col: float = 40 + workable_area * item.col
+                workable_area: float = 620.0 / (self.board_size - 1)
+                item.screen_row = 40 + workable_area * item.row
+                item.screen_col = 40 + workable_area * item.col
                 friends: List[Tuple[int, int]] = self.check_neighbors(item)
                 for place in friends:
                     item.connections.add(board[place[0]][place[1]])
@@ -169,7 +167,8 @@ class GoBoard():
         fixes_handicap: a bool representing if a player has a handicap or not
         '''
         if self.mode == "Playing":
-            self.play_game_playing_mode(from_file, fixes_handicap)
+            winner = self.play_game_playing_mode(from_file, fixes_handicap)
+            return winner
         elif self.mode == "Finished":
             self.play_game_view_endgame()
         elif from_file is True and not self.mode_change:
@@ -194,19 +193,22 @@ class GoBoard():
             self.board = self.setup_board()
         else:
             ui.refresh_board_pygame(self)
-            if self.position_played_log[-1][0] == "Black":
-                self.switch_player()
-                self.play_turn()
         if fixes_handicap:
             hc: Handicap = Handicap(self)
             self.handicap = hc.custom_handicap(False)
-        while (self.times_passed <= 1):
-            self.play_turn()
+        self.turn_loop()
         self.mode = "Scoring"
         self.times_passed = 0
         self.resuming_scoring_buffer("Scoring")
+        return self.playing_mode_end_of_game()
+
+    def playing_mode_end_of_game(self):
         ui.end_game_popup()
-        self.scoring_block()
+        return self.scoring_block()
+
+    def turn_loop(self):
+        while (self.times_passed <= 1):
+            self.play_turn()
 
     def play_game_view_endgame(self) -> None:  # Might be wrong, requires testing.
         '''Allows the user to view a completed game'''
@@ -276,7 +278,6 @@ class GoBoard():
         truth_value: bool = False
         while not truth_value:
             event, values = self.read_window()
-            # self.window.write_event_value('-GRAPH-', (591, 114)) Useful for testing
             if event != "-GRAPH-":
                 from turn_options import normal_turn_options
                 normal_turn_options(self, event, text="Passed")
@@ -290,15 +291,15 @@ class GoBoard():
 
                     if truth_value:
                         self.times_passed = 0
-                        pygame.draw.circle(self.screen, self.whose_turn.unicode,
-                                           (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
-                        pygame.display.update()
+        self.make_turn_info()
+        return
+
+    def make_turn_info(self):
         temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
         self.switch_player()
-        return
 
     def play_piece(self, row: int, col: int) -> bool:
         '''Attempts to play a piece on the board and handles rule violations.'''
@@ -374,7 +375,7 @@ class GoBoard():
         Determines if placing a piece kills opponent's stones and removes them if needed.
         Returns True if placing the piece kills stones, False otherwise.
         '''
-        piece.stone_here_color: Tuple[int, int, int] = self.whose_turn.unicode
+        piece.stone_here_color = self.whose_turn.unicode
         neighboring_pieces: Set[BoardNode] = piece.connections
         truth_value: bool = False
         for neighbor in neighboring_pieces:
@@ -385,3 +386,14 @@ class GoBoard():
         if truth_value is False:
             piece.stone_here_color = cf.unicode_none
         return truth_value
+
+    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
+        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
+        board_size = len(self.board)
+        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+        diagonals = set()
+        for item in diagonal_change:
+            new_row, new_col = piece.row + item[0], piece.col + item[1]
+            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
+                diagonals.add(self.board[new_row][new_col])
+        return diagonals

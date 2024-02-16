@@ -1,161 +1,55 @@
 import uifunctions as ui
-from handicap import Handicap
 from goclasses import GoBoard, BoardNode
 import config as cf
-from typing import Tuple, List, Optional, Set
+from typing import Set
 from random import randrange
 
 
 class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
     def __init__(self, board_size=19, defaults=True):
         super().__init__(board_size, defaults)
-        self.ai_training_info: List[Tuple[str, Tuple[int, int]]] = []  # Might be Tuple of placement, or maybe a string
 
-    def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
-        '''
-        This function figures out the gamemode of the board (playing, finished, scoring) and then calls the appropriate function.
-        from_file: a bool representing if the board should be loaded from file
-        fixes_handicap: a bool representing if a player has a handicap or not
-        '''
-        if self.mode == "Playing":
-            temp = self.play_game_playing_mode(from_file, fixes_handicap)
-            return temp  # This is a hack to manage AI training. Fix eventually.
-        elif self.mode == "Finished":
-            self.play_game_view_endgame()
-        elif from_file is True and not self.mode_change:
-            ui.refresh_board_pygame(self)
-            self.scoring_block()
+    def playing_mode_end_of_game(self):
+        from scoringboard import making_score_board_object
+        winner = making_score_board_object(self)
+        print(f"winner is {winner}")
+        return winner  # This is a hack to manage AI training. Fix eventually.
 
-        else:
-            ui.refresh_board_pygame(self)
-            self.mode_change = True
-            self.times_passed = 0
-            self.scoring_block()
-
-    def play_game_playing_mode(self, from_file, fixes_handicap):
-        '''
-        This function handles the game logic during the "Playing" mode.
-        It sets up the board and does handicaps if necessary based on from_file and fixes_handicap variable.
-        It also executes turns for both players until the game enters the "Scoring" mode.
-        from_file: a bool representing if the board should be loaded from file
-        fixes_handicap: a bool representing if a player has a handicap or not
-        '''
-        if not from_file:
-            self.board = self.setup_board()
-        else:
-            ui.refresh_board_pygame(self)
-            if self.position_played_log[-1][0] == "Black":
-                self.switch_player()
-                self.play_turn(True)
-        if fixes_handicap:
-            hc: Handicap = Handicap(self)
-            self.handicap = hc.custom_handicap(False)
+    def turn_loop(self):
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
-                self.play_turn(True)  # Change this to true if you want it to be bot vs bot
+                self.play_turn()  # Change this to true if you want it to be bot vs bot
             elif self.whose_turn == self.player_white:
-                self.play_turn(True)
+                self.play_turn_bot()
 
-        self.mode = "Scoring"
-        self.times_passed = 0
-        self.resuming_scoring_buffer("Scoring")
-        winner = self.making_score_board_object()
-        print(f"winner is {winner}")
-        return (self.ai_training_info, winner)  # This is a hack to manage AI training. Fix eventually.
-
-    def play_turn(self, bot: Optional[bool] = False) -> None:
-        '''
-        This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
-        bot: a bool indicating if a bot is playing this turn.
-        '''
+    def play_turn_bot(self) -> None:
         ui.update_scoring(self)
         truth_value: bool = False
-        placement = None
         tries = 0
         while not truth_value:
-            if not bot:
-                event, values = self.window.read()
-            else:
-                event = "-GRAPH-"  # ! Black Box Func for now
+            val = randrange(0, (self.board_size * self.board_size))
+            print(f"val is {val}")
+            tries += 1
+            if tries >= 120:
+                val = self.board_size * self.board_size
 
-            if event != "-GRAPH-":
-                from turn_options import normal_turn_options
-                normal_turn_options(self, event, text="Passed")
-                if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
-                    return
-            else:
-                if not bot:
-                    row, col = values['-GRAPH-']
-                    found_piece, piece = self.find_piece_click([row, col])
-                else:  # ! Black Box Func for now
-                    # Two different ways for managing having a pass function. Choose as you like.
-                    val = randrange(0, (self.board_size * self.board_size))
-                    tries += 1
-                    if tries >= 120:
-                        val = self.board_size * self.board_size
-
-                    """if self.turn_num >= 54:
-                        val = randrange(0, (self.board_size*self.board_size)+1)
-                    else:
-                        val = randrange(0, (self.board_size*self.board_size))"""
-                    if val == (self.board_size * self.board_size):
-                        self.times_passed += 1
-                        self.turn_num += 1
-                        self.position_played_log.append(("Pass", -3, -3))
-                        self.killed_log.append([])
-                        self.switch_player()
-                        return
-                    else:
-                        row = val // self.board_size
-                        col = val % self.board_size
-                        placement: Tuple = (row, col)
-                        piece = self.board[row][col]
-                        found_piece = True
-                if found_piece:
-                    if not bot:
-                        truth_value = self.play_piece(piece.row, piece.col)
-                    else:
-                        truth_value = self.play_piece_bot(piece.row, piece.col)
-                    if truth_value:
-                        self.times_passed = 0
-                        # pygame.draw.circle(self.screen, self.whose_turn.unicode,
-                        #                   (piece.screen_row, piece.screen_col), self.pygame_board_vals[2])
-                        # pygame.display.update()
-        temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
-        for item in self.killed_last_turn:
-            temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
-        self.killed_log.append(temp_list)
-        turn_string = (self.make_board_string(), placement)
-        self.ai_training_info.append(turn_string)
-        self.switch_player()
-        return
-
-    def remove_dead(self) -> None:
-        '''
-        This function waits for player input to select dead stones, and then processes the removal of those stones.
-        '''
-        from remove_dead import remove_stones_and_update_score, remove_dead_undo_list, remove_dead_found_piece
-        from turn_options import remove_dead_turn_options
-        self.killed_last_turn.clear()
-        ui.update_scoring(self)
-        truth_value: bool = False
-        while not truth_value:
-            event, values = self.window.read()
-            else_choice: bool = remove_dead_turn_options(self, event)
-            if not else_choice:
+            if val == (self.board_size * self.board_size):
+                self.times_passed += 1
+                self.turn_num += 1
+                self.position_played_log.append(("Pass", -3, -3))
+                self.killed_log.append([])
+                self.switch_player()
                 return
-            row, col = values['-GRAPH-']
-            found_piece, piece = self.find_piece_click([row, col])
-            if found_piece and piece.stone_here_color == cf.unicode_none:
-                ui.def_popup("You can't remove empty areas", 1)
-            elif found_piece:
-                other_user_agrees, piece_string = remove_dead_found_piece(self, piece)
-                if other_user_agrees == "No":
-                    remove_dead_undo_list(self, piece_string)
-                    return
-                remove_stones_and_update_score(self, piece_string)
-                break
-        self.switch_player()
+            else:
+                row = val // self.board_size
+                col = val % self.board_size
+                piece = self.board[row][col]
+                found_piece = True
+            if found_piece:
+                truth_value = self.play_piece_bot(piece.row, piece.col)
+                if truth_value:
+                    self.times_passed = 0
+        self.make_turn_info()
         return
 
     def play_piece_bot(self, row: int, col: int) -> bool:
@@ -204,7 +98,7 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
                 if not surrounded_properly:
                     counter += 1
                 if surrounded_properly:
-                    item_diagonals = self.diagonals_setup(piece)
+                    item_diagonals = self.diagonals_setup(item)
                     temp_counter = 0
                     # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                     for second_item in item_diagonals:
@@ -228,14 +122,3 @@ class BotBoard(GoBoard):  # Need to override the scoring/removing dead pieces bi
             return True
         else:  # Not ok to fill
             return True
-
-    def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
-        '''Sets up and returns a set of diagonal neighbors for a given board piece.'''
-        board_size = len(self.board)
-        diagonal_change = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-        diagonals = set()
-        for item in diagonal_change:
-            new_row, new_col = piece.row + item[0], piece.col + item[1]
-            if new_row >= 0 and new_row < board_size and new_col >= 0 and new_col < board_size:
-                diagonals.add(self.board[new_row][new_col])
-        return diagonals

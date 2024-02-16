@@ -283,6 +283,7 @@ class MCST:
         for neighbor in piece.connections:
             if neighbor.stone_here_color != node.whose_turn.unicode:
                 return False
+        from goclasses import GoBoard.diagonals_setup
         piece_diagonals = self.diagonals_setup(piece)
         counter = 0
         dual_eye_check = False
@@ -300,7 +301,7 @@ class MCST:
                 if not surrounded_properly:
                     counter += 1
                 if surrounded_properly:
-                    item_diagonals = self.diagonals_setup(piece)
+                    item_diagonals = self.diagonals_setup(item)
                     temp_counter = 0
                     # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                     for second_item in item_diagonals:
@@ -367,7 +368,7 @@ class MCST:
         Determines if placing a piece kills opponent's stones and removes them if needed.
         Returns True if placing the piece kills stones, False otherwise.
         '''
-        piece.stone_here_color: Tuple[int, int, int] = node.whose_turn.unicode
+        piece.stone_here_color = node.whose_turn.unicode
         neighboring_pieces: Set[BoardNode] = piece.connections
         truth_value: bool = False
         for neighbor in neighboring_pieces:

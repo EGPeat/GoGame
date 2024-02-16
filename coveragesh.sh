@@ -2,8 +2,8 @@
 
 # pytest --collect-only
 # pytest --ignore-glob=*test_ui* -vv
-#coverage run --source=. -m pytest
-coverage run -m pytest
+coverage run --source=. -m pytest
+#coverage run -m pytest
 coverage html
 cd htmlcov/
-firefox goclasses_py.html
+firefox botnormalgo_py.html

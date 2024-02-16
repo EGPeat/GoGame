@@ -1,6 +1,6 @@
 import uifunctions as ui
 import PySimpleGUI as sg
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class Player():
@@ -17,7 +17,7 @@ class Player():
         self.name: Optional[str] = name
         self.color: Optional[str] = color  # Refactor? I'm not really sure it's necessary
         self.komi: float = komi
-        self.unicode: Optional[tuple] = unicode_choice
+        self.unicode: Tuple[int, int, int] = unicode_choice
         self.territory: int = 0
 
     @staticmethod

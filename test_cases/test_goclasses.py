@@ -1,9 +1,7 @@
 from unittest.mock import patch, MagicMock
-import unittest
 import sys
 import pytest
 sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import uifunctions as ui
 import PySimpleGUI as sg
 import goclasses as go
 from player import Player
@@ -19,10 +17,10 @@ class TestClassPyTestGoClasses:
             yield mock.return_value
 
     def test_read_window(self, mock_window):
-        instance_under_test = go.GoBoard()
-        instance_under_test.window = mock_window
+        theboard = go.GoBoard()
+        theboard.window = mock_window
         mock_window.read.return_value = ("button_click", {"input_field": "user_input"})
-        event, values = instance_under_test.read_window()
+        event, values = theboard.read_window()
         assert event == "button_click"
         assert values == {"input_field": "user_input"}
         mock_window.read.assert_called_once()
@@ -49,8 +47,8 @@ class TestClassPyTestGoClasses:
 
     def test_switch_player_obj(self):
         mock_goboard = MagicMock()
-        mock_goboard.player_black: Player = Player.setup_player(True, "Player One", "Black", go.cf.unicode_black)
-        mock_goboard.player_white: Player = Player.setup_player(True, "Player Two", "White", go.cf.unicode_white)
+        mock_goboard.player_black = Player.setup_player(True, "Player One", "Black", go.cf.unicode_black)
+        mock_goboard.player_white = Player.setup_player(True, "Player Two", "White", go.cf.unicode_white)
         mock_goboard.whose_turn = mock_goboard.player_black
         mock_goboard.not_whose_turn = mock_goboard.player_white
         go.GoBoard.switch_player(mock_goboard)
@@ -105,14 +103,12 @@ class TestClassPyTestGoClasses:
 
     @pytest.mark.parametrize("location, result, who", [
         ((0, 1), (0, 0), ("Black")),
-        ((3, 3), (3, 4), ("White")),
-        ((3, 3), (8, 8), ("Black")),
-        ((3, 3), (8, 8), ("Black"))
+        ((3, 3), (3, 4), ("White"))
     ])
     def test_kill_stones_mocked_self_death(self, location, result, who):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_killing.pkl")
-        if who != "White":
+        if who != "White":  # This is to allow black to capture/kill
             the_board.switch_player()
         the_board.board[2][2].stone_here_color = cf.unicode_black
         the_piece = the_board.board[location[0]][location[1]]
@@ -167,7 +163,7 @@ class TestClassPyTestGoClasses:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.board[2][2].stone_here_color = cf.unicode_black
         the_board.play_turn()
-    
+
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     @patch("uifunctions.update_scoring")
@@ -175,7 +171,37 @@ class TestClassPyTestGoClasses:
     @patch("pygame.display.update")
     def test_play_turn_normal(self, mock_display, mock_draw_circle, mock_update, mock_popup, mock_refresh, mocker):
         the_board: go.GoBoard = go.GoBoard(9)
-        the_board.pygame_board_vals = [700, 620 / 8, 620 / 24] #
+        the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
         mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (2, 3)}))
         mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[8][8])))
         the_board.play_turn()
+
+    @patch("uifunctions.refresh_board_pygame")
+    @patch("uifunctions.def_popup")
+    @patch("uifunctions.update_scoring")
+    @patch("pygame.draw.circle")
+    @patch("pygame.display.update")
+    def test_play_turn_capture(self, mock_display, mock_draw_circle, mock_update, mock_popup, mock_refresh, mocker, mock_window):
+        the_board: go.GoBoard = load_pkl(
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+        the_board.screen = mock_window
+        the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
+        mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (0, 1)}))
+        mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[0][1])))
+        the_board.play_turn()
+
+    @pytest.mark.parametrize("location, result", [
+        ((0, 0), (1, [(1, 1)])),
+        ((0, 1), (2, [(1, 0), (1, 2)])),
+        ((1, 1), (4, [(2, 2), (0, 0), (2, 0), (0, 2)]))
+    ])
+    def test_diagonal_setup(self, location, result):
+        the_board: go.GoBoard = load_pkl(
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+        piece = the_board.board[location[0]][location[1]]
+        result_set = the_board.diagonals_setup(piece)
+        neighbors = set()
+        for idx in range(result[0]):
+            neighbors.add(the_board.board[result[1][idx][0]][result[1][idx][1]])
+        assert len(result_set) == result[0]
+        assert result_set == neighbors

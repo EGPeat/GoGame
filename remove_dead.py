@@ -9,12 +9,12 @@ def remove_dead(board: GoBoard) -> None:  # Refactor?
     '''
     This function waits for player input to select dead stones, and then processes the removal of those stones.
     '''
+    from turn_options import remove_dead_turn_options
     board.killed_last_turn.clear()
     ui.update_scoring(board)
     truth_value: bool = False
     while not truth_value:
         event, values = board.read_window()
-        from turn_options import remove_dead_turn_options
         else_choice: bool = remove_dead_turn_options(board, event)
         if not else_choice:
             return
