@@ -68,7 +68,7 @@ def setup_menu():
                  expand_x=True,
                  justification='center')],
         [sg.Text(
-            text='The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2', key="Info",
+            text='The default settings are a 9x9 board, 7.5 komi, and names for players of Player 1 and Player 2', key="Info",
             font=('Arial', 12),
             size=20,
             expand_x=True,

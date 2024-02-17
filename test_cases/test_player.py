@@ -41,7 +41,7 @@ class TestClassPyTestPlayer:
             player.Player.choose_komi(playa)
         assert playa.komi == 5
 
-    @pytest.mark.parametrize("color, final_komi", [("Black", 0), ("White", 6.5)])
+    @pytest.mark.parametrize("color, final_komi", [("Black", 0), ("White", 7.5)])
     def test_choose_komi_no(self, color, final_komi, mocker):
         mocker.patch('PySimpleGUI.popup_yes_no', return_value="No")
         playa = player.Player(color=color)

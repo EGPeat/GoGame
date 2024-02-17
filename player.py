@@ -35,7 +35,7 @@ class Player():
             if clr == "Black":
                 player_assignment = Player(name=nme, color=clr, unicode_choice=uc)
             else:
-                player_assignment = Player(name=nme, color=clr, komi=6.5, unicode_choice=uc)
+                player_assignment = Player(name=nme, color=clr, komi=7.5, unicode_choice=uc)
         else:
             player_assignment = Player(color=clr, unicode_choice=uc)
             player_assignment.choose_name()
@@ -69,9 +69,9 @@ class Player():
         info: str = "Please Click Yes if you want to change your Komi"
         modify_komi: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_komi == "No" and self.color == "White":
-            self.komi = 6.5
+            self.komi = 7.5
             return
         elif modify_komi == "No":
             return
-        self.komi = Player.get_input(f"Your color is {self.color}. Please enter Komi Value. 6.5 is normally done,\
+        self.komi = Player.get_input(f"Your color is {self.color}. Please enter Komi Value. 7.5 is normally done,\
                                     but only for white:", float)

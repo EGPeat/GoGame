@@ -7,6 +7,7 @@ import config as cf
 import neuralnetboard as nn
 from saving_loading import load_pkl
 import player as pl
+import goclasses as go
 from goclasses import play_piece_bot
 
 
@@ -47,6 +48,14 @@ class TestClassPyTestNeuralNetBoard:
             call('⚫⚫⚫⚫⚪⛔⚪⚪⚪')]
         fake_print.assert_has_calls(calls, any_order=True)
 
+    def test_init_nnsb(self):
+        the_board: go.GoBoard = load_pkl(
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+        test_sb = nn.NNScoringBoard(the_board)
+        assert isinstance(test_sb, nn.NNScoringBoard)
+        assert isinstance(test_sb.parent, go.GoBoard)
+        assert test_sb.parent == the_board
+        assert test_sb.player_black == test_sb.parent.player_black
 
     #def test_init_board(self):
     #    test_board = nn.initializing_game(9, True)

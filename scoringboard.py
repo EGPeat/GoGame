@@ -104,12 +104,19 @@ class ScoringBoard(GoBoard):
         # sleep(0.2)
         ui.refresh_board_pygame(self)
 
-    def dealing_with_dead_stones(self) -> bool:  # Could easily split up this function into multiple functions
+    def dealing_with_dead_stones(self) -> bool:
         '''
         Manages the process of dealing with dead stones, including finding and removing them.
         Initializes and uses the MCST collection for scoring.
         Returns the winner after counting territory.
         '''
+        self.dead_stones_make_strings()
+        self.dead_stones_make_mixed()
+        self.remove_safe_strings()
+        winner = self.dealing_with_dead_stones_helper()
+        return winner
+
+    def dead_stones_make_strings(self):
         import copy
         self.pieces_into_sets()
         self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
@@ -123,18 +130,16 @@ class ScoringBoard(GoBoard):
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
         self.outer_string_white: Union[List[None], List[BoardString]] = list()
 
+    def dead_stones_make_mixed(self):
         self.make_mixed_and_outer(self.mixed_string_for_black, self.outer_string_black,
                                   self.player_black, self.black_strings, cf.unicode_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
-
         self.make_mixed_and_outer(self.mixed_string_for_white, self.outer_string_white,
                                   self.player_white, self.white_strings, cf.unicode_white)
-        self.remove_safe_strings()
-        from saving_loading import save_pickle
-        save_pickle(self)
-        
+
+    def dealing_with_dead_stones_helper(self):
         from mcst import CollectionOfMCST
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
@@ -211,10 +216,7 @@ class ScoringBoard(GoBoard):
         Helper function for find_neighbor_get_string.
         Determines if the neighbor's string should be included in the result.
         '''
-        if piece.stone_here_color == second_color and second_color == cf.unicode_white:
-            second_color = cf.unicode_none
         piece_flood = self.flood_fill_two_colors(piece, second_color)
-        # Why is it two color floodfill? Might cause the issue found in the 9x9 board.
         piece_string = BoardString("Empty", piece_flood[0])
         for item in string_choice:
             if (
@@ -493,7 +495,7 @@ class ScoringBoard(GoBoard):
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
         '''Perform flood fill to identify connected pieces considering outer pieces.
-        Set 1 is the set of objects of the same color, Set 2 is the outside objects
+        Set 1 is the set of objects of the same color, Set 2 is the outside objects.
         '''
         if connected_pieces is None:
             connected_pieces = (set(), set())

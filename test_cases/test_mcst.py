@@ -10,8 +10,6 @@ import scoringboard as sb
 
 
 class TestClassPyTestMCST:
-    def __init__(self) -> None:
-        pass
 
     @pytest.fixture
     def mock_window(self):
@@ -31,9 +29,6 @@ class TestClassPyTestMCST:
         the_board: sb.ScoringBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/scoreboardsaved.pkl")
         the_board.__class__ = sb.ScoringBoard
-        print("bruh")
-
-        print("bruh")
         the_board.ai_training_info = []
         the_board.ai_output_info = []
         the_board.make_turn_info()

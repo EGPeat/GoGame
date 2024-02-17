@@ -67,7 +67,7 @@ class TestClassPyTestUI:
 
     def test_setup_menu(self):
         window = ui.setup_menu()
-        text = "The default settings are a 9x9 board, 6.5 komi, and names for players of Player 1 and Player 2"
+        text = "The default settings are a 9x9 board, 7.5 komi, and names for players of Player 1 and Player 2"
         assert window["Info"].get() == text
         window.close()
 
