@@ -144,7 +144,7 @@ class ScoringBoard(GoBoard):
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
                                                 5000, 30, (self.whose_turn, self.not_whose_turn))
-
+        self.MCST_collection.running_tests()
         for item in self.MCST_collection.black_MCSTS_final:
             if item[3] is True:
                 for node in item[1].member_set:

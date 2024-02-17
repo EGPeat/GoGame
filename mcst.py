@@ -91,6 +91,8 @@ class CollectionOfMCST:
             temp: MCST = MCST(board, white_outer[idx], white_inner[idx], iterations, max_sim_depth, players)
             self.white_MCSTS.append(temp)
             self.white_MCSTS_tuple_list.append([white_outer[idx], white_inner[idx], temp])
+
+    def running_tests(self):
         # print("Running the black test")
         for idx in range(len(self.black_MCSTS)):
             item = self.black_MCSTS_tuple_list[idx]
@@ -130,12 +132,12 @@ class MCST:
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set: Set[BoardNode] = set()
         for pairing in inner_pieces.list_values:
-            temp_set.add(self.board[pairing[1]][pairing[0]])
+            temp_set.add(self.board[pairing[0]][pairing[1]])
         self.inner = BoardString(inner_pieces.color, temp_set)
         # This is necessary because of earlier deepcopy issues causing it to not refer to the current board
         temp_set: Set[BoardNode] = set()
         for pairing in outer_pieces.list_values:
-            temp_set.add(self.board[pairing[1]][pairing[0]])
+            temp_set.add(self.board[pairing[0]][pairing[1]])
         self.outer = BoardString(outer_pieces.color, temp_set)
         board_list_for_root = self.make_board_string()
         self.root: MCSTNode = MCSTNode(turn_person, board_list_for_root, placement_location=("Root", -1, -1))
@@ -145,9 +147,9 @@ class MCST:
         for xidx in range(len(self.board)):
             tempstr: str = ''
             for yidx in range(len(self.board)):
-                if self.board[yidx][xidx].stone_here_color == cf.unicode_none:
+                if self.board[xidx][yidx].stone_here_color == cf.unicode_none:
                     tempstr += "\u26D4"
-                elif self.board[yidx][xidx].stone_here_color == cf.unicode_black:
+                elif self.board[xidx][yidx].stone_here_color == cf.unicode_black:
                     tempstr += '\u26AB'
                 else:
                     tempstr += '\u26AA'
