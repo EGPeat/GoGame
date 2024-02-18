@@ -40,7 +40,7 @@ class NNMCSTNode(MCSTNode):
 
 class NNMCST(MCST):
     def __init__(self, board: List[List[BoardNode]], training_info: List[str], white_board: str, black_board: str,
-                 iterations: int, turn_person: Tuple[Player, Player], nn) -> None:
+                 iterations: int, turn_person: Tuple[Player, Player], nn, turnnum) -> None:
         self.board = board
         self.board_BoardString = None
         self.ai_training_info = copy.deepcopy(training_info)
@@ -56,6 +56,11 @@ class NNMCST(MCST):
         self.root: NNMCSTNode = NNMCSTNode(turn_person, self.ai_training_info, 1, board_list_for_root,
                                            placement_location=("Root", -1, -1))
         self.neural_net_inst = nn
+        self.turn_num = turnnum
+        if turnnum <= 30:
+            self.temp = 1
+        else:
+            self.temp = 0.1
 
     def secondary_init(self) -> None:
         '''Helper function for init.'''
@@ -84,7 +89,7 @@ class NNMCST(MCST):
         if t_node.parent:
             t_node = t_node.parent
         penalty_term_inner_upper = 0
-        for sibling in t_node.children:  # I am not sure if this should include the child being tested or not...
+        for sibling in t_node.children:
             penalty_term_inner_upper += sibling.number_times_choosen
 
         penalty_term_inner_upper = math.sqrt(penalty_term_inner_upper)
@@ -92,6 +97,17 @@ class NNMCST(MCST):
         penalty_term = explor_weight * child.prior_probability * penalty_term_inner
         ucb_value = child.mean_value_v + penalty_term
         return ucb_value
+
+    def get_deep_score(self, child: NNMCSTNode) -> float:
+        t_node = child
+        if t_node.parent:
+            t_node = t_node.parent
+        lower_value = 0
+        for sibling in t_node.children:
+            lower_value += math.pow(sibling.number_times_choosen, (1 / self.temp))
+
+        upper_value = math.pow(child.number_times_choosen, (1 / self.temp))
+        return (upper_value / lower_value)
 
     def backpropagate(self, node: NNMCSTNode, value_output: int) -> None:
         '''Backpropagates the result of a simulation through the tree.'''
@@ -113,20 +129,19 @@ class NNMCST(MCST):
             selected_node = self.select(self.root, idx)
             value_output = self.expand(selected_node, idx)
             self.backpropagate(selected_node, value_output)
-        best_child_value = float('-inf')
-        best_child: NNMCSTNode = None
-        for spawn in self.root.children:
-            spawn_value = self.get_UCB_score(spawn)
-            if spawn_value >= best_child_value:
-                best_child = spawn
-                best_child_value = spawn_value
-        location = (best_child.choice_info[0][0], best_child.choice_info[0][1]) #!
-        if location[0] != "a":
-            location = best_child.choice_info[0][0] * 9 + best_child.choice_info[0][1] #!
-        else:
-            location = 81  # Hardcoded values
         output_chances = self.get_choice_info()
-        return location, output_chances, nn_input_backup
+        choice_weights = self.get_deep_info()
+        the_range = []
+        for idx in range(82):
+            the_range.append(idx)
+        print(choice_weights)
+        from random import choices
+        location = choices(the_range, weights=choice_weights, k=2)
+        print(location)
+        if self.turn_num < 60 and location[0] == 81:
+            # This is a temporary thing until the program learns to not pass at the start.
+            location[0] = location[1]
+        return location[0], output_chances, nn_input_backup
 
     def get_choice_info(self) -> List[float]:
         chance_list: List[float] = [0] * 82
@@ -136,6 +151,17 @@ class NNMCST(MCST):
             else:
                 location = 81  # Hardcoded value
             chance_list[location] = spawn.number_times_choosen / (self.iteration_number)
+        return chance_list
+
+    def get_deep_info(self) -> List[float]:
+        chance_list: List[float] = [0] * 82
+        for spawn in self.root.children:
+            spawn_value = self.get_deep_score(spawn)
+            if spawn.choice_info[0][1] != 'a':
+                location = spawn.choice_info[0][0] * 9 + spawn.choice_info[0][1] #!
+            else:
+                location = 81  # Hardcoded value
+            chance_list[location] = spawn_value
         return chance_list
 
     def select(self, node: NNMCSTNode, idx: int) -> NNMCSTNode: # Refactor eventually
@@ -209,9 +235,9 @@ class NNMCST(MCST):
         legal_moves_set: Union[Set[None], Set[BoardNode]] = set()
         for board_node in self.board_BoardString.member_set:
             output = self.test_piece_placement(board_node, node, simulate, final_test)
-            if output[0]:
-                legal_moves.append(output[1])
-                legal_moves_set.add(output[1])
+            if output:
+                legal_moves.append(board_node)
+                legal_moves_set.add(board_node)
         cache_value = frozenset(legal_moves_set)
         self.cache[self.cache_hash] = cache_value
 

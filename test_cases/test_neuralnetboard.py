@@ -13,7 +13,6 @@ from goclasses import play_piece_bot
 
 class TestClassPyTestNeuralNetBoard:
 
-
     @patch("uifunctions.update_scoring")
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")

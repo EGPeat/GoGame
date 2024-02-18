@@ -101,23 +101,22 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         while not truth_value:
             self.board_copy: List[BoardString] = copy.deepcopy(self.board)
             self.print_board()
-            print("here")
             import time
             t0 = time.time()
+            self.turn_loop
             if good_bot:
                 self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                                          self.ai_white_board, 16, (self.whose_turn, self.not_whose_turn), self.nn)
+                                          self.ai_white_board, 25, (self.whose_turn, self.not_whose_turn),
+                                          self.nn, self.turn_num)
             else:
                 self.turn_nnmcst = NNMCST(self.board_copy, self.ai_training_info, self.ai_black_board,
-                                          self.ai_white_board, 16, (self.whose_turn, self.not_whose_turn), self.nn_bad)
-            print("ok")
+                                          self.ai_white_board, 25, (self.whose_turn, self.not_whose_turn),
+                                          self.nn_bad, self.turn_num)
             val, output_chances, formatted_ai_training_info = self.turn_nnmcst.run_mcst()
-            print("not ok")
             self.ai_output_info.append(tuple((formatted_ai_training_info, output_chances)))
             t1 = time.time()
             print(f"the times is {t1-t0}")
             print(f"val is {val}, pos is {val//9}, {val%9} and turn is {self.turn_num}")
-            # Why is it doing things column first...
 
             truth_value = play_turn_bot_helper(self, truth_value, val)
             if truth_value == "Break":

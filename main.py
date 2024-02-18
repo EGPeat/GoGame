@@ -6,11 +6,12 @@ import pygametest as pygt
 # Typehint more/better
 # x and y also mixed up in the nn mcst
 # Make it so the MCST/NN won't pass until later on?
-# It will play the exact same game everytime...
 # move programming files to a new folder
 # Add readme and better documentation
 # extend functionality after version 1
 # add some more tests over time
+# add in way for ai to update its winning model if a new model beats the old one
+# More refactoring
 
 
 def play_game_main():
