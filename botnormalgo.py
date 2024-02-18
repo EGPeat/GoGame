@@ -33,6 +33,7 @@ class BotBoard(GoBoard):
                 val = self.board_size * self.board_size
 
             truth_value = play_turn_bot_helper(self, truth_value, val)
+            ui.refresh_board_pygame(self)
             if truth_value == "Break":
                 return
         self.make_turn_info()

@@ -41,8 +41,8 @@ def remove_dead_found_piece(board: GoBoard, piece: BoardNode) -> Tuple[str, List
     Uses floodfill to find all connected Nodes of the same color as the variable piece.
     Gets the agreement (or disagreement) of the other player.
     '''
-    from scoringboard import ScoringBoard
-    series: Tuple[Set[BoardNode], Set[BoardNode]] = ScoringBoard.flood_fill(piece)  # !
+    from scoringboard import flood_fill
+    series: Tuple[Set[BoardNode], Set[BoardNode]] = flood_fill(piece)  # !
     piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
     for item in series[0]:
         if item.stone_here_color == board.player_black.unicode:

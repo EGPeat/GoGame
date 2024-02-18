@@ -44,7 +44,7 @@ class TestClassPyTestBotNormalGo:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
-        output = fills_eye(the_board, piece)
+        output = fills_eye(the_board, piece, the_board.whose_turn.unicode, the_board.not_whose_turn.unicode)
         assert result == output
 
     @pytest.mark.parametrize("location, result", [
@@ -57,7 +57,7 @@ class TestClassPyTestBotNormalGo:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes_free.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
-        output = fills_eye(the_board, piece)
+        output = fills_eye(the_board, piece, the_board.whose_turn.unicode, the_board.not_whose_turn.unicode)
         assert result == output
 
     @pytest.mark.parametrize("location", [

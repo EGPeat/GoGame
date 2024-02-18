@@ -147,6 +147,16 @@ class GoBoard():
                     item.connections.add(board[place[0]][place[1]])
         return board
 
+    def check_neighbors(self, piece) -> List[Tuple[int, int]]:
+        '''Takes in a boardNode, returns a list of tuples of coordinates'''
+        neighbors = [(piece.row - 1, piece.col), (piece.row + 1, piece.col),
+                     (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
+        valid_neighbors: List[Tuple[int, int]] = []
+        for coordinate in neighbors:
+            if 0 <= coordinate[0] < self.board_size and 0 <= coordinate[1] < self.board_size:
+                valid_neighbors.append(coordinate)
+        return valid_neighbors
+
     def read_window(self):
         event, values = self.window.read()
         return event, values
@@ -311,64 +321,25 @@ class GoBoard():
             ui.def_popup("Place the piece there would break the ko rule. Please try your turn again.", 2)
             return False
         elif (self.kill_stones(piece) is True):
-            self.piece_placement(piece, row, col)
+            piece_placement(self, piece, row, col)
+            ui.refresh_board_pygame(self)
             return True
-        elif (self.self_death_rule(piece, self.whose_turn) == 0):
+        elif (self_death_rule(self, piece, self.whose_turn) == 0):
             ui.def_popup("Place the piece there would break the self death rule. Please try your turn again.", 2)
             return False
         else:
-            self.piece_placement(piece, row, col)
+            piece_placement(self, piece, row, col)
+            ui.refresh_board_pygame(self)
             self.killed_last_turn.clear()
             return True
 
-    def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
-        '''Places a piece on the board and updates game state.'''
-        piece.stone_here_color = self.whose_turn.unicode
-        self.turn_num += 1
-        self.position_played_log.append((self.whose_turn.color, row, col))
-        ui.refresh_board_pygame(self)
-
     def ko_rule_break(self, piece: BoardNode) -> bool:  # no superko, but if it becomes a problem...
         '''Checks if placing a piece breaks the ko rule.'''
-        if self.self_death_rule(piece, self.whose_turn) > 0:
+        if self_death_rule(self, piece, self.whose_turn) > 0:
             return False
         if piece in self.killed_last_turn:
             return True
         return False
-
-    def check_neighbors(self, piece) -> List[Tuple[int, int]]:
-        '''Takes in a boardNode, returns a list of tuples of coordinates'''
-        neighbors = [(piece.row - 1, piece.col), (piece.row + 1, piece.col),
-                     (piece.row, piece.col - 1), (piece.row, piece.col + 1)]
-        valid_neighbors: List[Tuple[int, int]] = []
-        for coordinate in neighbors:
-            if 0 <= coordinate[0] < self.board_size and 0 <= coordinate[1] < self.board_size:
-                valid_neighbors.append(coordinate)
-        return valid_neighbors
-
-    def self_death_rule(self, piece: BoardNode, which_player: Player, visited: Optional[Set[BoardNode]] = None) -> int:
-        '''Uses recursive BFS to find liberties and connected pieces of the same type, returns the number of liberties'''
-        if visited is None:
-            visited: Set[BoardNode] = set()
-        visited.add(piece)
-        neighboring_piece: Set[BoardNode] = piece.connections
-        liberties: int = 0
-        for neighbor in neighboring_piece:
-            if neighbor.stone_here_color == cf.unicode_none and neighbor not in visited:
-                liberties += 1
-            elif neighbor.stone_here_color != which_player.unicode:
-                pass
-            elif neighbor not in visited:
-                liberties += self.self_death_rule(neighbor, which_player, visited)
-        self.visit_kill = visited
-        return liberties
-
-    def remove_stones(self) -> None:
-        '''Removes stones marked for removal.'''
-        self.killed_last_turn.clear()
-        for position in self.visit_kill:
-            self.killed_last_turn.add(position)
-            position.stone_here_color = cf.unicode_none
 
     def kill_stones(self, piece: BoardNode) -> bool:  # needs to return true if it does kill stones
         '''
@@ -380,12 +351,40 @@ class GoBoard():
         truth_value: bool = False
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == self.not_whose_turn.unicode:
-                if (self.self_death_rule(neighbor, self.not_whose_turn) == 0):
-                    self.remove_stones()
+                if (self_death_rule(self, neighbor, self.not_whose_turn) == 0):
+                    remove_stones(self)
                     truth_value = True
         if truth_value is False:
             piece.stone_here_color = cf.unicode_none
         return truth_value
+
+
+@staticmethod
+def self_death_rule(self, piece: BoardNode, which_player: Player, visited: Optional[Set[BoardNode]] = None) -> int:
+    '''Uses recursive BFS to find liberties and connected pieces of the same type, returns the number of liberties'''
+    if visited is None:
+        visited: Set[BoardNode] = set()
+    visited.add(piece)
+    neighboring_piece: Set[BoardNode] = piece.connections
+    liberties: int = 0
+    for neighbor in neighboring_piece:
+        if neighbor.stone_here_color == cf.unicode_none and neighbor not in visited:
+            liberties += 1
+        elif neighbor.stone_here_color != which_player.unicode:
+            pass
+        elif neighbor not in visited:
+            liberties += self_death_rule(self, neighbor, which_player, visited)
+    self.visit_kill = visited
+    return liberties
+
+
+@staticmethod
+def remove_stones(self) -> None:
+    '''Removes stones marked for removal.'''
+    self.killed_last_turn.clear()
+    for position in self.visit_kill:
+        self.killed_last_turn.add(position)
+        position.stone_here_color = cf.unicode_none
 
 
 @staticmethod
@@ -402,11 +401,11 @@ def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
 
 
 @staticmethod
-def fills_eye(self, piece: BoardNode) -> bool:
+def fills_eye(self, piece: BoardNode, whose_turn_uni, not_whose_uni) -> bool:
     '''Check if placing a stone in the given position would fill an eye.'''
     # False means it will not fill an eye, so it can place there
     for neighbor in piece.connections:
-        if neighbor.stone_here_color != self.whose_turn.unicode:
+        if neighbor.stone_here_color != whose_turn_uni:
             return False
     piece_diagonals = diagonals_setup(self, piece)
     counter = 0
@@ -418,7 +417,7 @@ def fills_eye(self, piece: BoardNode) -> bool:
             # This next thing checks to see if that diagonal is also a eye (dual eye setup) plus more
             surrounded_properly = True
             for neighbor in item.connections:
-                if neighbor.stone_here_color != self.whose_turn.unicode:
+                if neighbor.stone_here_color != whose_turn_uni:
                     # This doesn't fully work safely (sometimes fills eyes),
                     # but i think a NN will eventually figure out what is a dumb move
                     surrounded_properly = False
@@ -429,7 +428,7 @@ def fills_eye(self, piece: BoardNode) -> bool:
                 temp_counter = 0
                 # This next thing checks to see if that diagonal is also a eye (dual eye setup)
                 for second_item in item_diagonals:
-                    if second_item.stone_here_color != self.whose_turn.unicode:
+                    if second_item.stone_here_color != whose_turn_uni:
                         temp_counter += 1
                 if temp_counter < 2:
                     dual_eye_check = True
@@ -437,7 +436,7 @@ def fills_eye(self, piece: BoardNode) -> bool:
                     counter += 1
                     # This might be bad/not correct... But maybe a NN will be able to figure out not acting dumb
             # I might need to eventually add in a check regarding honeycomb shapes, if it doesn't work properly...
-        elif item.stone_here_color == self.not_whose_turn.unicode:
+        elif item.stone_here_color == not_whose_uni:
             counter += 1
 
     if counter > 1:
@@ -464,14 +463,14 @@ def play_piece_bot(self, row: int, col: int) -> bool:
     elif (self.turn_num > 2 and self.ko_rule_break(piece) is True):
         return False
     elif (self.kill_stones(piece) is True):
-        self.piece_placement(piece, row, col)
+        piece_placement(self, piece, row, col)
         return True
-    elif (self.self_death_rule(piece, self.whose_turn) == 0):
+    elif (self_death_rule(self, piece, self.whose_turn) == 0):
         return False
-    elif fills_eye(self, piece):
+    elif fills_eye(self, piece, self.whose_turn.unicode, self.not_whose_turn.unicode):
         return False
     else:
-        self.piece_placement(piece, row, col)
+        piece_placement(self, piece, row, col)
         self.killed_last_turn.clear()
         return True
 
@@ -495,3 +494,11 @@ def play_turn_bot_helper(self, truth_value, val):
         if truth_value:
             self.times_passed = 0
     return truth_value
+
+
+@staticmethod
+def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
+    '''Places a piece on the board and updates game state.'''
+    piece.stone_here_color = self.whose_turn.unicode
+    self.turn_num += 1
+    self.position_played_log.append((self.whose_turn.color, row, col))

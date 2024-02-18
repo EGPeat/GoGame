@@ -1,40 +1,28 @@
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, call
 import sys
-import pytest
 sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import botnormalgo as bot
 import config as cf
 from saving_loading import load_pkl
 import mcst as mcst
 import goclasses as go
 import scoringboard as sb
+import random
 
 
 class TestClassPyTestMCST:
 
-    @pytest.fixture
-    def mock_window(self):
-        with patch('PySimpleGUI.Window', autospec=True) as mock:
-            yield mock.return_value
-
-    def test_read_window(self, mock_window):
-        instance_under_test = bot.GoBoard()
-        instance_under_test.window = mock_window
-        mock_window.read.return_value = ("button_click", {"input_field": "user_input"})
-        event, values = instance_under_test.read_window()
-        assert event == "button_click"
-        assert values == {"input_field": "user_input"}
-        mock_window.read.assert_called_once()
-
-    def test_play_turn_bot(self):
-        the_board: sb.ScoringBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/scoreboardsaved.pkl")
-        the_board.__class__ = sb.ScoringBoard
-        the_board.ai_training_info = []
-        the_board.ai_output_info = []
-        the_board.make_turn_info()
-
-
+    def setup_board(self, times=100):
+        the_board: go.GoBoard = load_pkl(
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+        test_sb = sb.ScoringBoard(the_board)
+        test_sb.dead_stones_make_strings()
+        test_sb.dead_stones_make_mixed()
+        test_sb.remove_safe_strings()
+        # White starts
+        random.seed(13092000)
+        test_mcst = mcst.MCST(test_sb.board, test_sb.outer_string_black[0], test_sb.mixed_string_for_black[0],
+                              times, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
+        return the_board, test_sb, test_mcst
 
     def test_init_collection(self):
         the_board: go.GoBoard = load_pkl(
@@ -45,22 +33,14 @@ class TestClassPyTestMCST:
         test_sb.remove_safe_strings()
         MCST_collection = mcst.CollectionOfMCST(test_sb.board, test_sb.outer_string_black, test_sb.mixed_string_for_black,
                                                 test_sb.outer_string_white, test_sb.mixed_string_for_white,
-                                                5000, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
+                                                100, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
         print(len(MCST_collection.black_MCSTS))
         assert len(MCST_collection.black_MCSTS) == len(MCST_collection.black_MCSTS_tuple_list)
         assert len(MCST_collection.white_MCSTS) == len(MCST_collection.white_MCSTS_tuple_list)
 
     def test_init_mcst(self):
-        the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+        the_board, test_sb, test_mcst = self.setup_board()
         board_string = the_board.make_board_string()
-        test_sb = sb.ScoringBoard(the_board)
-        test_sb.dead_stones_make_strings()
-        test_sb.dead_stones_make_mixed()
-        test_sb.remove_safe_strings()
-        test_mcst = mcst.MCST(test_sb.board, test_sb.outer_string_black[0], test_sb.mixed_string_for_black[0],
-                              5000, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
-        test_mcst.print_board()
         mcst_list_string = test_mcst.make_board_string()
         mcst_lstring = ''.join(mcst_list_string)
         assert str(test_sb.outer_string_black[0]) == str(test_mcst.outer)
@@ -85,14 +65,7 @@ class TestClassPyTestMCST:
 
     def test_print_board(self):
         from goclasses import BoardNode
-        the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
-        test_sb = sb.ScoringBoard(the_board)
-        test_sb.dead_stones_make_strings()
-        test_sb.dead_stones_make_mixed()
-        test_sb.remove_safe_strings()
-        test_mcst = mcst.MCST(test_sb.board, test_sb.outer_string_black[0], test_sb.mixed_string_for_black[0],
-                              5000, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
+        the_board, _, test_mcst = self.setup_board()
         sample_board = [
             [BoardNode(0, 0), BoardNode(1, 0), BoardNode(2, 0)],
             [BoardNode(1, 0), BoardNode(1, 1), BoardNode(2, 1)],
@@ -117,8 +90,105 @@ class TestClassPyTestMCST:
         ]
         mock_print.assert_has_calls(expected_output)
 
+    def test_playing_turn(self):
+        _, test_sb, test_mcst = self.setup_board()
+        spot_list = [(0, 6), (0, 7), (0, 8), (1, 8), (2, 7), (2, 8), (3, 8)]
+        outcome_list = [True, False, False, False, True, False, True]
+        for spot, outcome in zip(spot_list, outcome_list):
+            board_node = test_mcst.board[spot[0]][spot[1]]
+            output = test_mcst.test_piece_placement(board_node, test_mcst.root, False, False)
+            assert output is outcome
 
-    # Can easily do some tests for the kill_stones, fills_eyes, and other functions already tested elsewhere
+    def test_generate_moves_children(self):
+        the_board, test_sb, test_mcst = self.setup_board()
+        node = test_mcst.root
+        assert not node.children
+        if not node.children:
+            test_mcst.load_board_string(node)
+            legal_moves = test_mcst.generate_moves(node)
+            for move in legal_moves:
+                test_mcst.generate_child(move, node, 0)
+        assert len(node.children) == 4
+        for child in node.children:
+            assert child.whose_turn == node.not_whose_turn
 
-#obj = TestClassPyTestMCST()
-#obj.test_play_turn_bot()
+    def test_select(self):
+        _, test_sb, test_mcst = self.setup_board()
+        test_mcst.select(test_mcst.root, 0)
+        chosen_one_pass = test_mcst.select(test_mcst.root, 1)
+        assert chosen_one_pass in test_mcst.root.children
+        assert len(chosen_one_pass.children) == 4
+        for child in chosen_one_pass.children:
+            assert child.whose_turn == chosen_one_pass.not_whose_turn
+        chosen_two = test_mcst.select(test_mcst.root, 2)
+        assert chosen_two in chosen_one_pass.children
+        assert len(chosen_two.children) == 3
+        for child in chosen_two.children:
+            assert child.whose_turn == chosen_two.not_whose_turn
+
+    def test_expand(self):
+        _, test_sb, test_mcst = self.setup_board()
+        chose_root = test_mcst.select(test_mcst.root, 0)
+        test_mcst.expand(chose_root, 0)
+        chose_child = test_mcst.select(test_mcst.root, 1)
+        test_mcst.expand(chose_child, 1)
+        for child in test_mcst.root.children:
+            if child.children:
+                assert child == test_mcst.root.move_choices['Pass']
+                assert len(child.children) == 4
+
+    def test_simulate_full(self):
+        _, test_sb, test_mcst = self.setup_board()
+        node = test_mcst.select(test_mcst.root, 0)
+        test_mcst.expand(node, 0)
+        random.seed(777)
+        result: int = test_mcst.simulate(node)
+        assert result == 0
+
+    def test_eye_alive(self):
+        _, test_sb, test_mcst = self.setup_board()
+        for item in test_sb.mixed_string_for_white:
+            if len(item.member_set) == 17:
+                mixed_str = item
+        test_mcst = mcst.MCST(test_sb.board, test_sb.outer_string_white[0], mixed_str,
+                              100, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
+        node = test_mcst.select(test_mcst.root, 0)
+        test_mcst.expand(node, 0)
+        test_mcst.board[1][8].stone_here_color = cf.unicode_black
+        life_check = test_mcst.check_inner_life()
+        assert life_check is True
+
+    def test_run_mcst(self):
+        random.seed(777)
+        _, test_sb, test_mcst = self.setup_board(500)
+        winner = test_mcst.run_mcst()
+        assert winner == 0
+
+    def test_total_setup(self):
+        the_board: go.GoBoard = load_pkl(
+            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+        test_sb = sb.ScoringBoard(the_board)
+        test_sb.dead_stones_make_strings()
+        test_sb.dead_stones_make_mixed()
+        test_sb.remove_safe_strings()
+        MCST_collection = mcst.CollectionOfMCST(test_sb.board, test_sb.outer_string_black, test_sb.mixed_string_for_black,
+                                                test_sb.outer_string_white, test_sb.mixed_string_for_white,
+                                                100, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
+        random.seed(777)
+        MCST_collection.running_tests()
+        black_total = 0
+        white_total = 0
+        for item in MCST_collection.black_MCSTS_final:
+            if item[3] is True:
+                black_total += 1
+        for item in MCST_collection.white_MCSTS_final:
+            if item[3] is True:
+                white_total += 1
+        assert white_total == 3
+        assert black_total == 0
+
+# ko rule break needs more tests for its specific conditions
+# need to make tests to test that cache works properly (check all of the caching functions)
+# need to make tests to make sure right number of children are made
+# need to do tests to make sure backprop works properly
+# make a test to make sure all children maintain the same whoseplaying

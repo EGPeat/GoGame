@@ -216,7 +216,7 @@ class ScoringBoard(GoBoard):
         Helper function for find_neighbor_get_string.
         Determines if the neighbor's string should be included in the result.
         '''
-        piece_flood = self.flood_fill_two_colors(piece, second_color)
+        piece_flood = flood_fill_two_colors(piece, second_color)
         piece_string = BoardString("Empty", piece_flood[0])
         for item in string_choice:
             if (
@@ -262,7 +262,7 @@ class ScoringBoard(GoBoard):
         while connections_set:
             piece = connections_set.pop()
             piece_color = piece.stone_here_color
-            piece_string = self.flood_fill(piece)
+            piece_string = flood_fill(piece)
             piece_string_obj = BoardString(color, piece_string[0])
             self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.unicode_none, self.empty_strings)
             self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.unicode_white, self.white_strings)
@@ -411,7 +411,7 @@ class ScoringBoard(GoBoard):
             if final:
                 item2 = item.pop()
                 item.add(item2)
-                sets = self.flood_fill(item2)
+                sets = flood_fill(item2)
                 self.assigns_territory(sets)
 
     def making_go_board_strings_helper(self, piece: BoardNode,
@@ -457,40 +457,6 @@ class ScoringBoard(GoBoard):
             self.player_white.territory += len(pieces_string) * 0.5
         return
 
-    @staticmethod
-    def flood_fill(piece: BoardNode,
-                   connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
-            None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-        '''Perform flood fill to identify connected pieces.'''
-        if connected_pieces is None:
-            connected_pieces = (set(), set())  # (Same color nodes, seen already nodes)
-        connected_pieces[0].add(piece)
-        neighboring_pieces = piece.connections
-        for neighbor in neighboring_pieces:
-            if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
-                ScoringBoard.flood_fill(neighbor, connected_pieces)  # Might be issue
-            elif neighbor not in connected_pieces[1]:
-                connected_pieces[1].add(neighbor)
-        return connected_pieces
-
-    def flood_fill_two_colors(self, piece: BoardNode, second_color: Tuple[int, int, int],
-                              connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
-                                  None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-        '''Perform flood fill to identify connected pieces for two colors.'''
-        if connected_pieces is None:
-            connected_pieces = (set(), set())
-        connected_pieces[0].add(piece)
-        neighboring_pieces = piece.connections
-        for neighbor in neighboring_pieces:  # piece.stone_here_color might be for below
-            if neighbor.stone_here_color == cf.unicode_none and neighbor not in connected_pieces[0]:
-                self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
-            elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
-                self.flood_fill_two_colors(neighbor, second_color, connected_pieces)
-            else:
-                connected_pieces[1].add(neighbor)
-                pass
-        return connected_pieces
-
     def flood_fill_with_outer(self, piece: BoardNode, outer_pieces: BoardString,
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
@@ -508,3 +474,39 @@ class ScoringBoard(GoBoard):
                 connected_pieces[1].add(neighbor)
                 pass
         return connected_pieces
+
+
+@staticmethod
+def flood_fill(piece: BoardNode, connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
+        None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+    '''Perform flood fill to identify connected pieces.'''
+    if connected_pieces is None:
+        connected_pieces = (set(), set())  # (Same color nodes, seen already nodes)
+    connected_pieces[0].add(piece)
+    neighboring_pieces = piece.connections
+    for neighbor in neighboring_pieces:
+        if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
+            flood_fill(neighbor, connected_pieces)  # Might be issue
+        elif neighbor not in connected_pieces[1]:
+            connected_pieces[1].add(neighbor)
+    return connected_pieces
+
+
+@staticmethod
+def flood_fill_two_colors(piece: BoardNode, second_color: Tuple[int, int, int],
+                          connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
+        None, Tuple[Set[BoardNode], Set[BoardNode]]]:
+    '''Perform flood fill to identify connected pieces for two colors.'''
+    if connected_pieces is None:
+        connected_pieces = (set(), set())
+    connected_pieces[0].add(piece)
+    neighboring_pieces = piece.connections
+    for neighbor in neighboring_pieces:  # piece.stone_here_color might be for below
+        if neighbor.stone_here_color == cf.unicode_none and neighbor not in connected_pieces[0]:
+            flood_fill_two_colors(neighbor, second_color, connected_pieces)
+        elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
+            flood_fill_two_colors(neighbor, second_color, connected_pieces)
+        else:
+            connected_pieces[1].add(neighbor)
+            pass
+    return connected_pieces

@@ -3,6 +3,7 @@ sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import config as cf
 from saving_loading import load_pkl
 import scoringboard as sb
+from scoringboard import flood_fill, flood_fill_two_colors
 import goclasses as go
 
 
@@ -83,17 +84,17 @@ class TestClassPyTestScoringBoard:
              and a xmax and xmin of (8, 7), and a ymax and ymin of (8, 8)"
         string_weird = "this is a board string of color Mixed and with len of 3 and values [(7, 8), (8, 7), (8, 8)]\
              and a xmax and xmin of (8, 7), and a ymax and ymin of (8, 7)"
-        piece_flood = test_sb.flood_fill_two_colors(piece, cf.unicode_none)
+        piece_flood = flood_fill_two_colors(piece, cf.unicode_none)
         piece_string = go.BoardString("Mixed", piece_flood[0])
         assert str(piece_string) == string_bad
-        piece_flood = test_sb.flood_fill_two_colors(piece, cf.unicode_black)
+        piece_flood = flood_fill_two_colors(piece, cf.unicode_black)
         piece_string = go.BoardString("Mixed", piece_flood[0])
         assert str(piece_string) == string_good
         piece = test_sb.board[8][7]
-        piece_flood = test_sb.flood_fill_two_colors(piece, cf.unicode_black)
+        piece_flood = flood_fill_two_colors(piece, cf.unicode_black)
         piece_string = go.BoardString("Mixed", piece_flood[0])
         assert str(piece_string) == string_good
-        piece_flood = test_sb.flood_fill_two_colors(piece, cf.unicode_none)
+        piece_flood = flood_fill_two_colors(piece, cf.unicode_none)
         piece_string = go.BoardString("Mixed", piece_flood[0])
         assert str(piece_string) == string_weird
         # The string_weird is due to if neighbor.stone_here_color == cf.unicode_none
@@ -108,7 +109,7 @@ class TestClassPyTestScoringBoard:
         string_good = "this is a board string of color White and with len of 7 and values [(6, 6), (7, 6), (7, 7), (7, 8), (8, 6), (8, 7), (8, 8)]\
              and a xmax and xmin of (8, 6), and a ymax and ymin of (8, 6)"
 
-        piece_flood = test_sb.flood_fill(piece)
+        piece_flood = flood_fill(piece)
         piece_string = go.BoardString("White", piece_flood[0])
         assert str(piece_string) == string_good
 
@@ -120,7 +121,7 @@ class TestClassPyTestScoringBoard:
         string_good = "this is a board string of color White and with len of 2 and values [(1, 8), (2, 8)]\
              and a xmax and xmin of (2, 1), and a ymax and ymin of (8, 8)"
 
-        piece_flood = test_sb.flood_fill(piece)
+        piece_flood = flood_fill(piece)
         piece_string = go.BoardString("White", piece_flood[0])
         assert str(piece_string) == string_good
 
@@ -130,7 +131,7 @@ class TestClassPyTestScoringBoard:
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[8][8]
         piece_outer = test_sb.board[8][6]
-        piece_flood_outer = test_sb.flood_fill(piece_outer)
+        piece_flood_outer = flood_fill(piece_outer)
         piece_outer_string = go.BoardString("Outer", piece_flood_outer[0])
         string_good = "this is a board string of color White and with len of 4 and values [(7, 7), (7, 8), (8, 7), (8, 8)]\
              and a xmax and xmin of (8, 7), and a ymax and ymin of (8, 7)"

@@ -2,7 +2,6 @@ import game_initialization as start
 import uifunctions as ui
 import PySimpleGUI as sg
 import pygametest as pygt
-# from test_cases.testinggoclasses import test_function
 # To do:
 # Typehint more/better
 # x and y also mixed up in the nn mcst
@@ -10,6 +9,8 @@ import pygametest as pygt
 # It will play the exact same game everytime...
 # move programming files to a new folder
 # Add readme and better documentation
+# extend functionality after version 1
+# add some more tests over time
 
 
 def play_game_main():

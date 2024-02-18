@@ -22,7 +22,6 @@ class NNMCSTNode(MCSTNode):
         self.parent: Union[None, Type['NNMCSTNode']] = parent
         self.children: List[NNMCSTNode] = []
         self.move_choices: Dict[str, BoardNode] = dict()
-        self.wins: int = 0  # Deprecate
 
         self.prior_probability: float = prob
         self.number_times_choosen: int = 0
@@ -121,9 +120,9 @@ class NNMCST(MCST):
             if spawn_value >= best_child_value:
                 best_child = spawn
                 best_child_value = spawn_value
-        location = (best_child.choice_info[0][1], best_child.choice_info[0][0])  # potential issue again....
+        location = (best_child.choice_info[0][0], best_child.choice_info[0][1]) #!
         if location[0] != "a":
-            location = best_child.choice_info[0][1] * 9 + best_child.choice_info[0][0]
+            location = best_child.choice_info[0][0] * 9 + best_child.choice_info[0][1] #!
         else:
             location = 81  # Hardcoded values
         output_chances = self.get_choice_info()
@@ -133,13 +132,13 @@ class NNMCST(MCST):
         chance_list: List[float] = [0] * 82
         for spawn in self.root.children:
             if spawn.choice_info[0][1] != 'a':
-                location = spawn.choice_info[0][1] * 9 + spawn.choice_info[0][0]
+                location = spawn.choice_info[0][0] * 9 + spawn.choice_info[0][1] #!
             else:
                 location = 81  # Hardcoded value
             chance_list[location] = spawn.number_times_choosen / (self.iteration_number)
         return chance_list
 
-    def select(self, node: NNMCSTNode, idx: int) -> NNMCSTNode:
+    def select(self, node: NNMCSTNode, idx: int) -> NNMCSTNode: # Refactor eventually
         '''Selects a node for expansion, as well as generates child nodes.'''
         if self.is_winning_state(node):
             return node
@@ -182,12 +181,11 @@ class NNMCST(MCST):
         value_output, policy_output = self.child_nn_info(node)
         legal_move = False
         selected_move = None
-        policy_copy = copy.copy(policy_output)  # overkill? look into np arrays for mutability
+        policy_copy = copy.copy(policy_output)
         while not legal_move:
             move = argmax(policy_copy)
             if move != 81:
-                # policy_copy[0][move] = 0  # Could break af
-                policy_copy[0][move] = -2  # Could break af
+                policy_copy[0][move] = -2
                 board_node = self.board[move // 9][move % 9]
                 legal_move = self.test_piece_placement(board_node, node)
                 selected_move = board_node
@@ -245,7 +243,7 @@ class NNMCST(MCST):
             temp_train_info.append(board_list)
             child_node = NNMCSTNode((node.whose_turn, node.not_whose_turn), temp_train_info, prob,
                                     board_list, node.child_killed_last,
-                                    ((location_tuple[1], location_tuple[0]), idx, node.not_whose_turn.color), parent=node)
+                                    ((location_tuple[0], location_tuple[1]), idx, node.not_whose_turn.color), parent=node) #!
             self.reload_board_string(original_board)
             node.children.append(child_node)
             node.move_choices[f"{location_tuple}"] = child_node
