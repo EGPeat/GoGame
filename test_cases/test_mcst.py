@@ -18,7 +18,6 @@ class TestClassPyTestMCST:
         test_sb.dead_stones_make_strings()
         test_sb.dead_stones_make_mixed()
         test_sb.remove_safe_strings()
-        # White starts
         random.seed(13092000)
         test_mcst = mcst.MCST(test_sb.board, test_sb.outer_string_black[0], test_sb.mixed_string_for_black[0],
                               times, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
@@ -34,7 +33,6 @@ class TestClassPyTestMCST:
         MCST_collection = mcst.CollectionOfMCST(test_sb.board, test_sb.outer_string_black, test_sb.mixed_string_for_black,
                                                 test_sb.outer_string_white, test_sb.mixed_string_for_white,
                                                 100, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
-        print(len(MCST_collection.black_MCSTS))
         assert len(MCST_collection.black_MCSTS) == len(MCST_collection.black_MCSTS_tuple_list)
         assert len(MCST_collection.white_MCSTS) == len(MCST_collection.white_MCSTS_tuple_list)
 
@@ -56,7 +54,7 @@ class TestClassPyTestMCST:
                                5000, 30, (test_sb.not_whose_turn, test_sb.whose_turn))
         assert test_mcst2.root.player_black == test_mcst2.root.whose_turn
         mcst_list_string2 = test_mcst2.make_board_string()
-        test_mcst2.board[0][0].stone_here_color = cf.unicode_black
+        test_mcst2.board[0][0].stone_here_color = cf.rgb_black
         mcst_list_string3 = test_mcst2.make_board_string()
         assert mcst_list_string2 != mcst_list_string3
         test_mcst2.load_board_string(test_mcst2.root)
@@ -73,11 +71,11 @@ class TestClassPyTestMCST:
         ]
         color_setup = [(0, 0), (0, 2), (2, 0), (2, 1), (2, 2)]
         for item in color_setup:
-            sample_board[item[0]][item[1]].stone_here_color = cf.unicode_black
+            sample_board[item[0]][item[1]].stone_here_color = cf.rgb_black
         color_setup_two = [(1, 0), (1, 1), (1, 2)]
         for item in color_setup_two:
-            sample_board[item[0]][item[1]].stone_here_color = cf.unicode_white
-        sample_board[0][1].stone_here_color = cf.unicode_none
+            sample_board[item[0]][item[1]].stone_here_color = cf.rgb_white
+        sample_board[0][1].stone_here_color = cf.rgb_grey
 
         test_mcst.board = sample_board
         with patch('builtins.print') as mock_print:
@@ -154,7 +152,7 @@ class TestClassPyTestMCST:
                               100, 30, (test_sb.whose_turn, test_sb.not_whose_turn))
         node = test_mcst.select(test_mcst.root, 0)
         test_mcst.expand(node, 0)
-        test_mcst.board[1][8].stone_here_color = cf.unicode_black
+        test_mcst.board[1][8].stone_here_color = cf.rgb_black
         life_check = test_mcst.check_inner_life()
         assert life_check is True
 
@@ -186,9 +184,3 @@ class TestClassPyTestMCST:
                 white_total += 1
         assert white_total == 3
         assert black_total == 0
-
-# ko rule break needs more tests for its specific conditions
-# need to make tests to test that cache works properly (check all of the caching functions)
-# need to make tests to make sure right number of children are made
-# need to do tests to make sure backprop works properly
-# make a test to make sure all children maintain the same whoseplaying

@@ -17,7 +17,7 @@ class TestClassPyTestNeuralNetBoard:
     @patch("uifunctions.refresh_board_pygame")
     @patch("uifunctions.def_popup")
     @patch('builtins.print')
-    def test_play_turn_bot(self, fake_print, mock_popup, mock_refresh, mock_update):
+    def test_print_board_NNB(self, fake_print, mock_popup, mock_refresh, mock_update):
         the_board: nn.NNBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = nn.NNBoard

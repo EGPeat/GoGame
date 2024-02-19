@@ -11,6 +11,7 @@ class TestClassPyTestSavingLoading:
     @pytest.mark.parametrize("savename", [("forunittesting2"), ((None), ("forunittesting2"))])
     @patch('pickle.dump')
     def test_save_pickle(self, mock_pickle, savename):
+        from os import remove, path
         board_mock = Mock()
         initial_window_mock_window = board_mock.window = Mock()
         initial__board_mock_screen = board_mock.screen = Mock()
@@ -18,7 +19,10 @@ class TestClassPyTestSavingLoading:
 
         with patch('PySimpleGUI.popup_get_text', side_effect=savename):
             save.save_pickle(board_mock)
-
+        dir = save.move_to_pkl_directory()
+        full_path = path.join(dir, 'f.pkl')
+        if path.isfile(full_path):
+            remove(full_path)
         assert board_mock.window == initial_window_mock_window
         assert board_mock.screen == initial__board_mock_screen
         assert board_mock.backup_board == initial_board_mock_backup_board

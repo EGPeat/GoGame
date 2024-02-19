@@ -68,14 +68,14 @@ class TestClassPyTestBotNormalGo:
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.__class__ = bot.BotBoard
-        the_board.board[2][2].stone_here_color = cf.unicode_black
+        the_board.board[2][2].stone_here_color = cf.rgb_black
         successful = play_piece_bot(the_board, location[0], location[1])
 
         if location == (0, 0):
             assert successful is not True
         if location == (0, 1):
             assert successful is True
-            assert the_board.board[0][0].stone_here_color == cf.unicode_none
+            assert the_board.board[0][0].stone_here_color == cf.rgb_grey
         if location == (7, 5):
             assert successful is not True
         if location == (8, 8):
@@ -93,8 +93,8 @@ class TestClassPyTestBotNormalGo:
         the_board.__class__ = bot.BotBoard
         successful = play_piece_bot(the_board, location[0], location[1])
 
-        assert the_board.board[6][0].stone_here_color == cf.unicode_black
-        assert the_board.board[6][2].stone_here_color == cf.unicode_black
+        assert the_board.board[6][0].stone_here_color == cf.rgb_black
+        assert the_board.board[6][2].stone_here_color == cf.rgb_black
         assert successful is False
 
     @pytest.mark.parametrize("location, result", [

@@ -1,29 +1,17 @@
 import game_initialization as start
 import uifunctions as ui
 import PySimpleGUI as sg
-import pygametest as pygt
-# To do:
-# Typehint more/better
-# x and y also mixed up in the nn mcst
-# Make it so the MCST/NN won't pass until later on?
-# move programming files to a new folder
-# Add readme and better documentation
-# extend functionality after version 1
-# add some more tests over time
-# add in way for ai to update its winning model if a new model beats the old one
-# More refactoring
 
 
 def play_game_main():
     '''
-    This function initiates a pySimpleGui window, allowing the user to choose from various game options.
-    The user can load from file, start a custom new game, start a custom default game, play a game against AI,...
-    Host a multiplayer game, connect to a multiplayer game, or play a hex version of go.
+    This function initiates a PySimpleGui window, allowing the user to choose from various game options.
+    The user can load from file, start a custom new game, start a custom default game, play a game against AI,
+    Watch AIs play themselves, or train the AIs.
     It then calls the appropriate functions.
     '''
     window = ui.setup_menu()
 
-    # All of the go.initializing_game stuff is kinda messed up in python 3.9, but good in 3.10
     while True:
         event, _ = window.read()
 
@@ -46,18 +34,14 @@ def play_game_main():
             import cProfile
             import pstats
             with cProfile.Profile() as pr:
-                training_cycle()
+                training_cycle(5)
                 stats = pstats.Stats(pr)
                 stats.sort_stats(pstats.SortKey.TIME)
                 stats.dump_stats(filename="5000x30testingv3.prof")
         elif event == "AI Training":
             from neuralnet import loading_file_for_training
             window.close()
-            loading_file_for_training()
-        elif event == "New Hex Game":
-            window.close()
-            pygt.main()
-
+            loading_file_for_training(epochs=10, size_of_batch=32)
         elif event in (sg.WIN_CLOSED, 'Exit Game'):
             break
 

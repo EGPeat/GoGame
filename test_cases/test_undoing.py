@@ -27,17 +27,15 @@ class TestClassPyTestUndoing:
     def test_undo_turn(self, mock_refresh, mock_special):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/unittest_undo_kill_log.pkl")
-        print(the_board.position_played_log)
-        print(the_board.turn_num)
-        assert the_board.board[1][1].stone_here_color == cf.unicode_white
+        assert the_board.board[1][1].stone_here_color == cf.rgb_white
         assert the_board.whose_turn == the_board.player_black
         assert the_board.turn_num == 4
         undo.undo_checker(the_board)
-        assert the_board.board[1][1].stone_here_color == cf.unicode_none
+        assert the_board.board[1][1].stone_here_color == cf.rgb_grey
         assert the_board.whose_turn == the_board.player_white
         assert the_board.turn_num == 3
         undo.undo_checker(the_board)
-        assert the_board.board[0][0].stone_here_color == cf.unicode_white
+        assert the_board.board[0][0].stone_here_color == cf.rgb_white
 
     @patch("uifunctions.refresh_board_pygame")
     @patch("undoing.undo_special_cases", return_value=False)
@@ -45,14 +43,11 @@ class TestClassPyTestUndoing:
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/unittest_undo_kill_log.pkl")
         the_board.mode = "Scoring"
-        print(the_board.position_played_log)
-        print(the_board.turn_num)
-        assert the_board.board[1][1].stone_here_color == cf.unicode_white
+        assert the_board.board[1][1].stone_here_color == cf.rgb_white
         assert the_board.whose_turn == the_board.player_black
         assert the_board.turn_num == 4
         undo.undo_checker(the_board)
-        print(the_board.position_played_log)
-        assert the_board.board[1][1].stone_here_color == cf.unicode_white
+        assert the_board.board[1][1].stone_here_color == cf.rgb_white
         assert the_board.whose_turn == the_board.player_white
         assert the_board.turn_num == 3
 

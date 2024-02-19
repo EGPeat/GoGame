@@ -22,22 +22,25 @@ def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
     game_board.play_game(fixes_handicap=handicap_info)
 
 
-def choose_board_type(vs_bot: Optional[bool] = False, *args):
+def choose_board_type(vs_bot: Optional[bool] = False, board_size: int = 9, defaults: bool = True):
     '''
     This function is used in the initialization of the game...
     It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
     Parameters:
-        vs_bot: If True, play against an AI opponent.
+        vs_bot: Bool. If True, play against an AI opponent.
+        board_size: length of one side of the board. Default value of 9.
+        Defaults: Bool. If True, sets default values for players and handicap.
     '''
     if vs_bot:
         from botnormalgo import BotBoard
-        return BotBoard(*args)
+        return BotBoard(board_size, defaults)
     else:
         from goclasses import GoBoard
-        return GoBoard(*args)
+        return GoBoard(board_size, defaults)
 
 
-def initialize_handicap_choice(defaults: Optional[bool]):
+def initialize_handicap_choice(defaults: Optional[bool]) -> bool:
+    'Requests info from player regarding handicap, if defaults is False. Returns a bool.'
     handicap_info = False
     if not defaults:
         if request_handicap_info():
@@ -45,7 +48,8 @@ def initialize_handicap_choice(defaults: Optional[bool]):
     return handicap_info
 
 
-def request_handicap_info() -> str:
+def request_handicap_info() -> bool:
+    "Asks the player if they want a handicap. Returns the sg.popup_yes_no value as a bool."
     info: str = "Click yes if you want to modify the handicap"
     answer = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
     if answer == "Yes":
@@ -56,6 +60,7 @@ def request_handicap_info() -> str:
 
 def initialize_player_choice(board_size: int, defaults: Optional[bool] = True,
                              vs_bot: Optional[bool] = False):
+    "Asks the player if they wish to change their name or komi. Returns a GoBoard or BotBoard."
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:
         modify_player: str = (sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15)))

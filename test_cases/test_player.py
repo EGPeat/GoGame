@@ -11,7 +11,7 @@ class TestClassPyTestPlayer:
     @patch("player.Player.choose_name")
     @patch("player.Player.choose_komi")
     def test_setup_player(self, mock_choose_name, mock_choose_komi):
-        answer = player.Player.setup_player(defaults=False, nme="Temp", clr="Black", uc=cf.unicode_black)
+        answer = player.Player.setup_player(defaults=False, nme="Temp", clr="Black", uc=cf.rgb_black)
         assert isinstance(answer, player.Player)
 
     @pytest.mark.parametrize("typed_texts", [["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]])

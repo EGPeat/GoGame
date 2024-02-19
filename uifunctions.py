@@ -2,11 +2,11 @@ import PySimpleGUI as sg
 import os
 import platform
 import pygame
-import config as cf
 from typing import Tuple, List
+import config as cf
 
 
-def start_game() -> int:  # Refactor?
+def start_game() -> int:
     '''Starts the game, asking for user input regarding the size of the board.'''
     info = "Please click the size you wish to have your Go Board as."
 
@@ -25,7 +25,7 @@ def start_game() -> int:  # Refactor?
         return 19
 
 
-def handicap_person_gui() -> str:  # Refactor?
+def handicap_person_gui() -> str:
     '''Asks for user input regarding which player will get a handicap'''
     info = "Please enter some information regarding a handicap. Which player will get a handicap?"
 
@@ -39,7 +39,7 @@ def handicap_person_gui() -> str:  # Refactor?
     return option
 
 
-def handicap_number_gui(board_size: int) -> int:  # Refactor?
+def handicap_number_gui(board_size: int) -> int:
     '''Asks for user input regarding the handicap size'''
     info = "Please enter some information regarding a handicap. How large is the handicap?"
     deflt = ('Arial Bold', 16)
@@ -75,20 +75,17 @@ def setup_menu():
             justification='center')],
         [sg.Button("Choose File", font=('Arial Bold', 12)),
             sg.Button("New Game From Custom", font=('Arial Bold', 12)),
-            sg.Button("New Game From Default", font=('Arial Bold', 12)),
-            sg.Button("New Hex Game", font=("Arial Bold", 12))],
+            sg.Button("New Game From Default", font=('Arial Bold', 12))],
         [sg.Button("Play Against AI", font=('Arial Bold', 12)),
          sg.Button("AI SelfPlay", font=('Arial Bold', 12)),
          sg.Button("AI Training", font=('Arial Bold', 12)),
-         sg.Cancel("Exit Game", font=('Arial Bold', 12))]]  # need to add options for mp for different board sizes lol
+         sg.Cancel("Exit Game", font=('Arial Bold', 12))]]
     window = sg.Window('Game Screen', layout, size=(700, 700), finalize=True)
     return window
 
 
-def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
+def setup_board_window_pygame(game_board):
     '''Sets up the window for playing the game using PySimpleGUI'''
-    # Many thanks to the following github demo from PySimpleGUI
-    # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
     text = f"It is currently {game_board.whose_turn.color}'s turn. \n"
     text = text + f"Turn Number is {game_board.turn_num}\n\n\n\
     Player 1 Name: {game_board.player_black.name}\nPlayer 1 Color: Black\n\
@@ -122,7 +119,7 @@ def setup_board_window_pygame(game_board):  # hardcoded values. Suboptimal
     game_board.screen = screen
     game_board.window = window
     pygame.display.init()
-    while True:  # For some reason this is required
+    while True:
         _, _ = window.read(timeout=100)
         pygame.display.update()
         break
@@ -151,13 +148,15 @@ def update_scoring(self):
     self.window['Scoring'].update(text)
 
 
-def end_game_popup():
+def scoring_mode_popup():
+    '''Popup that requests the player remove stones they believe are dead.'''
     info = "Please take turns clicking on stones that you believe are dead, and then the program will score.\
         \n Please pass twice once you are finished scoring."
     sg.popup(info, title="Scoring", line_width=200, auto_close=True, auto_close_duration=3)
 
 
-def end_game_popup_two(self):  # Refactor?
+def end_game_popup(self):
+    '''Popup that shows the score at the end of the game.'''
     pb = self.player_black
     pw = self.player_white
     player_black_score = pb.komi + pb.territory + pb.black_set_len
@@ -186,47 +185,6 @@ def def_popup(info, time):
     sg.popup(info, line_width=42, auto_close=True, auto_close_duration=time)
 
 
-def hex_ui_setup():
-    '''Sets up the Hex UI using PySimpleGUI and Pygame integration.'''
-    # Many thanks to the following github demo from PySimpleGUI
-    # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_PyGame_Integration.py
-    text = "It is currently PLACEHOLDER turn. \n"
-    layout_buttons = [
-        [sg.Button("Pass Turn", font=('Arial Bold', 12)),
-         sg.Button("Save Game", font=('Arial Bold', 12)),
-         sg.Button("Undo Turn", font=('Arial Bold', 12)),
-         sg.Button("Quit Program", font=('Arial Bold', 12), key="Res"),
-         sg.Button("Exit To Menu", font=('Arial Bold', 12), key="Exit Game")]
-    ]
-    layout_board = [[sg.Graph((700, 700), (0, 700), (700, 0), key='-GRAPH-', enable_events=True)]]
-    layout_sidebar = [[sg.Multiline(text, font=('Arial Bold', 12), size=10, expand_x=True, expand_y=True,
-                      key='Scoring', justification='center')]]
-    full_layout = [[layout_buttons,
-                    sg.Column(layout_sidebar, expand_x=True, expand_y=True),
-                   sg.VSeparator(),
-                   sg.Column(layout_board)]]
-
-    window = sg.Window('Game Screen', full_layout, size=(900, 700), resizable=True, finalize=True)
-    graph = window['-GRAPH-']
-
-    embed = graph.TKCanvas
-    os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
-    print(platform.system())
-    print(platform.system_alias)
-    if platform.system() == "Linux":
-        os.environ['SDL_VIDEODRIVER'] = "x11"
-    elif platform.system() == "Windows":
-        os.environ['SDL_VIDEODRIVER'] = 'windib'
-        _ = pygame.display.set_mode((700, 700))
-        pygame.display.init()
-        pygame.display.update()
-        while True:
-            _, _ = window.read(timeout=10)
-            pygame.display.update()
-            break
-    return window
-
-
 def draw_gameboard(game_board, screen, gameboard_surface=pygame.surface.Surface((700, 700))):
     '''Draws the gameboard using pygame'''
     workable_area: int = 620
@@ -234,13 +192,14 @@ def draw_gameboard(game_board, screen, gameboard_surface=pygame.surface.Surface(
     circle_radius: float = distance / 3
     game_board.pygame_board_vals = (workable_area, distance, circle_radius)
     gameboard_surface.fill(pygame.Color(200, 162, 200))
-    draw_linez(game_board, distance, gameboard_surface)
+    draw_lines(game_board, distance, gameboard_surface)
     stars_pygame(game_board, gameboard_surface, circle_radius)
     screen.blit(gameboard_surface, (0, 0))
     game_board.backup_board = gameboard_surface
 
 
-def draw_linez(game_board, distance, gameboard_surface):
+def draw_lines(game_board, distance, gameboard_surface):
+    '''Draws lines for adding to the screen.'''
     for xidx in range(game_board.board_size):
         x_val: float = 40 + xidx * distance
         x_val_previous: float = x_val - distance
@@ -254,7 +213,6 @@ def draw_linez(game_board, distance, gameboard_surface):
 
 
 def stars_pygame(self, window, circle_radius: float):
-    # Refactor? Should add other stars...
     '''Draws the stars on the gameboard using pygame'''
     size: int = self.board_size
     lst9: List[Tuple[int, int]] = ((2, 2), (size - 3, 2), (size - 3, size - 3), (2, size - 3))
@@ -284,20 +242,19 @@ def refresh_board_pygame(board) -> None:
     board.screen.blit(board.backup_board, (0, 0))
     for board_row in board.board:
         for item in board_row:
-            # Can do it better using if... in?
-            if item.stone_here_color == cf.unicode_black or item.stone_here_color == cf.unicode_white:  # this is bad, fix
+            if item.stone_here_color == cf.rgb_black or item.stone_here_color == cf.rgb_white:
                 pygame.draw.circle(board.screen, item.stone_here_color,
                                    (item.screen_row, item.screen_col), board.pygame_board_vals[2])
-            elif item.stone_here_color == cf.unicode_diamond_black or item.stone_here_color == cf.unicode_diamond_white:
+            elif item.stone_here_color == cf.rgb_lavender or item.stone_here_color == cf.rgb_peach:
                 pygame.draw.circle(board.screen, item.stone_here_color,
                                    (item.screen_row, item.screen_col), board.pygame_board_vals[2])
-            elif item.stone_here_color == cf.unicode_triangle_black or item.stone_here_color == cf.unicode_triangle_white:
+            elif item.stone_here_color == cf.rgb_green or item.stone_here_color == cf.rgb_red:
                 pygame.draw.circle(board.screen, item.stone_here_color,
                                    (item.screen_row, item.screen_col), board.pygame_board_vals[2])
     pygame.display.update()
 
 
-def close_window(board):  # Refactor? Why does linux not delete board.window
+def close_window(board):
     '''Closes the pygame display and PySimpleGui window'''
     import platform
     if platform.system() == "Linux":

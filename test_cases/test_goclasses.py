@@ -48,8 +48,8 @@ class TestClassPyTestGoClasses:
 
     def test_switch_player_obj(self):
         mock_goboard = MagicMock()
-        mock_goboard.player_black = Player.setup_player(True, "Player One", "Black", go.cf.unicode_black)
-        mock_goboard.player_white = Player.setup_player(True, "Player Two", "White", go.cf.unicode_white)
+        mock_goboard.player_black = Player.setup_player(True, "Player One", "Black", go.cf.rgb_black)
+        mock_goboard.player_white = Player.setup_player(True, "Player Two", "White", go.cf.rgb_white)
         mock_goboard.whose_turn = mock_goboard.player_black
         mock_goboard.not_whose_turn = mock_goboard.player_white
         go.GoBoard.switch_player(mock_goboard)
@@ -58,18 +58,17 @@ class TestClassPyTestGoClasses:
 
     def test_make_board_string_correct(self):
         go_board = go.GoBoard(9, True)
-        go_board.board[0][1].stone_here_color = cf.unicode_black
-        go_board.board[0][2].stone_here_color = cf.unicode_white
+        go_board.board[0][1].stone_here_color = cf.rgb_black
+        go_board.board[0][2].stone_here_color = cf.rgb_white
         answer = go_board.make_board_string()
-        print(answer)
         assert answer == '1012000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
     def test_print_board_node_incorrect(self):
         go_board = go.GoBoard(9, True)
-        go_board.board[0][1].stone_here_color = cf.unicode_black
-        go_board.board[0][3].stone_here_color = cf.unicode_white
-        go_board.board[0][5].stone_here_color = cf.unicode_black
-        go_board.board[0][7].stone_here_color = cf.unicode_white
+        go_board.board[0][1].stone_here_color = cf.rgb_black
+        go_board.board[0][3].stone_here_color = cf.rgb_white
+        go_board.board[0][5].stone_here_color = cf.rgb_black
+        go_board.board[0][7].stone_here_color = cf.rgb_white
         answer = []
         correct = ["This is a BoardNode with coordinates of (0,0) and a stone of (120, 120, 120)",
                    "This is a BoardNode with coordinates of (0,1) and a stone of (0, 0, 0)",
@@ -104,10 +103,10 @@ class TestClassPyTestGoClasses:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_killing.pkl")
         if who != "White":  # This is to allow black to capture/kill
             the_board.switch_player()
-        the_board.board[2][2].stone_here_color = cf.unicode_black
+        the_board.board[2][2].stone_here_color = cf.rgb_black
         the_piece = the_board.board[location[0]][location[1]]
         the_board.kill_stones(the_piece)
-        assert the_board.board[result[0]][result[1]].stone_here_color == cf.unicode_none
+        assert the_board.board[result[0]][result[1]].stone_here_color == cf.rgb_grey
 
     @pytest.mark.parametrize("location", [
         ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((7, 5)), ((8, 6))])
@@ -116,14 +115,14 @@ class TestClassPyTestGoClasses:
     def test_play_pieces(self, mock_popup, mock_refresh, location):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
-        the_board.board[2][2].stone_here_color = cf.unicode_black
+        the_board.board[2][2].stone_here_color = cf.rgb_black
         successful = the_board.play_piece(location[0], location[1])
 
         if location == (0, 0):
             assert successful is not True
         if location == (1, 0):
             assert successful is True
-            assert the_board.board[0][0].stone_here_color == cf.unicode_none
+            assert the_board.board[0][0].stone_here_color == cf.rgb_grey
         if location == (5, 7):
             assert successful is not True
         if location == (8, 8):
@@ -155,7 +154,7 @@ class TestClassPyTestGoClasses:
     def test_play_turn_pass(self, mock_read, mock_update, mock_popup, mock_refresh):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
-        the_board.board[2][2].stone_here_color = cf.unicode_black
+        the_board.board[2][2].stone_here_color = cf.rgb_black
         the_board.play_turn()
 
     @patch("uifunctions.refresh_board_pygame")

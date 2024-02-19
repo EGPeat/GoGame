@@ -5,7 +5,11 @@ from typing import Optional
 
 
 def normal_turn_options(board: GoBoard, event, text: Optional[str] = None) -> None:
-    '''Handles various game options based on the given event.'''
+    '''
+    Handles various game options based on the given event.
+    Options include (Pass Turn, Res, WIN_CLOSED, Save Game, Undo Turn, Exit Game).
+    When in scoring mode, Res stands for Resume Game, otherwise it means Quit Program.
+    '''
     if event in (sg.WIN_CLOSED, "Res"):
         quit()
     if event == "Pass Turn":
@@ -34,22 +38,23 @@ def normal_turn_options(board: GoBoard, event, text: Optional[str] = None) -> No
         raise ValueError
 
 
-def remove_dead_turn_options(board: GoBoard, event) -> None:
-    '''Handles events related to removing dead stones during scoring.'''
+def remove_dead_turn_options(board: GoBoard, event) -> bool:
+    '''Handles events related to removing dead stones during scoring. Only returns True if the player clicked a piece.'''
     if event == "Pass Turn":
         normal_turn_options(board, event, text="Scoring Passed")
-        return
+        return False
     elif event == "Save Game":
         from saving_loading import save_pickle
         save_pickle(board)
+        return False
     elif event == "Res":
         board.mode = "Playing"
         board.mode_change = True
         board.resuming_scoring_buffer("Resumed")
-        return
+        return False
     elif event == "Undo Turn":
         normal_turn_options(board, event)
-        return
+        return False
     elif event == "Exit Game":
         normal_turn_options(board, event)
     elif event == sg.WIN_CLOSED:

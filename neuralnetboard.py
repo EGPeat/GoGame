@@ -8,21 +8,53 @@ from goclasses import play_turn_bot_helper
 sys.setrecursionlimit(10000)
 
 
-def initializing_game(board_size: int, defaults: Optional[bool] = True) -> None:
+def initializing_game(nn, nn_bad, board_size: int, defaults: Optional[bool] = True) -> None:
     '''
     Initialize a new game based on user preferences.
     Parameters:
         board_size: The size of the game board.
         defaults: If True, use default settings; otherwise, allow the user to modify player names and komi.
+        nn: current neural net
+        nn_bad: second neural net, with worse weights
     '''
-    game_board = NNBoard(board_size, defaults)
+    game_board = NNBoard(nn, nn_bad, board_size, defaults)
     return game_board.play_game(False)
 
 
-class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit... once i finish that...
-    # I need to inherit the BotBoard class, which will then allow me to just use the BotBoard functions for...
-    # parts of play_turn, fills_eyes, play_piece_bot, diagonal_setup
-    def __init__(self, board_size=19, defaults=True):
+class NNBoard(GoBoard):
+    def __init__(self, nn, nn_bad, board_size=9, defaults=True):
+        """
+        Initializes a NNBoard instance with optional board size and default settings.
+
+        Parameters:
+            board_size (int): The size of the Go board (default is 9).
+            defaults (bool): A boolean indicating whether to use default settings (default is True).
+            nn : neural_net model built using keras.
+            nn_bad : Either a copy of nn, or a older version of nn with worse weights.
+
+        Attributes:
+            defaults (bool): Indicates whether default settings are applied.
+            board_size (int): The size of the Go board.
+            board (List[List[BoardNode]]): 2D list representing the Go board with BoardNode instances.
+            times_passed (int): Number of consecutive passes in the game.
+            turn_num (int): Current turn number.
+            position_played_log (List[Union[str, Tuple[str, int, int]]]):
+                Log of played positions in the format (person who played, row, col).
+            visit_kill (Set[BoardNode]): Set of BoardNode instances representing visited and killed stones.
+            killed_last_turn (Set[BoardNode]): Set of BoardNode instances representing stones killed in the last turn.
+            killed_log (List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]]): Log of killed stones.
+            mode (str): Current mode of the game (e.g., "Playing", "Scoring").
+            mode_change (bool): Boolean indicating whether there was a change in the game mode.
+            handicap (Tuple[bool, str, int]): Tuple representing handicap settings, with default being False, None, and 0.
+            window (sg.Window): PySimpleGui window for the Go board.
+            screen (pygame.Surface): Pygame surface for rendering the Go board.
+            backup_board (pygame.Surface): Backup of the Pygame surface.
+            pygame_board_vals: Tuple containing Pygame board values (workable_area, distance, circle_radius).
+        Unique Attributes:
+            ai_training_info List[str]: list of string representation of the board at that instance
+            ai_output_info List[List[float]]: list of policy outputs at each turn.
+                Policy output means the likelihood of choosing to play in a location.
+        """
         self.ai_training_info: List[str] = []
         self.ai_output_info: List[List[float]] = []
         self.defaults: bool = defaults
@@ -42,7 +74,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
         from neuralnet import nn_model
         self.nn = nn_model()
-        self.nn_bad = self.nn  # This is a temp thing until I have a bad model to use
+        self.nn_bad = self.nn
 
     def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
         '''
@@ -61,9 +93,14 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
             self.ai_black_board += '1'
 
         temp = self.play_game_playing_mode(from_file, fixes_handicap)
-        return temp  # This is a hack to manage AI training. Fix eventually.
+        return temp
 
-    def playing_mode_end_of_game(self):
+    def playing_mode_end_of_game(self) -> bool:
+        """
+        Calculates the winner for each game by using the ScoringBoard module.
+        Data is then saved to saved_self_play.json.
+        Returns a bool indicating who won, with True means black won.
+        """
         winner = self.making_score_board_object()
         print(f"winner is {winner}")
         import json
@@ -81,14 +118,17 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         with open(file_name, "w") as fn2:
             json.dump(updated_data, fn2)
 
-        return winner  # This is a hack to manage AI training. Fix eventually.
+        return winner
 
     def turn_loop(self):
+        '''
+        Makes the turn_loop functionality for the neuralnetboard, playing until both players pass consecutively.
+        '''
         while (self.times_passed <= 1):
             if self.whose_turn == self.player_black:
-                self.play_turn(True)  # Change this to true if you want it to be bot vs bot
+                self.play_turn(True)
             elif self.whose_turn == self.player_white:
-                self.play_turn(True)  # This is in self-play mode
+                self.play_turn(True)
 
     def play_turn(self, good_bot: Optional[bool] = False) -> None:
         '''
@@ -124,7 +164,11 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         self.make_turn_info()
         return
 
-    def make_turn_info(self):
+    def make_turn_info(self) -> None:
+        '''
+        Appends information to killed_log, adds the current board to ai_training_info,
+        and switches the whose_turn/not_whose_turn values.
+        '''
         temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
@@ -134,6 +178,7 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
         self.switch_player()
 
     def print_board(self):
+        '''Prints the board to the terminal.'''
         print_board = self.ai_training_info[-1]
         for idx in range(9):
             temp = print_board[(idx * 9 + 1):(idx * 9 + 10)]
@@ -156,7 +201,31 @@ class NNBoard(GoBoard):  # Need to override the scoring/removing dead pieces bit
 
 class NNScoringBoard(ScoringBoard):
     def __init__(self, parent_obj: Type[GoBoard]) -> None:
-        # Not a optimal way of doing this but whatever...
+        """
+        Initializes a NNScoringBoard instance as a subclass of ScoringBoard for handling neural net scoring-related attributes.
+
+        Parameters:
+        - parent_obj (Type[GoBoard]): An instance of the parent GoBoard class.
+
+        Attributes:
+        - parent: An instance of the parent GoBoard class.
+        - defaults: A boolean indicating whether default settings are used from the parent GoBoard.
+        - board_size: An integer representing the size of the board inherited from the parent GoBoard.
+        - board: 2D list representing the current state of the board with BoardNode instances.
+        - times_passed: Number of consecutive passes during the game.
+        - turn_num: Number of turns played.
+        - position_played_log: List containing information about positions played during the game.
+        - visit_kill: Set of BoardNode instances representing visited and killed stones.
+        - killed_last_turn: Set of BoardNode instances killed in the last turn.
+        - killed_log: List containing information about stones killed during the game.
+        - mode: A string representing the current mode of the game.
+        - mode_change: A boolean indicating whether the mode of the game has changed.
+        - handicap: Tuple representing the handicap settings.
+        - pygame_board_vals: Tuple containing values for Pygame board rendering.
+        - empty_strings: List of BoardString instances representing empty areas on the board.
+        - black_strings: List of BoardString instances representing areas controlled by the black player.
+        - white_strings: List of BoardString instances representing areas controlled by the white player.
+        """
         self.parent = parent_obj
         self.defaults: bool = self.parent.defaults
         self.board_size: int = self.parent.board_size

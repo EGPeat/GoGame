@@ -18,15 +18,15 @@ def undo_turn(board: GoBoard, scoring: Optional[bool] = False) -> None:
         return
     if not scoring:
         _, row, col = board.position_played_log.pop()
-        board.board[row][col].stone_here_color = cf.unicode_none
+        board.board[row][col].stone_here_color = cf.rgb_grey
     else:
         board.position_played_log.pop()
     revive = board.killed_log.pop()
 
     if len(revive) > 0:
         unicode: Tuple[int, int, int] = revive[0][0]
-    else:  # Can remove
-        unicode: Tuple[int, int, int] = cf.unicode_none
+    else:
+        unicode: Tuple[int, int, int] = cf.rgb_grey
     for item in revive:
         if not scoring:
             unicode, row, col = item

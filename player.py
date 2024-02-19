@@ -1,6 +1,6 @@
 import uifunctions as ui
 import PySimpleGUI as sg
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 
 class Player():
@@ -15,14 +15,13 @@ class Player():
             unicode_choice: The Unicode choice for the player.
         '''
         self.name: Optional[str] = name
-        self.color: Optional[str] = color  # Refactor? I'm not really sure it's necessary
+        self.color: Optional[str] = color
         self.komi: float = komi
         self.unicode: Tuple[int, int, int] = unicode_choice
         self.territory: int = 0
 
     @staticmethod
-    # This sets up the Player class, assigning appropriate values to each player as needed
-    def setup_player(defaults, nme, clr, uc):
+    def setup_player(defaults, nme, clr, uc) -> Type['Player']:
         '''
         Makes a Player instance.
         Args:
@@ -30,6 +29,7 @@ class Player():
             nme: The name of the player.
             clr: The color of the player.
             uc: The Unicode choice for the player.
+        Returns a instance of the Player class.
         '''
         if defaults:
             if clr == "Black":
@@ -55,7 +55,7 @@ class Player():
         return user_input
 
     def choose_name(self) -> None:
-        "Allows a player to choose their name."
+        "Allows a player to choose their name, otherwise sets it to a default value."
         info: str = "Please Click Yes if you want to change your name"
         modify_name: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_name == "No":
@@ -65,7 +65,7 @@ class Player():
                                     than 30 characters:", lambda x: str(x)[:30])
 
     def choose_komi(self) -> None:
-        "Allows a player to choose their komi."
+        "Allows a player to choose their komi, otherwise sets it to a default value."
         info: str = "Please Click Yes if you want to change your Komi"
         modify_komi: str = sg.popup_yes_no(info, title="Please Click", font=('Arial Bold', 15))
         if modify_komi == "No" and self.color == "White":

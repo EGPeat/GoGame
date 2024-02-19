@@ -8,13 +8,13 @@ from typing import Tuple, List, Set, Union, Literal, Type
 from goclasses import diagonals_setup
 
 
-def making_score_board_object(board: GoBoard):
+def making_score_board_object(board: GoBoard) -> bool:
     '''Creates a ScoringBoard object to handle scoring and dead stones.'''
-    import platform  # Required as for some reason the code/window behaves differently between linux and windows
+    import platform
     board.scoring_dead = ScoringBoard(board)
     if platform.system() == "Linux":
         board.window.close()
-        ui.setup_board_window_pygame(board.scoring_dead)  # Makes a window, but nothing you click will do anything
+        ui.setup_board_window_pygame(board.scoring_dead)
         ui.refresh_board_pygame(board.scoring_dead)
         winner = board.scoring_dead.dealing_with_dead_stones()
         return winner
@@ -28,7 +28,32 @@ def making_score_board_object(board: GoBoard):
 
 class ScoringBoard(GoBoard):
     def __init__(self, parent_obj: Type[GoBoard]) -> None:
-        # Not a optimal way of doing this but whatever...
+        """
+        Initializes a ScoringBoard instance as a subclass of GoBoard for handling scoring-related attributes.
+
+        Parameters:
+        - parent_obj (Type[GoBoard]): An instance of the parent GoBoard class.
+
+        Attributes:
+        - parent: An instance of the parent GoBoard class.
+        - defaults: A boolean indicating whether default settings are used from the parent GoBoard.
+        - board_size: An integer representing the size of the board inherited from the parent GoBoard.
+        - board: 2D list representing the current state of the board with BoardNode instances.
+        - times_passed: Number of consecutive passes during the game.
+        - turn_num: Number of turns played.
+        - position_played_log: List containing information about positions played during the game.
+        - visit_kill: Set of BoardNode instances representing visited and killed stones.
+        - killed_last_turn: Set of BoardNode instances killed in the last turn.
+        - killed_log: List containing information about stones killed during the game.
+        - mode: A string representing the current mode of the game.
+        - mode_change: A boolean indicating whether the mode of the game has changed.
+        - handicap: Tuple representing the handicap settings.
+        - pygame_board_vals: Tuple containing values for Pygame board rendering.
+        - empty_strings: List of BoardString instances representing empty areas on the board.
+        - black_strings: List of BoardString instances representing areas controlled by the black player.
+        - white_strings: List of BoardString instances representing areas controlled by the white player.
+        """
+
         self.parent = parent_obj
         self.defaults: bool = self.parent.defaults
         self.board_size: int = self.parent.board_size
@@ -62,15 +87,18 @@ class ScoringBoard(GoBoard):
         self.not_whose_turn: Player = self.parent.not_whose_turn
 
     def pieces_into_sets(self) -> None:
+        '''
+        Iterates through the board and adds each BoardNode to a set based on the stone_here_color value of that BoardNode.
+        '''
         self.empty_space_set: Set[BoardNode] = set()
         self.black_set: Set[BoardNode] = set()
         self.white_set: Set[BoardNode] = set()
-        for xidx in range(self.board_size):  # This puts all node spots into 3 sets
+        for xidx in range(self.board_size):
             for yidx in range(self.board_size):
                 temp_node: BoardNode = self.board[xidx][yidx]
-                if temp_node.stone_here_color == cf.unicode_white:
+                if temp_node.stone_here_color == cf.rgb_white:
                     self.white_set.add(temp_node)
-                elif temp_node.stone_here_color == cf.unicode_black:
+                elif temp_node.stone_here_color == cf.rgb_black:
                     self.black_set.add(temp_node)
                 else:
                     self.empty_space_set.add(temp_node)
@@ -93,22 +121,21 @@ class ScoringBoard(GoBoard):
     def draw_dead_stones(self, m_str: BoardString, o_str: BoardString) -> None:
         '''Draws dead stones on the Pygame board and updates the display.'''
         for item in m_str.member_set:
-            pygame.draw.circle(self.screen, cf.unicode_green, (item.screen_row, item.screen_col),
+            pygame.draw.circle(self.screen, cf.rgb_green, (item.screen_row, item.screen_col),
                                self.pygame_board_vals[2])
         pygame.display.update()
         for item in o_str.member_set:
-            pygame.draw.circle(self.screen, cf.unicode_red, (item.screen_row, item.screen_col),
+            pygame.draw.circle(self.screen, cf.rgb_red, (item.screen_row, item.screen_col),
                                self.pygame_board_vals[2])
         pygame.display.update()
         sleep(1.5)
-        # sleep(0.2)
         ui.refresh_board_pygame(self)
 
     def dealing_with_dead_stones(self) -> bool:
         '''
         Manages the process of dealing with dead stones, including finding and removing them.
-        Initializes and uses the MCST collection for scoring.
-        Returns the winner after counting territory.
+        Initializes and uses the MCST collection for scoring. Returns the winner after counting territory.
+        Returns a bool where 1/True means black won, 0/False means white won.
         '''
         self.dead_stones_make_strings()
         self.dead_stones_make_mixed()
@@ -116,30 +143,37 @@ class ScoringBoard(GoBoard):
         winner = self.dealing_with_dead_stones_helper()
         return winner
 
-    def dead_stones_make_strings(self):
+    def dead_stones_make_strings(self) -> None:
+        '''Helper function for dealing_with_dead_stones, makes simple board_strings.'''
         import copy
         self.pieces_into_sets()
-        self.making_go_board_strings(self.empty_space_set, cf.unicode_none, False)
-        self.making_go_board_strings(self.black_set, cf.unicode_black, False)
-        self.making_go_board_strings(self.white_set, cf.unicode_white, False)
-        self.empty_strings_backup: List[BoardString] = copy.deepcopy(self.empty_strings)  # Change
-        self.black_strings_backup: List[BoardString] = copy.deepcopy(self.black_strings)  # Change
-        self.white_strings_backup: List[BoardString] = copy.deepcopy(self.white_strings)  # Change
+        self.making_go_board_strings(self.empty_space_set, cf.rgb_grey, False)
+        self.making_go_board_strings(self.black_set, cf.rgb_black, False)
+        self.making_go_board_strings(self.white_set, cf.rgb_white, False)
+        self.empty_strings_backup: List[BoardString] = copy.deepcopy(self.empty_strings)
+        self.black_strings_backup: List[BoardString] = copy.deepcopy(self.black_strings)
+        self.white_strings_backup: List[BoardString] = copy.deepcopy(self.white_strings)
         self.mixed_string_for_black: Union[List[None], List[BoardString]] = list()
         self.mixed_string_for_white: Union[List[None], List[BoardString]] = list()
         self.outer_string_black: Union[List[None], List[BoardString]] = list()
         self.outer_string_white: Union[List[None], List[BoardString]] = list()
 
-    def dead_stones_make_mixed(self):
+    def dead_stones_make_mixed(self) -> None:
+        '''Helper function for dealing_with_dead_stones, makes mixed inner and outer strings.'''
         self.make_mixed_and_outer(self.mixed_string_for_black, self.outer_string_black,
-                                  self.player_black, self.black_strings, cf.unicode_black)
+                                  self.player_black, self.black_strings, cf.rgb_black)
         self.empty_strings = self.empty_strings_backup
         self.black_strings = self.black_strings_backup
         self.white_strings = self.white_strings_backup
         self.make_mixed_and_outer(self.mixed_string_for_white, self.outer_string_white,
-                                  self.player_white, self.white_strings, cf.unicode_white)
+                                  self.player_white, self.white_strings, cf.rgb_white)
 
-    def dealing_with_dead_stones_helper(self):
+    def dealing_with_dead_stones_helper(self) -> bool:
+        '''
+        Helper function for dealing_with_dead_stones, makes a Collection of MCST, runs tests,
+        appends those tests to the MCST_collect.{color}_MCSTS_final variable, and then calls counting_territory.
+        Returns a bool where 1/True means black won, 0/False means white won.
+        '''
         from mcst import CollectionOfMCST
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
@@ -149,24 +183,25 @@ class ScoringBoard(GoBoard):
             if item[3] is True:
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
-                    spot.stone_here_color = cf.unicode_none
+                    spot.stone_here_color = cf.rgb_grey
         for item in self.MCST_collection.white_MCSTS_final:
             if item[3] is True:
                 for node in item[1].member_set:
                     spot = self.board[node.row][node.col]
-                    spot.stone_here_color = cf.unicode_none
+                    spot.stone_here_color = cf.rgb_grey
         winner = self.counting_territory()
         return winner
 
     def remove_safe_strings(self):
         '''
         Removes safe strings (mixed and outer strings) from both black and white players.
-        Safe strings are a pair of inner and outer strings, where the inner/mixed string does not contain any pieces.
+        Safe strings are a pair of inner and outer strings,
+        where the inner/mixed string does not contain any non cf.rgb_grey pieces.
         '''
         for idx in reversed(range(len(self.outer_string_black))):
             removeable = True
             for item in self.mixed_string_for_black[idx].member_set:
-                if item.stone_here_color == cf.unicode_white:
+                if item.stone_here_color == cf.rgb_white:
                     removeable = False
             if removeable:
                 self.mixed_string_for_black.pop(idx)
@@ -175,7 +210,7 @@ class ScoringBoard(GoBoard):
         for idx in reversed(range(len(self.outer_string_white))):
             removeable = True
             for item in self.mixed_string_for_white[idx].member_set:
-                if item.stone_here_color == cf.unicode_black:
+                if item.stone_here_color == cf.rgb_black:
                     removeable = False
             if removeable:
                 self.mixed_string_for_white.pop(idx)
@@ -184,7 +219,10 @@ class ScoringBoard(GoBoard):
     def find_neighbor_get_string(self, piece: BoardNode, color: Tuple[int, int, int],
                                  visited: Union[None, Set[BoardNode]] = None) -> Union[
                                      Tuple[Literal[True], BoardString], Tuple[Literal[False], Literal[-1]]]:
-        '''Finds and returns the board string of the neighboring piece with the specified color.'''
+        '''
+        Finds and returns the board string of the neighboring piece with the specified color,
+        if one exists and is of the right size and shape (must be larger than a floodfill of empty space).
+        '''
         if visited is None:
             visited = set()
         visited.add(piece)
@@ -193,18 +231,17 @@ class ScoringBoard(GoBoard):
 
         for neighbor in neighboring_piece:
             neighbor_color = neighbor.stone_here_color
-            if neighbor not in visited and neighbor_color == color and color == cf.unicode_black:
-                recursive_result = self.find_neighbor_get_string_helper(piece, neighbor, cf.unicode_white, self.black_strings)
+            if neighbor not in visited and neighbor_color == color and color == cf.rgb_black:
+                recursive_result = self.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_white, self.black_strings)
                 if recursive_result[0]:
                     break
 
-            elif neighbor not in visited and neighbor_color == color and color == cf.unicode_white:
-                recursive_result = self.find_neighbor_get_string_helper(piece, neighbor, cf.unicode_black, self.white_strings)
+            elif neighbor not in visited and neighbor_color == color and color == cf.rgb_white:
+                recursive_result = self.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_black, self.white_strings)
                 if recursive_result[0]:
                     break
             elif neighbor not in visited:
-                recursive_result = self.find_neighbor_get_string(neighbor, color, visited)  # visited used to be visited.copy()
-                # But that caused awful performance. but might have been necessary
+                recursive_result = self.find_neighbor_get_string(neighbor, color, visited)
                 if recursive_result[0]:
                     break
         return recursive_result
@@ -227,15 +264,15 @@ class ScoringBoard(GoBoard):
                     or item.xmin < piece_string.xmin
                     or item.ymax > piece_string.ymax
                     or item.ymin < piece_string.ymin
-                )  # Unsure if it should be >= or just >. same for <= and <
+                )
             ):
                 return True, item
         return (False, -1)
 
-    def counting_territory(self) -> Union[None, bool]:  # something somewhere makes row and col switch...
-        '''Counts the territory for both players and determines the winner.'''
+    def counting_territory(self) -> bool:
+        '''Counts the territory for both players and determines the winner. 1/True means black won, 0/False means white won.'''
         self.pieces_into_sets()
-        self.making_go_board_strings(self.empty_space_set, cf.unicode_none, True)
+        self.making_go_board_strings(self.empty_space_set, cf.rgb_grey, True)
         pb = self.player_black
         pw = self.player_white
         pb.black_set_len = len(self.black_set)
@@ -246,9 +283,9 @@ class ScoringBoard(GoBoard):
         difference = player_black_score - player_white_score
         print(f"white has {pw.komi} and {pw.territory} and {len(self.white_set)}, making the difference {difference}")
         if difference > 0:
-            return 1  # Might be a more descriptive way to have it say who won, which could be better for training an AI...
+            return 1
         else:
-            return -1
+            return 0
 
     def mixed_string_set_removal(self, connections_set: Set[BoardNode], color: Tuple[int, int, int]) -> None:
         """
@@ -264,9 +301,9 @@ class ScoringBoard(GoBoard):
             piece_color = piece.stone_here_color
             piece_string = flood_fill(piece)
             piece_string_obj = BoardString(color, piece_string[0])
-            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.unicode_none, self.empty_strings)
-            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.unicode_white, self.white_strings)
-            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.unicode_black, self.black_strings)
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.rgb_grey, self.empty_strings)
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.rgb_white, self.white_strings)
+            self.mixed_string_set_removal_loop_remove(piece_string_obj, piece_color, cf.rgb_black, self.black_strings)
 
     def mixed_string_set_removal_loop_remove(self, p_string: BoardString, p_color: Tuple[int, int, int],
                                              comp_color: Tuple[int, int, int], enemy_strings: List[BoardString]) -> None:
@@ -302,7 +339,6 @@ class ScoringBoard(GoBoard):
                 - (True, con_str_full, discon_str) if the mixed strings are correct and connected.
         """
         con_str, discon_str = self.making_mixed_strings(piece, color, original_string, list_strings)
-        # If you change the or in the following two checks, it will generate larger areas to test
         if con_str.xmin < discon_str.xmin or con_str.xmax > discon_str.xmax:
             return (False, -1)
         elif con_str.ymin < discon_str.ymin or con_str.ymax > discon_str.ymax:
@@ -393,7 +429,7 @@ class ScoringBoard(GoBoard):
 
     def making_go_board_strings(self, piece_set: Set[BoardNode],
                                 piece_type: Tuple[int, int, int], final: bool) -> None:
-        '''Generate Go board strings based on a set of pieces.'''
+        '''Generates BoardStrings from a set of pieces, removing already used pieces.'''
         list_of_piece_sets: Union[List[None], List[Set[BoardNode]]] = list()
         while piece_set:
             piece = piece_set.pop()
@@ -402,11 +438,11 @@ class ScoringBoard(GoBoard):
             piece_set -= string
         for item in list_of_piece_sets:
             string_obj = BoardString(piece_type, item)
-            if piece_type == cf.unicode_none:
+            if piece_type == cf.rgb_grey:
                 self.empty_strings.append(string_obj)
-            elif piece_type == cf.unicode_black:
+            elif piece_type == cf.rgb_black:
                 self.black_strings.append(string_obj)
-            elif piece_type == cf.unicode_white:
+            elif piece_type == cf.rgb_white:
                 self.white_strings.append(string_obj)
             if final:
                 item2 = item.pop()
@@ -430,8 +466,8 @@ class ScoringBoard(GoBoard):
             if diagonal.stone_here_color == piece.stone_here_color and diagonal not in connected_pieces:
                 xdiff = diagonal.row - piece.row
                 ydiff = diagonal.col - piece.col
-                xopen = self.board[piece.row + xdiff][piece.col].stone_here_color == cf.unicode_none
-                yopen = self.board[piece.row][piece.col + ydiff].stone_here_color == cf.unicode_none
+                xopen = self.board[piece.row + xdiff][piece.col].stone_here_color == cf.rgb_grey
+                yopen = self.board[piece.row][piece.col + ydiff].stone_here_color == cf.rgb_grey
                 if xopen or yopen:
                     self.making_go_board_strings_helper(diagonal, connected_pieces)
         return connected_pieces
@@ -442,7 +478,7 @@ class ScoringBoard(GoBoard):
         pieces_string = sets[0]
         black_pieces, white_pieces = 0, 0
         for item in neighboring:
-            if item.stone_here_color == cf.unicode_black:
+            if item.stone_here_color == cf.rgb_black:
                 black_pieces += 1
             else:
                 white_pieces += 1
@@ -461,6 +497,7 @@ class ScoringBoard(GoBoard):
                               connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
                                   None, Tuple[Set[BoardNode], Set[BoardNode]]]:
         '''Perform flood fill to identify connected pieces considering outer pieces.
+        Returns a Tuple of Sets, where each set contains BoardNodes.
         Set 1 is the set of objects of the same color, Set 2 is the outside objects.
         '''
         if connected_pieces is None:
@@ -479,14 +516,18 @@ class ScoringBoard(GoBoard):
 @staticmethod
 def flood_fill(piece: BoardNode, connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
         None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-    '''Perform flood fill to identify connected pieces.'''
+    """
+    Perform flood fill to identify connected pieces.
+    Returns a Tuple of Sets, where each set contains BoardNodes. The first set contains inner BoardNodes.
+    And the second contains outer BoardNodes.
+    """
     if connected_pieces is None:
-        connected_pieces = (set(), set())  # (Same color nodes, seen already nodes)
+        connected_pieces = (set(), set())
     connected_pieces[0].add(piece)
     neighboring_pieces = piece.connections
     for neighbor in neighboring_pieces:
         if neighbor.stone_here_color == piece.stone_here_color and neighbor not in connected_pieces[0]:
-            flood_fill(neighbor, connected_pieces)  # Might be issue
+            flood_fill(neighbor, connected_pieces)
         elif neighbor not in connected_pieces[1]:
             connected_pieces[1].add(neighbor)
     return connected_pieces
@@ -496,13 +537,17 @@ def flood_fill(piece: BoardNode, connected_pieces: Union[None, Tuple[Set[BoardNo
 def flood_fill_two_colors(piece: BoardNode, second_color: Tuple[int, int, int],
                           connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
         None, Tuple[Set[BoardNode], Set[BoardNode]]]:
-    '''Perform flood fill to identify connected pieces for two colors.'''
+    '''
+    Perform flood fill to identify connected pieces for two colors.
+    Returns a Tuple of Sets, where each set contains BoardNodes. The first set contains inner BoardNodes.
+    And the second contains BoardNodes already seen by the function.
+    '''
     if connected_pieces is None:
         connected_pieces = (set(), set())
     connected_pieces[0].add(piece)
     neighboring_pieces = piece.connections
-    for neighbor in neighboring_pieces:  # piece.stone_here_color might be for below
-        if neighbor.stone_here_color == cf.unicode_none and neighbor not in connected_pieces[0]:
+    for neighbor in neighboring_pieces:
+        if neighbor.stone_here_color == cf.rgb_grey and neighbor not in connected_pieces[0]:
             flood_fill_two_colors(neighbor, second_color, connected_pieces)
         elif neighbor.stone_here_color == second_color and neighbor not in connected_pieces[0]:
             flood_fill_two_colors(neighbor, second_color, connected_pieces)

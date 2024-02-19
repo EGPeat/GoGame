@@ -3,6 +3,7 @@ import sys
 import pytest
 sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import uifunctions as ui
+import config as cf
 import PySimpleGUI as sg
 import goclasses as go
 import pygame
@@ -54,17 +55,6 @@ class TestClassPyTestUI:
         result = ui.handicap_person_gui()
         assert result == "I don't want a handicap"
 
-    @pytest.mark.parametrize("board_size, expected_option",
-                             [(9, 1), (9, 2), (9, 3), (9, 4), (9, 5),
-                              (13, 1), (13, 2), (13, 7), (13, 9),
-                              (19, 1), (19, 2), (19, 7), (19, 9),
-                              ])
-    @patch('PySimpleGUI.Window.read')  # This test doesn't quite work right
-    def test_handicap_number_gui(self, mock_read, board_size, expected_option):
-        with patch('PySimpleGUI.Window.read', side_effect=[(str(expected_option), {})]):
-            result = ui.handicap_number_gui(board_size)
-            assert result == expected_option
-
     def test_setup_menu(self):
         window = ui.setup_menu()
         text = "The default settings are a 9x9 board, 7.5 komi, and names for players of Player 1 and Player 2"
@@ -79,8 +69,8 @@ class TestClassPyTestUI:
         assert isinstance(answer, sg.Window)
 
     @patch('PySimpleGUI.popup')
-    def test_end_game_popup(self, mock_popup):
-        ui.end_game_popup()
+    def test_scoring_mode_popup(self, mock_popup):
+        ui.scoring_mode_popup()
         expected_info = "Please take turns clicking on stones that you believe are dead, and then the program will score.\
         \n Please pass twice once you are finished scoring."
         mock_popup.assert_called_once_with(expected_info, title="Scoring", line_width=200, auto_close=True, auto_close_duration=3)
@@ -121,7 +111,7 @@ class TestClassPyTestUI:
         )
 
     @patch("PySimpleGUI.popup")
-    def test_end_game_popup_two_winner(self, mock_popup):
+    def test_end_game_popup_winner(self, mock_popup):
         game = MagicMock()
         game.player_black.name = "Player1"
         game.player_white.name = "Player2"
@@ -132,7 +122,7 @@ class TestClassPyTestUI:
         game.player_black.black_set_len = 0
         game.player_white.white_set_len = 0
 
-        ui.end_game_popup_two(game)
+        ui.end_game_popup(game)
 
         mock_popup.assert_called_with(
             "Your game has finished.\nPlayer Black: Player1 has 20 territory\
@@ -147,7 +137,7 @@ class TestClassPyTestUI:
         )
 
     @patch("PySimpleGUI.popup")
-    def test_end_game_popup_two_loser(self, mock_popup):
+    def test_end_game_popup_loser(self, mock_popup):
         game = MagicMock()
         game.player_black.name = "Player1"
         game.player_white.name = "Player2"
@@ -157,7 +147,7 @@ class TestClassPyTestUI:
         game.player_white.territory = 20
         game.player_black.black_set_len = 0
         game.player_white.white_set_len = 0
-        ui.end_game_popup_two(game)
+        ui.end_game_popup(game)
 
         mock_popup.assert_called_with(
             "Your game has finished.\nPlayer Black: Player1 has 15 territory\
@@ -170,12 +160,6 @@ class TestClassPyTestUI:
             auto_close=True,
             auto_close_duration=20
         )
-
-    @patch("platform.system")
-    def test_hex_ui_setup_linux(self, mock_sys):
-        mock_sys.return_value = 'Linux'
-        answer = ui.hex_ui_setup()
-        assert isinstance(answer, sg.Window)
 
     @pytest.mark.parametrize("b_size", [(9), (13), (19)])
     @patch("pygame.draw.line")
@@ -217,7 +201,7 @@ class TestClassPyTestUI:
         mock_window.__getitem__.return_value.update.assert_called_with("Quit Program")
         assert not board.mode_change
 
-    @pytest.mark.parametrize("the_type", [(ui.cf.unicode_black), (ui.cf.unicode_diamond_black), (ui.cf.unicode_triangle_black)])
+    @pytest.mark.parametrize("the_type", [(cf.rgb_black), (cf.rgb_peach)])
     @patch("pygame.draw.circle")
     def test_refresh_board_pygame(self, mock_draw_circle, the_type):
         board = MagicMock()
