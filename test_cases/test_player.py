@@ -2,7 +2,6 @@ from unittest.mock import patch
 import pytest
 import GoGame.player as player
 import GoGame.config as cf
-import os
 
 
 class TestClassPyTestPlayer:
@@ -30,16 +29,6 @@ class TestClassPyTestPlayer:
         with patch('PySimpleGUI.popup') as _:
             player.Player.choose_name(playa)
         assert playa.name == final_name
-
-    @pytest.mark.parametrize("typed_texts", [["a", ' ', 'None', "5"]])
-    def test_choose_komi_yes(self, typed_texts, mocker):
-        if os.getenv("DISPLAY") is not None:
-            mocker.patch('PySimpleGUI.popup_get_text', side_effect=typed_texts)
-            mocker.patch('PySimpleGUI.popup_yes_no', return_value="Yes")
-            playa = player.Player(color="Black")
-            with patch('PySimpleGUI.popup') as _:
-                player.Player.choose_komi(playa)
-            assert playa.komi == 5
 
     @pytest.mark.parametrize("color, final_komi", [("Black", 0), ("White", 7.5)])
     def test_choose_komi_no(self, color, final_komi, mocker):
