@@ -12,7 +12,7 @@ class TestClassPyTestNeuralNetBoard:
     @patch('builtins.print')
     def test_print_board_NNB(self, fake_print, mock_popup, mock_refresh, mock_update):
         the_board: nn.NNBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
+            "test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = nn.NNBoard
         the_board.ai_training_info = []
         the_board.ai_output_info = []
@@ -29,7 +29,7 @@ class TestClassPyTestNeuralNetBoard:
 
     def test_init_nnsb(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = nn.NNScoringBoard(the_board)
         assert isinstance(test_sb, nn.NNScoringBoard)
         assert isinstance(test_sb.parent, go.GoBoard)

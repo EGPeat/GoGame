@@ -39,7 +39,7 @@ class TestClassPyTestBotNormalGo:
     ])
     def test_fills_eyes(self, location, result):
         the_board: bot.BotBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
+            "test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
         output = fills_eye(the_board, piece, the_board.whose_turn.unicode, the_board.not_whose_turn.unicode)
@@ -52,7 +52,7 @@ class TestClassPyTestBotNormalGo:
     ])
     def test_fills_eyes_two(self, location, result):
         the_board: bot.BotBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes_free.pkl")
+            "test_cases/pklfilestesting/test_eyes_free.pkl")
         the_board.__class__ = bot.BotBoard
         piece = the_board.board[location[0]][location[1]]
         output = fills_eye(the_board, piece, the_board.whose_turn.unicode, the_board.not_whose_turn.unicode)
@@ -64,7 +64,7 @@ class TestClassPyTestBotNormalGo:
     @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces_botboard(self, mock_popup, mock_refresh, location):
         the_board: bot.BotBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+            "test_cases/pklfilestesting/test_ko.pkl")
         the_board.__class__ = bot.BotBoard
         the_board.board[2][2].stone_here_color = cf.rgb_black
         successful = play_piece_bot(the_board, location[0], location[1])
@@ -87,7 +87,7 @@ class TestClassPyTestBotNormalGo:
     @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces_botboard_fills_eye(self, mock_popup, mock_refresh, location):
         the_board: bot.BotBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
+            "test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         successful = play_piece_bot(the_board, location[0], location[1])
 
@@ -104,7 +104,7 @@ class TestClassPyTestBotNormalGo:
     @patch("GoGame.uifunctions.def_popup")
     def test_play_turn_bot(self, mock_popup, mock_refresh, mock_update, location, result, mocker):
         the_board: bot.BotBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
+            "test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
         mocker.patch("GoGame.botnormalgo.randrange", return_value=location)
         the_board.play_turn_bot()

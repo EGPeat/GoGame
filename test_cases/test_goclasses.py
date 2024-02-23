@@ -98,7 +98,7 @@ class TestClassPyTestGoClasses:
     ])
     def test_kill_stones_mocked_self_death(self, location, result, who):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_killing.pkl")
+            "test_cases/pklfilestesting/test_killing.pkl")
         if who != "White":  # This is to allow black to capture/kill
             the_board.switch_player()
         the_board.board[2][2].stone_here_color = cf.rgb_black
@@ -112,7 +112,7 @@ class TestClassPyTestGoClasses:
     @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces(self, mock_popup, mock_refresh, location):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+            "test_cases/pklfilestesting/test_ko.pkl")
         the_board.board[2][2].stone_here_color = cf.rgb_black
         successful = the_board.play_piece(location[0], location[1])
 
@@ -151,7 +151,7 @@ class TestClassPyTestGoClasses:
     @patch("GoGame.goclasses.GoBoard.read_window", return_value=(("Pass Turn"), (5)))
     def test_play_turn_pass(self, mock_read, mock_update, mock_popup, mock_refresh):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+            "test_cases/pklfilestesting/test_ko.pkl")
         the_board.board[2][2].stone_here_color = cf.rgb_black
         the_board.play_turn()
 
@@ -174,7 +174,7 @@ class TestClassPyTestGoClasses:
     @patch("pygame.display.update")
     def test_play_turn_capture(self, mock_display, mock_draw_circle, mock_update, mock_popup, mock_refresh, mocker, mock_window):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+            "test_cases/pklfilestesting/test_ko.pkl")
         the_board.screen = mock_window
         the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
         mocker.patch("GoGame.goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (1, 0)}))
@@ -188,7 +188,7 @@ class TestClassPyTestGoClasses:
     ])
     def test_diagonal_setup(self, location, result):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
+            "test_cases/pklfilestesting/test_ko.pkl")
         piece = the_board.board[location[0]][location[1]]
         result_set = diagonals_setup(the_board, piece)
         neighbors = set()

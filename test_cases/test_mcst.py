@@ -11,7 +11,7 @@ class TestClassPyTestMCST:
 
     def setup_board(self, times=100):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.dead_stones_make_strings()
         test_sb.dead_stones_make_mixed()
@@ -23,7 +23,7 @@ class TestClassPyTestMCST:
 
     def test_init_collection(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.dead_stones_make_strings()
         test_sb.dead_stones_make_mixed()
@@ -162,7 +162,7 @@ class TestClassPyTestMCST:
 
     def test_total_setup(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.dead_stones_make_strings()
         test_sb.dead_stones_make_mixed()

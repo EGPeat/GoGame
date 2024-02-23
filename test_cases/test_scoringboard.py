@@ -9,7 +9,7 @@ class TestClassPyTestScoringBoard:
 
     def test_init_sb(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = sb.ScoringBoard(the_board)
         assert isinstance(test_sb, sb.ScoringBoard)
         assert isinstance(test_sb.parent, go.GoBoard)
@@ -18,7 +18,7 @@ class TestClassPyTestScoringBoard:
 
     def test_pieces_into_sets(self):
         the_board: sb.ScoringBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         the_board.__class__ = sb.ScoringBoard
         the_board.pieces_into_sets()
         assert len(the_board.white_set) == 16
@@ -30,7 +30,7 @@ class TestClassPyTestScoringBoard:
 
     def test_making_go_board_strings(self):
         the_board: sb.ScoringBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         the_board.__class__ = sb.ScoringBoard
         the_board.pieces_into_sets()
         the_board.making_go_board_strings(the_board.black_set, cf.rgb_black, False)
@@ -72,7 +72,7 @@ class TestClassPyTestScoringBoard:
 
     def test_flood_fill_two(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[8][8]
         string_good = "this is a board string of color Mixed and with len of 4 and values [(7, 7), (7, 8), (8, 7), (8, 8)]\
@@ -100,7 +100,7 @@ class TestClassPyTestScoringBoard:
 
     def test_flood_fill_startscoring(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[8][6]
         string_good = "this is a board string of color White and with len of 7 and values [(6, 6), (7, 6), (7, 7), (7, 8), (8, 6), (8, 7), (8, 8)]\
@@ -112,7 +112,7 @@ class TestClassPyTestScoringBoard:
 
     def test_flood_fill_endgame(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[2][8]
         string_good = "this is a board string of color White and with len of 2 and values [(1, 8), (2, 8)]\
@@ -124,7 +124,7 @@ class TestClassPyTestScoringBoard:
 
     def test_flood_fill_outer(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[8][8]
         piece_outer = test_sb.board[8][6]
@@ -142,7 +142,7 @@ class TestClassPyTestScoringBoard:
 
     def test_find_neighbor_get_string_helper_startscoring(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.pieces_into_sets()
         test_sb.making_go_board_strings(test_sb.black_set, cf.rgb_black, False)
@@ -168,7 +168,7 @@ class TestClassPyTestScoringBoard:
 
     def test_find_neighbor_get_string_helper_endgame(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.pieces_into_sets()
         test_sb.making_go_board_strings(test_sb.black_set, cf.rgb_black, False)
@@ -200,7 +200,7 @@ class TestClassPyTestScoringBoard:
 
     def test_find_neighbor_get_string_startscoring(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.pieces_into_sets()
         test_sb.making_go_board_strings(test_sb.black_set, cf.rgb_black, False)
@@ -223,7 +223,7 @@ class TestClassPyTestScoringBoard:
 
     def test_find_neighbor_get_string_endgame(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/endgame.pkl")
+            "test_cases/pklfilestesting/endgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.pieces_into_sets()
         test_sb.making_go_board_strings(test_sb.black_set, cf.rgb_black, False)
@@ -251,7 +251,7 @@ class TestClassPyTestScoringBoard:
 
     def test_dealing_with_dead_stones_startscoring(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/startscoring.pkl")
+            "test_cases/pklfilestesting/startscoring.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.dead_stones_make_strings()
         test_sb.dead_stones_make_mixed()
@@ -261,7 +261,7 @@ class TestClassPyTestScoringBoard:
 
     def test_dealing_with_dead_stones_fullgame(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/fullgame.pkl")
+            "test_cases/pklfilestesting/fullgame.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.dead_stones_make_strings()
         locations = [(0, 6), (1, 6), (3, 6), (3, 5), (0, 10)]
@@ -301,7 +301,7 @@ class TestClassPyTestScoringBoard:
 
     def test_counting_territory_fullgame(self):
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/fullgamechinese.pkl")
+            "test_cases/pklfilestesting/fullgamechinese.pkl")
         test_sb = sb.ScoringBoard(the_board)
         test_sb.counting_territory()
         pb = test_sb.player_black

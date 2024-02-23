@@ -16,7 +16,7 @@ class TestClassPyTestRemoveDead:
     @pytest.fixture
     def fixture_go_board(self) -> go.GoBoard:
         the_board: go.GoBoard = load_pkl(
-            "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/unittest_remove_dead.pkl")
+            "test_cases/pklfilestesting/unittest_remove_dead.pkl")
         the_board.piece_string = [[(0, 1), (255, 255, 255)], [(1, 1), (255, 255, 255)], [(1, 0), (255, 255, 255)]]
         return the_board
 
