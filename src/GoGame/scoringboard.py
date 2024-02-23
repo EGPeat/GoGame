@@ -513,7 +513,6 @@ class ScoringBoard(GoBoard):
         return connected_pieces
 
 
-@staticmethod
 def flood_fill(piece: BoardNode, connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
         None, Tuple[Set[BoardNode], Set[BoardNode]]]:
     """
@@ -533,7 +532,6 @@ def flood_fill(piece: BoardNode, connected_pieces: Union[None, Tuple[Set[BoardNo
     return connected_pieces
 
 
-@staticmethod
 def flood_fill_two_colors(piece: BoardNode, second_color: Tuple[int, int, int],
                           connected_pieces: Union[None, Tuple[Set[BoardNode], Set[BoardNode]]] = None) -> Union[
         None, Tuple[Set[BoardNode], Set[BoardNode]]]:
