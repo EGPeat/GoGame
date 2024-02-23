@@ -1,0 +1,9 @@
+PySimpleGui>=4
+pygame>=2
+tensorflow>=2.11
+
+[testing]
+flake8>=4.0
+tox>=4.13
+pytest>=7.0
+coverage>=7.2

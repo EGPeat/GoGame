@@ -1,10 +1,10 @@
-import uifunctions as ui
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 from typing import Optional
 
 
-def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
-                      vs_bot: Optional[bool] = False) -> None:
+def initializing_game(window, board_size: int, defaults: bool = True,
+                      vs_bot: bool = False) -> None:
     '''
     Initialize a new game based on user preferences.
     Parameters:
@@ -22,7 +22,7 @@ def initializing_game(window, board_size: int, defaults: Optional[bool] = True,
     game_board.play_game(fixes_handicap=handicap_info)
 
 
-def choose_board_type(vs_bot: Optional[bool] = False, board_size: int = 9, defaults: bool = True):
+def choose_board_type(vs_bot: bool = False, board_size: int = 9, defaults: bool = True):
     '''
     This function is used in the initialization of the game...
     It chooses the correct type of board (GoBoard, BotBoard) based on a set of inputs.
@@ -32,10 +32,10 @@ def choose_board_type(vs_bot: Optional[bool] = False, board_size: int = 9, defau
         Defaults: Bool. If True, sets default values for players and handicap.
     '''
     if vs_bot:
-        from botnormalgo import BotBoard
+        from GoGame.botnormalgo import BotBoard
         return BotBoard(board_size, defaults)
     else:
-        from goclasses import GoBoard
+        from GoGame.goclasses import GoBoard
         return GoBoard(board_size, defaults)
 
 
@@ -58,8 +58,8 @@ def request_handicap_info() -> bool:
         return False
 
 
-def initialize_player_choice(board_size: int, defaults: Optional[bool] = True,
-                             vs_bot: Optional[bool] = False):
+def initialize_player_choice(board_size: int, defaults: bool = True,
+                             vs_bot: bool = False):
     "Asks the player if they wish to change their name or komi. Returns a GoBoard or BotBoard."
     info: str = "Click yes if you want to modify the player names and komi"
     if not defaults:

@@ -1,10 +1,8 @@
 from unittest.mock import patch, MagicMock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import goclasses as go
-import game_initialization as start
-from botnormalgo import BotBoard
+import GoGame.goclasses as go
+import GoGame.game_initialization as start
+from GoGame.botnormalgo import BotBoard
 
 
 class TestClassPyTestGameInit:
@@ -32,7 +30,7 @@ class TestClassPyTestGameInit:
     def test_initialize_player_choice_not_default(self, vs_bot, mocker, popup):
         defaults = False
         mocker.patch('PySimpleGUI.popup_yes_no', return_value=popup)
-        mocker.patch('game_initialization.choose_board_type')
+        mocker.patch('GoGame.game_initialization.choose_board_type')
         start.initialize_player_choice(9, defaults, vs_bot)
         if popup == "No":
             start.choose_board_type.assert_called_once_with(vs_bot, 9, True)
@@ -45,9 +43,9 @@ class TestClassPyTestGameInit:
     def test_choose_board_type_bot_board2(self):
         assert isinstance(start.choose_board_type(False, 9, True), go.GoBoard)
 
-    @patch("game_initialization.initialize_player_choice")
-    @patch("game_initialization.ui.setup_board_window_pygame")
-    @patch("game_initialization.request_handicap_info")
+    @patch("GoGame.game_initialization.initialize_player_choice")
+    @patch("GoGame.game_initialization.ui.setup_board_window_pygame")
+    @patch("GoGame.game_initialization.request_handicap_info")
     def test_initializing_game_with_defaults(self, mock_request_handicap_info, mock_setup_board, mock_initialize_player_choice):
         window_mock = MagicMock()
         board_size = 9
@@ -59,9 +57,9 @@ class TestClassPyTestGameInit:
         mock_request_handicap_info.assert_not_called()
         mock_initialize_player_choice.return_value.play_game.assert_called_once_with(fixes_handicap=False)
 
-    @patch("game_initialization.initialize_player_choice")
-    @patch("game_initialization.ui.setup_board_window_pygame")
-    @patch("game_initialization.request_handicap_info", return_value=True)
+    @patch("GoGame.game_initialization.initialize_player_choice")
+    @patch("GoGame.game_initialization.ui.setup_board_window_pygame")
+    @patch("GoGame.game_initialization.request_handicap_info", return_value=True)
     def test_initializing_game_not_defaults(self, mock_request_handicap_info, mock_setup_board, mock_initialize_player_choice):
         window_mock = MagicMock()
         board_size = 9

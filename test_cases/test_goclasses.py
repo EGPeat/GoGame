@@ -1,13 +1,11 @@
 from unittest.mock import patch, MagicMock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import PySimpleGUI as sg
-import goclasses as go
-from player import Player
-import config as cf
-from saving_loading import load_pkl
-from goclasses import diagonals_setup
+import GoGame.goclasses as go
+from GoGame.player import Player
+import GoGame.config as cf
+from GoGame.saving_loading import load_pkl
+from GoGame.goclasses import diagonals_setup
 
 
 class TestClassPyTestGoClasses:
@@ -84,13 +82,13 @@ class TestClassPyTestGoClasses:
         assert answer == correct
 
     @pytest.mark.parametrize("ret_val", [("Exit Game"), (sg.WIN_CLOSED)])
-    @patch("main.play_game_main")
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.close_window")
+    @patch("GoGame.main.play_game_main")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.close_window")
     def test_allow_view_endgame(self, mock_close_window, mock_pygame, mock_pgm, ret_val, mocker):
         with pytest.raises(SystemExit):
             go_board = go.GoBoard(9, True)
-            mocker.patch("goclasses.GoBoard.read_window", return_value=((ret_val), 5))
+            mocker.patch("GoGame.goclasses.GoBoard.read_window", return_value=((ret_val), 5))
             go_board.play_game_view_endgame()
             assert go_board.quit.call_count == 1
 
@@ -110,8 +108,8 @@ class TestClassPyTestGoClasses:
 
     @pytest.mark.parametrize("location", [
         ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((7, 5)), ((8, 6))])
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces(self, mock_popup, mock_refresh, location):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
@@ -147,31 +145,31 @@ class TestClassPyTestGoClasses:
         if location == (40, 70):
             assert answer[0] is False
 
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
-    @patch("uifunctions.update_scoring")
-    @patch("goclasses.GoBoard.read_window", return_value=(("Pass Turn"), (5)))
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
+    @patch("GoGame.uifunctions.update_scoring")
+    @patch("GoGame.goclasses.GoBoard.read_window", return_value=(("Pass Turn"), (5)))
     def test_play_turn_pass(self, mock_read, mock_update, mock_popup, mock_refresh):
         the_board: go.GoBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.board[2][2].stone_here_color = cf.rgb_black
         the_board.play_turn()
 
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
-    @patch("uifunctions.update_scoring")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
+    @patch("GoGame.uifunctions.update_scoring")
     @patch("pygame.draw.circle")
     @patch("pygame.display.update")
     def test_play_turn_normal(self, mock_display, mock_draw_circle, mock_update, mock_popup, mock_refresh, mocker):
         the_board: go.GoBoard = go.GoBoard(9)
         the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
-        mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (2, 3)}))
-        mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[8][8])))
+        mocker.patch("GoGame.goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (2, 3)}))
+        mocker.patch("GoGame.goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[8][8])))
         the_board.play_turn()
 
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
-    @patch("uifunctions.update_scoring")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
+    @patch("GoGame.uifunctions.update_scoring")
     @patch("pygame.draw.circle")
     @patch("pygame.display.update")
     def test_play_turn_capture(self, mock_display, mock_draw_circle, mock_update, mock_popup, mock_refresh, mocker, mock_window):
@@ -179,8 +177,8 @@ class TestClassPyTestGoClasses:
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
         the_board.screen = mock_window
         the_board.pygame_board_vals = [700, 620 / 8, 620 / 24]
-        mocker.patch("goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (1, 0)}))
-        mocker.patch("goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[1][0])))
+        mocker.patch("GoGame.goclasses.GoBoard.read_window", return_value=('-GRAPH-', {'-GRAPH-': (1, 0)}))
+        mocker.patch("GoGame.goclasses.GoBoard.find_piece_click", return_value=((True, the_board.board[1][0])))
         the_board.play_turn()
 
     @pytest.mark.parametrize("location, result", [

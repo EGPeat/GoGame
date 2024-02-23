@@ -1,7 +1,8 @@
-import uifunctions as ui
-from goclasses import GoBoard
+import GoGame.uifunctions as ui
+from GoGame.goclasses import GoBoard
 from random import randrange
-from goclasses import play_turn_bot_helper
+from GoGame.goclasses import play_turn_bot_helper
+from typing import Union, Literal
 
 
 class BotBoard(GoBoard):
@@ -36,7 +37,7 @@ class BotBoard(GoBoard):
 
     def playing_mode_end_of_game(self) -> bool:
         "generates a score_board object, and then does automatic scoring, returning the winner as a bool. T/1 means black won."
-        from scoringboard import making_score_board_object
+        from GoGame.scoringboard import making_score_board_object
         winner = making_score_board_object(self)
         return winner
 
@@ -51,7 +52,7 @@ class BotBoard(GoBoard):
     def play_turn_bot(self) -> None:
         "Generates a random location for the bot to play, and then plays the turn."
         ui.update_scoring(self)
-        truth_value: bool = False
+        truth_value: Union[bool, Literal['Passed']] = False
         tries = 0
         while not truth_value:
             val = randrange(0, (self.board_size * self.board_size))

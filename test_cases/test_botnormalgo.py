@@ -1,11 +1,9 @@
 from unittest.mock import patch, MagicMock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import botnormalgo as bot
-import config as cf
-from saving_loading import load_pkl
-from goclasses import fills_eye, play_piece_bot
+import GoGame.botnormalgo as bot
+import GoGame.config as cf
+from GoGame.saving_loading import load_pkl
+from GoGame.goclasses import fills_eye, play_piece_bot
 
 
 class TestClassPyTestBotNormalGo:
@@ -62,8 +60,8 @@ class TestClassPyTestBotNormalGo:
 
     @pytest.mark.parametrize("location", [
         ((0, 0)), ((1, 0)), ((3, 3)), ((8, 8)), ((5, 7)), ((8, 6))])
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces_botboard(self, mock_popup, mock_refresh, location):
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_ko.pkl")
@@ -85,8 +83,8 @@ class TestClassPyTestBotNormalGo:
 
     @pytest.mark.parametrize("location", [
         ((7, 2)), ((6, 1))])
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
     def test_play_pieces_botboard_fills_eye(self, mock_popup, mock_refresh, location):
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
@@ -101,14 +99,14 @@ class TestClassPyTestBotNormalGo:
         ((72), (-3, -3)),
         ((10), (1, 1))
     ])
-    @patch("uifunctions.update_scoring")
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.update_scoring")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.uifunctions.def_popup")
     def test_play_turn_bot(self, mock_popup, mock_refresh, mock_update, location, result, mocker):
         the_board: bot.BotBoard = load_pkl(
             "/users/5/a1895735/Documents/PythonProjects/GoGame/test_cases/pklfilestesting/test_eyes.pkl")
         the_board.__class__ = bot.BotBoard
-        mocker.patch("botnormalgo.randrange", return_value=location)
+        mocker.patch("GoGame.botnormalgo.randrange", return_value=location)
         the_board.play_turn_bot()
         assert [the_board.position_played_log[-1][1]] == [result[0]]
         assert [the_board.position_played_log[-1][2]] == [result[1]]

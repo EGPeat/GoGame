@@ -1,11 +1,11 @@
 from time import sleep
 import pygame
-import uifunctions as ui
-from player import Player
-from goclasses import GoBoard, BoardNode, BoardString
-import config as cf
+import GoGame.uifunctions as ui
+from GoGame.player import Player
+from GoGame.goclasses import GoBoard, BoardNode, BoardString
+import GoGame.config as cf
 from typing import Tuple, List, Set, Union, Literal, Type
-from goclasses import diagonals_setup
+from GoGame.goclasses import diagonals_setup
 
 
 def making_score_board_object(board: GoBoard) -> bool:
@@ -174,7 +174,7 @@ class ScoringBoard(GoBoard):
         appends those tests to the MCST_collect.{color}_MCSTS_final variable, and then calls counting_territory.
         Returns a bool where 1/True means black won, 0/False means white won.
         '''
-        from mcst import CollectionOfMCST
+        from GoGame.mcst import CollectionOfMCST
         self.MCST_collection = CollectionOfMCST(self.board, self.outer_string_black, self.mixed_string_for_black,
                                                 self.outer_string_white, self.mixed_string_for_white,
                                                 5000, 30, (self.whose_turn, self.not_whose_turn))

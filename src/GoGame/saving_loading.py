@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import pygame
 from typing import Union
-from goclasses import GoBoard
+from GoGame.goclasses import GoBoard
 
 
 def move_to_pkl_directory() -> str:
@@ -43,7 +43,7 @@ def save_pickle_name_choice() -> Union[None, str]:
     Returns the filename as a string (or returns nothing)."""
     from os import path
     from time import sleep
-    from uifunctions import default_popup_no_button
+    from GoGame.uifunctions import default_popup_no_button
     full_path = move_to_pkl_directory()
     filename: str = ''
     while len(filename) < 1:
@@ -70,7 +70,7 @@ def load_pkl(inputPath):
 
 def choose_file(window) -> None:
     "Allows the user to choose a pickle file to load their game from."
-    from uifunctions import setup_board_window_pygame
+    from GoGame.uifunctions import setup_board_window_pygame
     move_to_pkl_directory()
     file = sg.popup_get_file('Select a file', title="File selector", font=('Arial Bold', 15))
     if file is None or file == "":

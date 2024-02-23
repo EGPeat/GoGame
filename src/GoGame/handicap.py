@@ -1,7 +1,7 @@
-import uifunctions as ui
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 import pygame
-import config as cf
+import GoGame.config as cf
 from typing import Tuple, List
 
 
@@ -14,7 +14,7 @@ class Handicap():
             GoBoard.board (playing pieces)
             GoBoard.handicap (recording the handicap values)
         '''
-        from goclasses import GoBoard
+        from GoGame.goclasses import GoBoard
         self.go_board: GoBoard = parent
 
     @staticmethod
@@ -110,7 +110,7 @@ class Handicap():
     def handle_exit_or_resume(self, event) -> None:
         '''Handles Exit Game or Resume events during handicap placement.'''
         if event in ["Exit Game", "Res"]:
-            from turn_options import normal_turn_options
+            from GoGame.turn_options import normal_turn_options
             normal_turn_options(self.go_board, event)
 
     def validate_handicap_placement(self):

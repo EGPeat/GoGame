@@ -1,10 +1,10 @@
 import random
 from typing import Tuple, List, Set, Union, Type, Literal, Dict, FrozenSet
-from goclasses import BoardNode, BoardString
-import config as cf
-from player import Player
-from goclasses import diagonals_setup, remove_stones, self_death_rule, fills_eye
-from scoringboard import flood_fill_two_colors
+from GoGame.goclasses import BoardNode, BoardString
+import GoGame.config as cf
+from GoGame.player import Player
+from GoGame.goclasses import diagonals_setup, remove_stones, self_death_rule, fills_eye
+from GoGame.scoringboard import flood_fill_two_colors
 
 
 class MCSTNode:
@@ -334,7 +334,7 @@ class MCST:
             return False
         elif (self.kill_stones(piece, node, testing=True) is True):
             return True
-        elif (self_death_rule(node, piece, node.whose_turn) == 0):
+        elif (self_death_rule(node, piece, node.whose_turn, set()) == 0):
             return False
         elif fills_eye(self, piece, node.whose_turn.unicode, node.not_whose_turn.unicode) is True:
             return False
@@ -345,7 +345,7 @@ class MCST:
         '''Checks if placing a piece breaks the ko rule.'''
         if final_test:
             return False
-        if self_death_rule(node, piece, node.whose_turn) > 0:
+        if self_death_rule(node, piece, node.whose_turn, set()) > 0:
             return False
         if piece in node.killed_last_turn and not simulate:
             return True
@@ -363,7 +363,7 @@ class MCST:
         truth_value: bool = False
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == node.not_whose_turn.unicode:
-                if (self_death_rule(node, neighbor, node.not_whose_turn) == 0):
+                if (self_death_rule(node, neighbor, node.not_whose_turn, set()) == 0):
                     if not testing:
                         remove_stones(node)
                     truth_value = True

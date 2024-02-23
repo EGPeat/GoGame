@@ -1,15 +1,13 @@
 from unittest.mock import patch
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import player
-import config as cf
+import GoGame.player as player
+import GoGame.config as cf
 
 
 class TestClassPyTestPlayer:
 
-    @patch("player.Player.choose_name")
-    @patch("player.Player.choose_komi")
+    @patch("GoGame.player.Player.choose_name")
+    @patch("GoGame.player.Player.choose_komi")
     def test_setup_player(self, mock_choose_name, mock_choose_komi):
         answer = player.Player.setup_player(defaults=False, nme="Temp", clr="Black", uc=cf.rgb_black)
         assert isinstance(answer, player.Player)

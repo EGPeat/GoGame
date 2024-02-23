@@ -1,4 +1,4 @@
-import uifunctions as ui
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 from typing import Optional, Tuple, Type
 

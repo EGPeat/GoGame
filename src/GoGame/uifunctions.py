@@ -3,7 +3,7 @@ import os
 import platform
 import pygame
 from typing import Tuple, List
-import config as cf
+import GoGame.config as cf
 
 
 def start_game() -> int:

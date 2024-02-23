@@ -1,16 +1,14 @@
 from unittest.mock import patch, MagicMock, call
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
 import PySimpleGUI as sg
-import turn_options as topt
+import GoGame.turn_options as topt
 
 
 class TestClassPyTestTurnOptions:
 
     @pytest.fixture
     def mock_gboard(self):
-        with patch("goclasses.GoBoard") as mock_goboard:
+        with patch("GoGame.goclasses.GoBoard") as mock_goboard:
             mock_goboard.times_passed = 0
             mock_goboard.turn_num = 0
             mock_goboard.position_played_log.append(("text", -4, -4))
@@ -29,8 +27,8 @@ class TestClassPyTestTurnOptions:
         with pytest.raises(SystemExit):
             topt.normal_turn_options(mock_gboard, "Res", "Quitting Game")
 
-    @patch("goclasses.GoBoard.switch_player")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.goclasses.GoBoard.switch_player")
+    @patch("GoGame.uifunctions.def_popup")
     def test_normal_turn_options_pass(self, mock_popup, mock_switch_player, mock_gboard):
         topt.normal_turn_options(mock_gboard, "Pass Turn", "Passing")
         assert mock_gboard.turn_num == 1
@@ -39,8 +37,8 @@ class TestClassPyTestTurnOptions:
         mock_gboard.position_played_log.assert_has_calls(expected_calls, any_order=True)
         assert mock_gboard.killed_log == ["Testing", []]
 
-    @patch("main.play_game_main")
-    @patch("uifunctions.close_window")
+    @patch("GoGame.main.play_game_main")
+    @patch("GoGame.uifunctions.close_window")
     def test_normal_turn_options_exit_game(self, mock_pgm, mock_close_window, mock_gboard):
         with pytest.raises(SystemExit):
             topt.normal_turn_options(mock_gboard, "Exit Game", "Exit Game Test")
@@ -51,24 +49,24 @@ class TestClassPyTestTurnOptions:
         with pytest.raises(ValueError):
             topt.normal_turn_options(mock_gboard, "Bad Input", "Quitting Game")
 
-    @patch("saving_loading.save_pickle")
+    @patch("GoGame.saving_loading.save_pickle")
     def test_normal_turn_options_save_game(self, mock_pickle, mock_gboard):
         topt.normal_turn_options(mock_gboard, "Save Game", "Save Game Test")
         mock_pickle.assert_called_once_with(mock_gboard)
 
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.def_popup")
     def test_normal_turn_options_undo_turn_zero(self, mock_popup, mock_gboard):
         topt.normal_turn_options(mock_gboard, "Undo Turn", "Undo Turn Test")
         mock_popup.assert_called_once()
 
-    @patch("undoing.undo_checker")
+    @patch("GoGame.undoing.undo_checker")
     def test_normal_turn_options_undo_turn_one(self, mock_undo, mock_gboard):
         mock_gboard.turn_num = 1
         topt.normal_turn_options(mock_gboard, "Undo Turn", "Undo Turn Test")
         mock_undo.assert_called_once()
 
-    @patch("goclasses.GoBoard.switch_player")
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.goclasses.GoBoard.switch_player")
+    @patch("GoGame.uifunctions.def_popup")
     def test_remove_dead_turn_option_pass(self, mock_popup, mock_switch_player, mock_gboard):
         topt.remove_dead_turn_options(mock_gboard, "Pass Turn")
         assert mock_gboard.turn_num == 1
@@ -77,18 +75,18 @@ class TestClassPyTestTurnOptions:
         mock_gboard.position_played_log.assert_has_calls(expected_calls, any_order=True)
         assert mock_gboard.killed_log == ["Testing", []]
 
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.uifunctions.def_popup")
     def test_remove_dead_turn_options_undo_turn_zero(self, mock_popup, mock_gboard):
         topt.remove_dead_turn_options(mock_gboard, "Undo Turn")
         mock_popup.assert_called_once()
 
-    @patch("undoing.undo_checker")
+    @patch("GoGame.undoing.undo_checker")
     def test_remove_dead_turn_options_undo_turn_one(self, mock_undo, mock_gboard):
         mock_gboard.turn_num = 1
         topt.remove_dead_turn_options(mock_gboard, "Undo Turn")
         mock_undo.assert_called_once()
 
-    @patch("saving_loading.save_pickle")
+    @patch("GoGame.saving_loading.save_pickle")
     def test_remove_dead_turn_options_save_game(self, mock_pickle, mock_gboard):
         topt.remove_dead_turn_options(mock_gboard, "Save Game")
         mock_pickle.assert_called_once_with(mock_gboard)
@@ -97,8 +95,8 @@ class TestClassPyTestTurnOptions:
         answer = topt.remove_dead_turn_options(mock_gboard, "Bad Input")
         assert answer is True
 
-    @patch("main.play_game_main")
-    @patch("uifunctions.close_window")
+    @patch("GoGame.main.play_game_main")
+    @patch("GoGame.uifunctions.close_window")
     def test_return_dead_turn_options_exit_game(self, mock_pgm, mock_close_window, mock_gboard):
         with pytest.raises(SystemExit):
             topt.remove_dead_turn_options(mock_gboard, "Exit Game")
@@ -109,7 +107,7 @@ class TestClassPyTestTurnOptions:
         with pytest.raises(SystemExit):
             topt.remove_dead_turn_options(mock_gboard, sg.WIN_CLOSED)
 
-    @patch("goclasses.GoBoard.resuming_scoring_buffer")
+    @patch("GoGame.goclasses.GoBoard.resuming_scoring_buffer")
     def test_return_dead_turn_options_pass(self, mock_scoring_buffer, mock_gboard):
         mock_gboard.mode = "Scoring"
         mock_gboard.mode_change = False

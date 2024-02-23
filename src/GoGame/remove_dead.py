@@ -1,8 +1,8 @@
-from goclasses import GoBoard, BoardNode
-import uifunctions as ui
+from GoGame.goclasses import GoBoard, BoardNode
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 from typing import Tuple, List, Set
-import config as cf
+import GoGame.config as cf
 
 
 def remove_dead(board: GoBoard) -> None:
@@ -10,7 +10,7 @@ def remove_dead(board: GoBoard) -> None:
     This function waits for player input to select dead stones, and then processes the removal of those stones.
     Switches players at the end to allow for the other player to choose which pieces to remove.
     '''
-    from turn_options import remove_dead_turn_options
+    from GoGame.turn_options import remove_dead_turn_options
     board.killed_last_turn.clear()
     ui.update_scoring(board)
     truth_value: bool = False
@@ -43,7 +43,7 @@ def remove_dead_found_piece(board: GoBoard, piece: BoardNode) -> Tuple[str, List
     Returns a Tuple, with the first value being a string indicating if the other player agrees to removing pieces.
     The second value is a list of tuples, representing the board location of a piece to remove, as well as it's color.
     '''
-    from scoringboard import flood_fill
+    from GoGame.scoringboard import flood_fill
     series: Tuple[Set[BoardNode], Set[BoardNode]] = flood_fill(piece)
     piece_string: List[Tuple[Tuple[int, int], Tuple[int, int, int]]] = list()
     for item in series[0]:

@@ -1,9 +1,9 @@
-from handicap import Handicap
-from goclasses import GoBoard, BoardNode, BoardString
+from GoGame.handicap import Handicap
+from GoGame.goclasses import GoBoard, BoardNode, BoardString
 import sys
 from typing import Tuple, Optional, List, Set, Union, Type
-from scoringboard import ScoringBoard
-from goclasses import play_turn_bot_helper
+from GoGame.scoringboard import ScoringBoard
+from GoGame.goclasses import play_turn_bot_helper
 
 sys.setrecursionlimit(10000)
 
@@ -72,9 +72,8 @@ class NNBoard(GoBoard):
         # Mode and handicap attributes
         self.mode, self.mode_change = "Playing", True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
-        from neuralnet import nn_model
-        self.nn = nn_model()
-        self.nn_bad = self.nn
+        self.nn = self.nn
+        self.nn_bad = self.nn_bad
 
     def play_game(self, from_file: Optional[bool] = False, fixes_handicap: Optional[bool] = False):
         '''
@@ -135,7 +134,7 @@ class NNBoard(GoBoard):
         This function plays a turn by capturing info from a mouse click or a bot move and then plays the turn.
         bot: a bool indicating if a bot is playing this turn.
         '''
-        from nnmcst import NNMCST
+        from GoGame.nnmcst import NNMCST
         import copy
         truth_value: bool = False
         while not truth_value:

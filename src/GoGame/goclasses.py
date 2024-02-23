@@ -1,17 +1,17 @@
-import uifunctions as ui
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 import math
 import pygame
 import sys
-from player import Player
-from handicap import Handicap
-import config as cf
-from typing import Tuple, Optional, List, Set, Union, Literal, Dict
+from GoGame.player import Player
+from GoGame.handicap import Handicap
+import GoGame.config as cf
+from typing import Tuple, Optional, List, Set, Union, Literal, Dict, Type
 sys.setrecursionlimit(10000)
 
 
 class BoardNode():
-    def __init__(self, row_value: Optional[int] = None, col_value: Optional[int] = None):
+    def __init__(self, row_value: int, col_value: int):
         """
         Initializes a BoardNode instance with optional row and column values.
 
@@ -36,8 +36,8 @@ class BoardNode():
 
         self.row: int = row_value
         self.col: int = col_value
-        self.screen_row: float = None
-        self.screen_col: float = None
+        self.screen_row: Union[float, None] = None
+        self.screen_col: Union[float, None] = None
         self.stone_here_color: Tuple[int, int, int] = cf.rgb_grey
         self.connections: Set[BoardNode] = set()
 
@@ -104,7 +104,7 @@ class BoardString():
 
 
 class GoBoard():
-    def __init__(self, board_size=9, defaults=True):
+    def __init__(self, board_size=9, defaults=True) -> None:
         """
         Initializes a GoBoard instance with optional board size and default settings.
 
@@ -141,24 +141,24 @@ class GoBoard():
         self.position_played_log: List[Union[str, Tuple[str, int, int]]] = []
         self.visit_kill: Set[BoardNode] = set()
         self.killed_last_turn: Set[BoardNode] = set()
-        self.killed_log: List[List[Union[Tuple[Tuple[int, int, int], int, int], List[None]]]] = list()
+        self.killed_log: Union[List[Tuple[Tuple[int, int, int], int, int]], List[None]] = list()
 
         # Mode and handicap attributes
         self.mode, self.mode_change = "Playing", True
         self.handicap: Tuple[bool, str, int] = Handicap.default_handicap()
 
         # pygame and pySimpleGui attributes
-        self.window: sg.Window = None
-        self.screen: pygame.Surface = None
-        self.backup_board: pygame.Surface = None
-        self.pygame_board_vals: Tuple[int, float, float] = None
+        self.window: Union[sg.Window, None] = None
+        self.screen: Union[pygame.Surface, None] = None
+        self.backup_board: Union[pygame.Surface, None] = None
+        self.pygame_board_vals: Union[Tuple[int, float, float], None]
 
     def init_helper_player(self) -> None:
         '''Initializes class variables to do with the players'''
-        self.player_black: Player = Player.setup_player(self.defaults, "Player One", "Black", cf.rgb_black)
-        self.player_white: Player = Player.setup_player(self.defaults, "Player Two", "White", cf.rgb_white)
-        self.whose_turn: Player = self.player_black
-        self.not_whose_turn: Player = self.player_white
+        self.player_black: Type['Player'] = Player.setup_player(self.defaults, "Player One", "Black", cf.rgb_black)
+        self.player_white: Type['Player'] = Player.setup_player(self.defaults, "Player Two", "White", cf.rgb_white)
+        self.whose_turn: Type['Player'] = self.player_black
+        self.not_whose_turn: Type['Player'] = self.player_white
 
     def make_board_string(self) -> str:
         '''
@@ -272,7 +272,7 @@ class GoBoard():
         ui.refresh_board_pygame(self)
         event, _ = self.read_window()
         if event == "Exit Game":
-            from main import play_game_main
+            from GoGame.main import play_game_main
             ui.close_window(self)
             play_game_main()
             quit()
@@ -291,7 +291,7 @@ class GoBoard():
             if self.mode_change:
                 ui.switch_button_mode(self)
             while self.mode == "Scoring":
-                from remove_dead import remove_dead
+                from GoGame.remove_dead import remove_dead
                 remove_dead(self)
                 if self.times_passed == 2:
                     self.mode = "Finished"
@@ -304,7 +304,7 @@ class GoBoard():
                 self.mode = "Scoring"
                 self.resuming_scoring_buffer("Scoring")
                 self.times_passed = 0
-        from scoringboard import making_score_board_object
+        from GoGame.scoringboard import making_score_board_object
         winner = making_score_board_object(self)
         self.end_of_game()
         return winner
@@ -319,10 +319,10 @@ class GoBoard():
         '''Handles the end of the game, i.e. displaying the winner, saving the game state, and returning to the main menu.'''
         ui.end_game_popup(self)
         ui.default_popup_no_button("Please save to a file, thank you.", 3)
-        from saving_loading import save_pickle
+        from GoGame.saving_loading import save_pickle
         save_pickle(self)
 
-    def find_piece_click(self, input_location: Tuple[float, float]) -> Tuple[bool, Union[List[int], BoardNode]]:
+    def find_piece_click(self, input_location: list) -> Tuple[bool, Union[List[int], BoardNode]]:
         '''Finds the BoardNode corresponding to a clicked location on the game board.'''
         for item_row in self.board:
             for item in item_row:
@@ -338,7 +338,7 @@ class GoBoard():
         while not truth_value:
             event, values = self.read_window()
             if event != "-GRAPH-":
-                from turn_options import normal_turn_options
+                from GoGame.turn_options import normal_turn_options
                 normal_turn_options(self, event, text="Passed")
                 if event == "Pass Turn" or event == "Res" or event == "Undo Turn":
                     return
@@ -361,9 +361,9 @@ class GoBoard():
                 self.times_passed = 0
         return truth_value
 
-    def make_turn_info(self):
+    def make_turn_info(self) -> None:
         'Appends information to killed_log, and switches the whose_turn/not_whose_turn values.'
-        temp_list: List[Tuple[Tuple[int, int, int], int, int]] = list()
+        temp_list: Union[List[Tuple[Tuple[int, int, int], int, int]], List[None]] = list()
         for item in self.killed_last_turn:
             temp_list.append((self.not_whose_turn.unicode, item.row, item.col))
         self.killed_log.append(temp_list)
@@ -385,7 +385,7 @@ class GoBoard():
             piece_placement(self, piece, row, col)
             ui.refresh_board_pygame(self)
             return True
-        elif (self_death_rule(self, piece, self.whose_turn) == 0):
+        elif (self_death_rule(self, piece, self.whose_turn, set()) == 0):
             ui.def_popup("Place the piece there would break the self death rule. Please try your turn again.", 2)
             return False
         else:
@@ -396,7 +396,7 @@ class GoBoard():
 
     def ko_rule_break(self, piece: BoardNode) -> bool:
         '''Checks if placing a piece breaks the ko rule.'''
-        if self_death_rule(self, piece, self.whose_turn) > 0:
+        if self_death_rule(self, piece, self.whose_turn, set()) > 0:
             return False
         if piece in self.killed_last_turn:
             return True
@@ -412,7 +412,7 @@ class GoBoard():
         truth_value: bool = False
         for neighbor in neighboring_pieces:
             if neighbor.stone_here_color == self.not_whose_turn.unicode:
-                if (self_death_rule(self, neighbor, self.not_whose_turn) == 0):
+                if (self_death_rule(self, neighbor, self.not_whose_turn, set()) == 0):
                     remove_stones(self)
                     truth_value = True
         if truth_value is False:
@@ -420,11 +420,8 @@ class GoBoard():
         return truth_value
 
 
-@staticmethod
-def self_death_rule(self, piece: BoardNode, which_player: Player, visited: Optional[Set[BoardNode]] = None) -> int:
+def self_death_rule(self, piece: BoardNode, which_player: Type['Player'], visited: Set[BoardNode]) -> int:
     '''Uses recursive BFS to find liberties and connected pieces of the same type, returns the number of liberties'''
-    if visited is None:
-        visited: Set[BoardNode] = set()
     visited.add(piece)
     neighboring_piece: Set[BoardNode] = piece.connections
     liberties: int = 0
@@ -439,7 +436,6 @@ def self_death_rule(self, piece: BoardNode, which_player: Player, visited: Optio
     return liberties
 
 
-@staticmethod
 def remove_stones(self) -> None:
     '''Removes stones marked for removal.'''
     self.killed_last_turn.clear()
@@ -448,7 +444,6 @@ def remove_stones(self) -> None:
         position.stone_here_color = cf.rgb_grey
 
 
-@staticmethod
 def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
     '''Sets up and returns a set of Boardnodes of diagonal neighbors for a given board piece.'''
     board_size = len(self.board)
@@ -461,7 +456,6 @@ def diagonals_setup(self, piece: BoardNode) -> Set[BoardNode]:
     return diagonals
 
 
-@staticmethod
 def fills_eye(self, piece: BoardNode, whose_turn_uni, not_whose_uni) -> bool:
     '''
     Check if placing a stone in the given position would fill an eye.
@@ -507,7 +501,6 @@ def fills_eye(self, piece: BoardNode, whose_turn_uni, not_whose_uni) -> bool:
         return True
 
 
-@staticmethod
 def play_piece_bot(self, row: int, col: int) -> bool:
     '''
     Attempts to play a piece on the board and handles rule violations.
@@ -521,7 +514,7 @@ def play_piece_bot(self, row: int, col: int) -> bool:
     elif (self.kill_stones(piece) is True):
         piece_placement(self, piece, row, col)
         return True
-    elif (self_death_rule(self, piece, self.whose_turn) == 0):
+    elif (self_death_rule(self, piece, self.whose_turn, set()) == 0):
         return False
     elif fills_eye(self, piece, self.whose_turn.unicode, self.not_whose_turn.unicode):
         return False
@@ -531,7 +524,6 @@ def play_piece_bot(self, row: int, col: int) -> bool:
         return True
 
 
-@staticmethod
 def play_turn_bot_helper(self, truth_value, val) -> Union[Literal['Passed'], bool]:
     '''
     This function represents the bot's move during a turn.
@@ -558,7 +550,6 @@ def play_turn_bot_helper(self, truth_value, val) -> Union[Literal['Passed'], boo
     return truth_value
 
 
-@staticmethod
 def piece_placement(self, piece: BoardNode, row: int, col: int) -> None:
     '''Places a piece on the board and updates game state.'''
     piece.stone_here_color = self.whose_turn.unicode

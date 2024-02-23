@@ -1,0 +1,25 @@
+Metadata-Version: 2.1
+Name: GoGame
+Version: 0.0.0
+Summary: Python implementation of Go/Baduk, including a GUI to play it, as well as a implementation of AlphaGo Zero.
+Author: Evan Peatman
+License: MIT
+Platform: unix
+Platform: linux
+Platform: win32
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: PySimpleGui>=4
+Requires-Dist: pygame>=2
+Requires-Dist: tensorflow>=2.11
+Provides-Extra: testing
+Requires-Dist: flake8>=4.0; extra == "testing"
+Requires-Dist: tox>=4.13; extra == "testing"
+Requires-Dist: pytest>=7.0; extra == "testing"
+Requires-Dist: coverage>=7.2; extra == "testing"

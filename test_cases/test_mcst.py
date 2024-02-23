@@ -1,11 +1,9 @@
 from unittest.mock import patch, call
-import sys
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import config as cf
-from saving_loading import load_pkl
-import mcst as mcst
-import goclasses as go
-import scoringboard as sb
+import GoGame.config as cf
+from GoGame.saving_loading import load_pkl
+import GoGame.mcst as mcst
+import GoGame.goclasses as go
+import GoGame.scoringboard as sb
 import random
 
 
@@ -62,7 +60,7 @@ class TestClassPyTestMCST:
         assert mcst_list_string4 != mcst_list_string3
 
     def test_print_board(self):
-        from goclasses import BoardNode
+        from GoGame.goclasses import BoardNode
         the_board, _, test_mcst = self.setup_board()
         sample_board = [
             [BoardNode(0, 0), BoardNode(1, 0), BoardNode(2, 0)],

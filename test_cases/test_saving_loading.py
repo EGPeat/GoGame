@@ -1,8 +1,6 @@
 from unittest.mock import patch, MagicMock, Mock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import saving_loading as save
+import GoGame.saving_loading as save
 cur_dir = "/users/5/a1895735/Documents/PythonProjects/GoGame/"
 
 
@@ -45,8 +43,8 @@ class TestClassPyTestSavingLoading:
 
     @patch('PySimpleGUI.popup_get_file', return_value=f'{cur_dir}test_cases/pklfilestesting/for_unit_testing.pkl')
     @patch('PySimpleGUI.popup_no_buttons')
-    @patch('saving_loading.load_pkl', return_value=MagicMock())
-    @patch("uifunctions.setup_board_window_pygame")
+    @patch('GoGame.saving_loading.load_pkl', return_value=MagicMock())
+    @patch("GoGame.uifunctions.setup_board_window_pygame")
     def test_choose_file(self, mock_setup_board, mock_load_pkl, mock_no_buttons, mock_get_file):
         window_mock = Mock()
         window_mock.close = Mock()
@@ -59,8 +57,8 @@ class TestClassPyTestSavingLoading:
 
     @patch('PySimpleGUI.popup_get_file', return_value=None)
     @patch('PySimpleGUI.popup_no_buttons')
-    @patch('saving_loading.load_pkl', return_value=MagicMock())
-    @patch("uifunctions.setup_board_window_pygame")
+    @patch('GoGame.saving_loading.load_pkl', return_value=MagicMock())
+    @patch("GoGame.uifunctions.setup_board_window_pygame")
     def test_choose_file_none(self, mock_setup_board, mock_load_pkl, mock_no_buttons, mock_get_file):
         window_mock = Mock()
         window_mock.close = Mock()

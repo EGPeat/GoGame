@@ -1,7 +1,7 @@
-import config as cf
+import GoGame.config as cf
 from typing import Tuple, Optional
-from goclasses import BoardNode, GoBoard
-import uifunctions as ui
+from GoGame.goclasses import BoardNode, GoBoard
+import GoGame.uifunctions as ui
 
 
 def undo_checker(board: GoBoard) -> None:

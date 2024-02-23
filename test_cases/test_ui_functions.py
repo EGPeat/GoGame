@@ -1,11 +1,9 @@
 from unittest.mock import patch, MagicMock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import uifunctions as ui
-import config as cf
+import GoGame.uifunctions as ui
+import GoGame.config as cf
 import PySimpleGUI as sg
-import goclasses as go
+import GoGame.goclasses as go
 import pygame
 
 
@@ -61,7 +59,7 @@ class TestClassPyTestUI:
         assert window["Info"].get() == text
         window.close()
 
-    @patch("goclasses.GoBoard")
+    @patch("GoGame.goclasses.GoBoard")
     @patch("platform.system")
     def test_setup_board_window_pygame_linux(self, mock_sys, mock_board):
         mock_sys.return_value = 'Linux'

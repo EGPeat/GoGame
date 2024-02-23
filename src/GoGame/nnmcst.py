@@ -1,10 +1,10 @@
-from goclasses import BoardNode, BoardString
+from GoGame.goclasses import BoardNode, BoardString
 from typing import Tuple, List, Set, Union, Type, Dict, FrozenSet, Literal
-from player import Player
-from mcst import MCSTNode, MCST
-import config as cf
+from GoGame.player import Player
+from GoGame.mcst import MCSTNode, MCST
+import GoGame.config as cf
 import math
-from neuralnet import neural_net_calcuation, generate_17_length
+from GoGame.neuralnet import neural_net_calcuation, generate_17_length
 import copy
 from numpy import argmax
 
@@ -267,6 +267,8 @@ class NNMCST(MCST):
                 return True
             else:
                 return False
+        else:
+            return False
 
     def expand(self, node: NNMCSTNode, idx) -> None:
         '''Expands the MCST by choosing a move and creating a child node.'''
@@ -298,9 +300,9 @@ class NNMCST(MCST):
         Returns the possible moves as a List of moves, with moves represented as BoardNodes or as "Pass".
         '''
         if self.cache_hash in self.cache:
-            legal_moves = list(self.cache[self.cache_hash])
-            legal_moves += ["Pass"]
-            return legal_moves
+            moves = list(self.cache[self.cache_hash])
+            moves += ["Pass"]
+            return moves
         legal_moves: List[Union[BoardNode, Literal["Pass"]]] = ["Pass"]
         legal_moves_set: Union[Set[None], Set[BoardNode]] = set()
         for board_node in self.board_BoardString.member_set:

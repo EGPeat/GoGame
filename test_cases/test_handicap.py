@@ -1,15 +1,13 @@
 from unittest.mock import patch, MagicMock
-import sys
 import pytest
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import handicap as hand
+import GoGame.handicap as hand
 
 
 class TestClassPyTestHandicap:
 
     @pytest.fixture
     def startup_goboard(self):
-        with patch("goclasses.GoBoard") as mock_goboard:
+        with patch("GoGame.goclasses.GoBoard") as mock_goboard:
             mock_goboard.board_size = 9
             mock_goboard.not_whose_turn.color = "Black"
             handicap_instance = hand.Handicap(mock_goboard)
@@ -26,7 +24,7 @@ class TestClassPyTestHandicap:
 
     @pytest.mark.parametrize("person, output", [("Black", True), ("White", True), ("I don't want a handicap", False)])
     def test_handicap_person(self, startup_goboard, mocker, person, output):
-        mocker.patch("uifunctions.handicap_person_gui", return_value=(person))
+        mocker.patch("GoGame.uifunctions.handicap_person_gui", return_value=(person))
         answer = startup_goboard.handicap_person()
         assert answer == output
 
@@ -34,48 +32,48 @@ class TestClassPyTestHandicap:
         answer = hand.Handicap.custom_handicap(startup_goboard, defaults=True)
         assert answer == (False, "None", 0)
 
-    @patch("handicap.Handicap.custom_handicap_player_input", return_value=("No", [], False, -1))
+    @patch("GoGame.handicap.Handicap.custom_handicap_player_input", return_value=("No", [], False, -1))
     def test_custom_handicap_decided_not(self, mock_player_input, startup_goboard):
         answer = hand.Handicap.custom_handicap(startup_goboard, defaults=False)
         assert answer == (False, "None", 0)
 
-    @patch("handicap.Handicap.custom_handicap_player_input",
+    @patch("GoGame.handicap.Handicap.custom_handicap_player_input",
            return_value=("No", [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)], True, 5))
-    @patch("handicap.Handicap.play_automatic_handicap")
+    @patch("GoGame.handicap.Handicap.play_automatic_handicap")
     def test_custom_handicap_automatic(self, mock_auto_handicap, mock_player_input, startup_goboard):
         answer = hand.Handicap.custom_handicap(startup_goboard, defaults=False)
         assert answer == (True, startup_goboard.go_board.not_whose_turn.color, 5)
 
-    @patch("handicap.Handicap.custom_handicap_player_input",
+    @patch("GoGame.handicap.Handicap.custom_handicap_player_input",
            return_value=("Yes", [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)], True, 5))
-    @patch("handicap.Handicap.manual_handicap_placement")
+    @patch("GoGame.handicap.Handicap.manual_handicap_placement")
     def test_custom_handicap_manual(self, mock_manual_handicap, mock_player_input, startup_goboard):
         answer = hand.Handicap.custom_handicap(startup_goboard, defaults=False)
         assert answer == (True, startup_goboard.go_board.not_whose_turn.color, 5)
 
-    @patch("handicap.Handicap.choose_handicap_list")
+    @patch("GoGame.handicap.Handicap.choose_handicap_list")
     def test_custom_handicap_player_input(self, mock_handicap_list, startup_goboard, mocker):
         mocker.patch('PySimpleGUI.popup_yes_no', return_value="No")
-        mocker.patch('handicap.Handicap.handicap_person', return_value=True)
-        mocker.patch('uifunctions.handicap_number_gui', return_value=5)
+        mocker.patch('GoGame.handicap.Handicap.handicap_person', return_value=True)
+        mocker.patch('GoGame.uifunctions.handicap_number_gui', return_value=5)
         answer = startup_goboard.custom_handicap_player_input()
         assert answer[0] == "No"
         assert answer[2] is True
         assert answer[3] == 5
 
-    @patch("handicap.Handicap.choose_handicap_list")
+    @patch("GoGame.handicap.Handicap.choose_handicap_list")
     def test_custom_handicap_player_input_no_actual(self, mock_handicap_list, startup_goboard, mocker):
         mocker.patch('PySimpleGUI.popup_yes_no', return_value="No")
-        mocker.patch('handicap.Handicap.handicap_person', return_value=False)
-        mocker.patch('uifunctions.handicap_number_gui', return_value=5)
+        mocker.patch('GoGame.handicap.Handicap.handicap_person', return_value=False)
+        mocker.patch('GoGame.uifunctions.handicap_number_gui', return_value=5)
         answer = startup_goboard.custom_handicap_player_input()
         assert answer == ("No", [], False, -1)
 
     @pytest.mark.parametrize("amount", [(1), (2), (3), (4), (5)])
     @patch("pygame.draw.circle")
-    @patch("goclasses.GoBoard.play_piece")
-    @patch("uifunctions.refresh_board_pygame")
-    @patch("goclasses.GoBoard.switch_player")
+    @patch("GoGame.goclasses.GoBoard.play_piece")
+    @patch("GoGame.uifunctions.refresh_board_pygame")
+    @patch("GoGame.goclasses.GoBoard.switch_player")
     def test_automatic_placement(self, mock_switch_p, mock_refresh, mock_play_piece, mock_draw_circle, startup_goboard, amount):
         handicap_spots = [(2, 6), (6, 2), (6, 6), (2, 2), (4, 4)]
         startup_goboard.go_board.whose_turn.unicode = hand.cf.rgb_black
@@ -102,7 +100,7 @@ class TestClassPyTestHandicap:
         result = self.your_instance.validate_handicap_placement()
         assert result == empty_piece
 
-    @patch("handicap.Handicap.handle_special_events")
+    @patch("GoGame.handicap.Handicap.handle_special_events")
     def test_handle_special_events_no_special_event(self, mock_handle_special_events):
         go_board = MagicMock()
         mock_handle_special_events.return_value = "Normal Event"
@@ -112,8 +110,8 @@ class TestClassPyTestHandicap:
 
         assert answer == "Normal Event"
 
-    @patch("goclasses.GoBoard.read_window", side_effect=[('Pass Turn', 4), ('Normal Event', 5)])
-    @patch("uifunctions.def_popup")
+    @patch("GoGame.goclasses.GoBoard.read_window", side_effect=[('Pass Turn', 4), ('Normal Event', 5)])
+    @patch("GoGame.uifunctions.def_popup")
     def test_handle_special_events_with_special_event(self, ui_popup, mock_read_window):
         self.go_board = MagicMock()
         special_event = "Pass Turn"
@@ -123,11 +121,11 @@ class TestClassPyTestHandicap:
         print(f"Values returned by read_window: {mock_read_window.call_args_list}")
         assert result is None
 
-    @patch("turn_options.normal_turn_options")
+    @patch("GoGame.turn_options.normal_turn_options")
     def test_handle_exit_or_resume_exit_game(self, mock_normal_turn_options):
         go_board = MagicMock()
         exit_event = "Exit Game"
-        with patch("handicap.Handicap.handle_special_events", return_value=None):
+        with patch("GoGame.handicap.Handicap.handle_special_events", return_value=None):
             answer = hand.Handicap(go_board)
             answer.handle_exit_or_resume(exit_event)
 
@@ -138,8 +136,8 @@ class TestClassPyTestHandicap:
         (2, 1, False, 2),
         (4, 0, True, 4),
     ])
-    @patch("uifunctions.def_popup")
-    @patch("handicap.Handicap.validate_handicap_placement")
+    @patch("GoGame.uifunctions.def_popup")
+    @patch("GoGame.handicap.Handicap.validate_handicap_placement")
     @patch("pygame.display.update")
     @patch("pygame.surface.Surface")
     @patch("pygame.draw.circle")

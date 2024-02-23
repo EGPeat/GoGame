@@ -1,10 +1,8 @@
-import sys
-sys.path.append("/users/5/a1895735/Documents/PythonProjects/GoGame/")
-import config as cf
-from saving_loading import load_pkl
-import scoringboard as sb
-from scoringboard import flood_fill, flood_fill_two_colors
-import goclasses as go
+import GoGame.config as cf
+from GoGame.saving_loading import load_pkl
+import GoGame.scoringboard as sb
+from GoGame.scoringboard import flood_fill, flood_fill_two_colors
+import GoGame.goclasses as go
 
 
 class TestClassPyTestScoringBoard:

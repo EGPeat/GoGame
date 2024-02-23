@@ -1,5 +1,5 @@
-import game_initialization as start
-import uifunctions as ui
+import GoGame.game_initialization as start
+import GoGame.uifunctions as ui
 import PySimpleGUI as sg
 
 
@@ -16,7 +16,7 @@ def play_game_main():
         event, _ = window.read()
 
         if event == "Choose File":
-            from saving_loading import choose_file
+            from GoGame.saving_loading import choose_file
             choose_file(window)
             break
 
@@ -29,7 +29,7 @@ def play_game_main():
         elif event == "Play Against AI":
             start.initializing_game(window, 9, True, vs_bot=True)
         elif event == "AI SelfPlay":
-            from neuralnet import training_cycle
+            from GoGame.neuralnet import training_cycle
             window.close()
             import cProfile
             import pstats
@@ -39,7 +39,7 @@ def play_game_main():
                 stats.sort_stats(pstats.SortKey.TIME)
                 stats.dump_stats(filename="5000x30testingv3.prof")
         elif event == "AI Training":
-            from neuralnet import loading_file_for_training
+            from GoGame.neuralnet import loading_file_for_training
             window.close()
             loading_file_for_training(epochs=10, size_of_batch=32)
         elif event in (sg.WIN_CLOSED, 'Exit Game'):

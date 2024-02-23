@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
-import uifunctions as ui
-from goclasses import GoBoard
+import GoGame.uifunctions as ui
+from GoGame.goclasses import GoBoard
 from typing import Optional
 
 
@@ -20,17 +20,17 @@ def normal_turn_options(board: GoBoard, event, text: Optional[str] = None) -> No
         board.killed_log.append([])
         board.switch_player()
     elif event == "Save Game":
-        from saving_loading import save_pickle
+        from GoGame.saving_loading import save_pickle
         save_pickle(board)
     elif event == "Undo Turn":
         if board.turn_num == 0:
             ui.def_popup("You can't undo when nothing has happened.", 2)
         elif board.turn_num >= 1:
-            from undoing import undo_checker
+            from GoGame.undoing import undo_checker
             undo_checker(board)
             return
     elif event == "Exit Game":
-        from main import play_game_main
+        from GoGame.main import play_game_main
         ui.close_window(board)
         play_game_main()
         quit()
@@ -44,7 +44,7 @@ def remove_dead_turn_options(board: GoBoard, event) -> bool:
         normal_turn_options(board, event, text="Scoring Passed")
         return False
     elif event == "Save Game":
-        from saving_loading import save_pickle
+        from GoGame.saving_loading import save_pickle
         save_pickle(board)
         return False
     elif event == "Res":

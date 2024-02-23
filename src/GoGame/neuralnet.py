@@ -1,4 +1,4 @@
-import neuralnetboard as nn
+import GoGame.neuralnetboard as nn
 import numpy as np
 from typing import List
 import sys
