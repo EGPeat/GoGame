@@ -1,6 +1,6 @@
 PySimpleGui>=4
 pygame>=2
-tensorflow>=2.11
+tensorflow>=2.12
 
 [testing]
 flake8>=4.0

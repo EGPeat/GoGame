@@ -16,7 +16,7 @@ Requires-Python: >=3.9
 License-File: LICENSE
 Requires-Dist: PySimpleGui>=4
 Requires-Dist: pygame>=2
-Requires-Dist: tensorflow>=2.11
+Requires-Dist: tensorflow>=2.12
 Provides-Extra: testing
 Requires-Dist: flake8>=4.0; extra == "testing"
 Requires-Dist: tox>=4.13; extra == "testing"
