@@ -5,6 +5,7 @@ import GoGame.config as cf
 import PySimpleGUI as sg
 import GoGame.goclasses as go
 import pygame
+import os
 
 
 class TestClassPyTestUI:
@@ -25,46 +26,56 @@ class TestClassPyTestUI:
 
     @patch('PySimpleGUI.Window.read', return_value=('9x9', {}))
     def test_start_game_9x9(self, _):
-        result = ui.start_game()
-        assert result == 9
+        if os.getenv("DISPLAY") is not None:
+            result = ui.start_game()
+            assert result == 9
+        else:
+            pass
 
     @patch('PySimpleGUI.Window.read', return_value=('13x13', {}))
     def test_start_game_13x13(self, _):
-        result = ui.start_game()
-        assert result == 13
+        if os.getenv("DISPLAY") is not None:
+            result = ui.start_game()
+            assert result == 13
 
     @patch('PySimpleGUI.Window.read', return_value=('19x19', {}))
     def test_start_game_19x19(self, _):
-        result = ui.start_game()
-        assert result == 19
+        if os.getenv("DISPLAY") is not None:
+            result = ui.start_game()
+            assert result == 19
 
     @patch('PySimpleGUI.Window.read', return_value=('Black', {}))
     def test_handicap_person_gui_black(self, _):
-        result = ui.handicap_person_gui()
-        assert result == 'Black'
+        if os.getenv("DISPLAY") is not None:
+            result = ui.handicap_person_gui()
+            assert result == 'Black'
 
     @patch('PySimpleGUI.Window.read', return_value=('White', {}))
     def test_handicap_person_gui_white(self, _):
-        result = ui.handicap_person_gui()
-        assert result == 'White'
+        if os.getenv("DISPLAY") is not None:
+            result = ui.handicap_person_gui()
+            assert result == 'White'
 
     @patch('PySimpleGUI.Window.read', return_value=("I don't want a handicap", {}))
     def test_handicap_person_gui_no_handicap(self, _):
-        result = ui.handicap_person_gui()
-        assert result == "I don't want a handicap"
+        if os.getenv("DISPLAY") is not None:
+            result = ui.handicap_person_gui()
+            assert result == "I don't want a handicap"
 
     def test_setup_menu(self):
-        window = ui.setup_menu()
-        text = "The default settings are a 9x9 board, 7.5 komi, and names for players of Player 1 and Player 2"
-        assert window["Info"].get() == text
-        window.close()
+        if os.getenv("DISPLAY") is not None:
+            window = ui.setup_menu()
+            text = "The default settings are a 9x9 board, 7.5 komi, and names for players of Player 1 and Player 2"
+            assert window["Info"].get() == text
+            window.close()
 
     @patch("GoGame.goclasses.GoBoard")
     @patch("platform.system")
     def test_setup_board_window_pygame_linux(self, mock_sys, mock_board):
-        mock_sys.return_value = 'Linux'
-        answer = ui.setup_board_window_pygame(mock_board)
-        assert isinstance(answer, sg.Window)
+        if os.getenv("DISPLAY") is not None:
+            mock_sys.return_value = 'Linux'
+            answer = ui.setup_board_window_pygame(mock_board)
+            assert isinstance(answer, sg.Window)
 
     @patch('PySimpleGUI.popup')
     def test_scoring_mode_popup(self, mock_popup):
@@ -202,17 +213,18 @@ class TestClassPyTestUI:
     @pytest.mark.parametrize("the_type", [(cf.rgb_black), (cf.rgb_peach)])
     @patch("pygame.draw.circle")
     def test_refresh_board_pygame(self, mock_draw_circle, the_type):
-        board = MagicMock()
-        board.backup_board = MagicMock()
-        board.screen = MagicMock()
-        board.pygame_board_vals = [700, 620 / 8, 620 / 24]
-        board.board_size = 9
+        if os.getenv("DISPLAY") is not None:
+            board = MagicMock()
+            board.backup_board = MagicMock()
+            board.screen = MagicMock()
+            board.pygame_board_vals = [700, 620 / 8, 620 / 24]
+            board.board_size = 9
 
-        board.board = [[MagicMock(stone_here_color=the_type, screen_row=50, screen_col=50)
-                        for _ in range(9)] for _ in range(9)]
+            board.board = [[MagicMock(stone_here_color=the_type, screen_row=50, screen_col=50)
+                            for _ in range(9)] for _ in range(9)]
 
-        ui.refresh_board_pygame(board)
-        assert mock_draw_circle.call_count == board.board_size ** 2
+            ui.refresh_board_pygame(board)
+            assert mock_draw_circle.call_count == board.board_size ** 2
 
     @patch("PySimpleGUI.Window")
     @patch("pygame.display.quit")

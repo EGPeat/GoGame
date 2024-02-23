@@ -38,7 +38,7 @@ class TestClassPyTestScoringBoard:
         the_board.making_go_board_strings(the_board.empty_space_set, cf.rgb_grey, False)
 
         assert str(the_board.black_strings[0]) == "this is a board string of color (0, 0, 0) and with len of 12 and values [(5, 0), (5, 1), (6, 0), (6, 2), (6, 3), (7, 0), (7, 1), (7, 3), (8, 0), (8, 1), (8, 2), (8, 3)]\
-             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"
+             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"  # noqa: E501
         assert len(the_board.black_strings) == 1
         assert len(the_board.white_strings) == 2
         assert len(the_board.empty_strings) == 3
@@ -49,9 +49,9 @@ class TestClassPyTestScoringBoard:
              and a xmin and xmax of (7, 7), and a ymin and ymax of (2, 2)"]
         white_list_output = [
             "this is a board string of color (255, 255, 255) and with len of 9 and values [(4, 0), (4, 1), (4, 2), (5, 2), (5, 3), (5, 4), (6, 4), (7, 4), (8, 4)]\
-             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)",
+             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)",   # noqa: E501
             "this is a board string of color (255, 255, 255) and with len of 7 and values [(6, 6), (7, 6), (7, 7), (7, 8), (8, 6), (8, 7), (8, 8)]\
-             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"]
+             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"]  # noqa: E501
         for idx in range(len(the_board.empty_strings)):
             item = the_board.empty_strings[idx]
             if len(item.member_set) == 51:
@@ -104,7 +104,7 @@ class TestClassPyTestScoringBoard:
         test_sb = sb.ScoringBoard(the_board)
         piece = test_sb.board[8][6]
         string_good = "this is a board string of color White and with len of 7 and values [(6, 6), (7, 6), (7, 7), (7, 8), (8, 6), (8, 7), (8, 8)]\
-             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"
+             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"  # noqa: E501
 
         piece_flood = flood_fill(piece)
         piece_string = go.BoardString("White", piece_flood[0])
@@ -131,9 +131,9 @@ class TestClassPyTestScoringBoard:
         piece_flood_outer = flood_fill(piece_outer)
         piece_outer_string = go.BoardString("Outer", piece_flood_outer[0])
         string_good = "this is a board string of color White and with len of 4 and values [(7, 7), (7, 8), (8, 7), (8, 8)]\
-             and a xmin and xmax of (7, 8), and a ymin and ymax of (7, 8)"
+             and a xmin and xmax of (7, 8), and a ymin and ymax of (7, 8)"  # noqa: E501
         string_outer = "this is a board string of color Outer and with len of 8 and values [(6, 7), (6, 8), (7, 6), (7, 7), (7, 8), (8, 6), (8, 7), (8, 8)]\
-             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"
+             and a xmin and xmax of (6, 8), and a ymin and ymax of (6, 8)"  # noqa: E501
         piece_flood = test_sb.flood_fill_with_outer(piece, piece_outer_string)
         piece_string = go.BoardString("White", piece_flood[0])
         piece_outer_string_two = go.BoardString("Outer", piece_flood[1])
@@ -153,13 +153,13 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_white, test_sb.black_strings)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 12 and values [(5, 0), (5, 1), (6, 0), (6, 2), (6, 3), (7, 0), (7, 1), (7, 3), (8, 0), (8, 1), (8, 2), (8, 3)]\
-             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"
+             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"  # noqa: E501
         piece = test_sb.board[5][0]
         neighbor = test_sb.board[4][0]
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_black, test_sb.white_strings)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (255, 255, 255) and with len of 9 and values [(4, 0), (4, 1), (4, 2), (5, 2), (5, 3), (5, 4), (6, 4), (7, 4), (8, 4)]\
-             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)"
+             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)"  # noqa: E501
         piece = test_sb.board[0][3]
         neighbor = test_sb.board[0][4]
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_black, test_sb.white_strings)
@@ -179,7 +179,7 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_white, test_sb.black_strings)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 10 and values [(0, 5), (1, 5), (1, 6), (1, 7), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8)]\
-             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"
+             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"  # noqa: E501
         piece = test_sb.board[1][1]
         neighbor = test_sb.board[1][0]
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_white, test_sb.black_strings)
@@ -190,13 +190,13 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_black, test_sb.white_strings)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (255, 255, 255) and with len of 3 and values [(0, 7), (1, 8), (2, 8)]\
-             and a xmin and xmax of (0, 2), and a ymin and ymax of (7, 8)"
+             and a xmin and xmax of (0, 2), and a ymin and ymax of (7, 8)"  # noqa: E501
         piece = test_sb.board[1][8]
         neighbor = test_sb.board[1][7]
         output = test_sb.find_neighbor_get_string_helper(piece, neighbor, cf.rgb_white, test_sb.black_strings)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 10 and values [(0, 5), (1, 5), (1, 6), (1, 7), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8)]\
-             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"
+             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"  # noqa: E501
 
     def test_find_neighbor_get_string_startscoring(self):
         the_board: go.GoBoard = load_pkl(
@@ -210,12 +210,12 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_black)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 12 and values [(5, 0), (5, 1), (6, 0), (6, 2), (6, 3), (7, 0), (7, 1), (7, 3), (8, 0), (8, 1), (8, 2), (8, 3)]\
-             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"
+             and a xmin and xmax of (5, 8), and a ymin and ymax of (0, 3)"  # noqa: E501
         piece = test_sb.board[6][1]
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_white)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (255, 255, 255) and with len of 9 and values [(4, 0), (4, 1), (4, 2), (5, 2), (5, 3), (5, 4), (6, 4), (7, 4), (8, 4)]\
-             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)"
+             and a xmin and xmax of (4, 8), and a ymin and ymax of (0, 4)"  # noqa: E501
         piece = test_sb.board[0][0]
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_white)
         assert output[0] is False
@@ -233,7 +233,7 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_black)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 10 and values [(0, 5), (1, 5), (1, 6), (1, 7), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8)]\
-             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"
+             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"  # noqa: E501
         piece = test_sb.board[0][0]
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_black)
         assert output[0] is False
@@ -242,12 +242,12 @@ class TestClassPyTestScoringBoard:
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_white)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (255, 255, 255) and with len of 3 and values [(0, 7), (1, 8), (2, 8)]\
-             and a xmin and xmax of (0, 2), and a ymin and ymax of (7, 8)"
+             and a xmin and xmax of (0, 2), and a ymin and ymax of (7, 8)"  # noqa: E501
         piece = test_sb.board[0][8]
         output = test_sb.find_neighbor_get_string(piece, cf.rgb_black)
         assert output[0] is True
         assert str(output[1]) == "this is a board string of color (0, 0, 0) and with len of 10 and values [(0, 5), (1, 5), (1, 6), (1, 7), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8)]\
-             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"
+             and a xmin and xmax of (0, 5), and a ymin and ymax of (5, 8)"  # noqa: E501
 
     def test_dealing_with_dead_stones_startscoring(self):
         the_board: go.GoBoard = load_pkl(

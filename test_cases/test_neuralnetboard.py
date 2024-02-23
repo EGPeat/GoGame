@@ -1,11 +1,7 @@
-from unittest.mock import patch, MagicMock, call
-import GoGame.botnormalgo as bot
-import GoGame.config as cf
+from unittest.mock import patch, call
 import GoGame.neuralnetboard as nn
 from GoGame.saving_loading import load_pkl
-import GoGame.player as pl
 import GoGame.goclasses as go
-from GoGame.goclasses import play_piece_bot
 
 
 class TestClassPyTestNeuralNetBoard:
@@ -40,7 +36,7 @@ class TestClassPyTestNeuralNetBoard:
         assert test_sb.parent == the_board
         assert test_sb.player_black == test_sb.parent.player_black
 
-    #def test_init_board(self):
+    # def test_init_board(self):
     #    test_board = nn.initializing_game(9, True)
     #    assert isinstance(test_board.player_black, pl.Player)
     #    assert test_board.board_size == 9
